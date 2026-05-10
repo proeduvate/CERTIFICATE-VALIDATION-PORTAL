@@ -1,0 +1,212 @@
+﻿<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Intern Management Admin Portal</title>
+  <link rel="icon" href="favicon.ico" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Source+Sans+3:wght@400;600&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div id="reactModuleRoot" class="react-module-host"></div>
+  <main class="app-shell">
+    <section id="loginView" class="panel login-panel">
+      <h1>Intern Management Admin Portal</h1>
+      <p class="subtitle">Admin-only access to manage interns, tasks, and performance.</p>
+
+      <form id="loginForm" class="form-grid" autocomplete="off">
+        <label>
+          Admin Username
+          <input id="username" type="text" placeholder="e.g. admin" required />
+        </label>
+
+        <label>
+          Password
+          <input id="password" type="password" placeholder="Enter password" required />
+        </label>
+
+        <button type="submit">Login</button>
+      </form>
+
+      <div class="help-text">
+        <p><strong>Demo Admin:</strong> `admin` / `admin123`</p>
+      </div>
+      <p id="loginError" class="error"></p>
+    </section>
+
+    <section id="dashboardView" class="dashboard hidden">
+      <header class="top-nav">
+        <div class="nav-left">
+          <img id="companyLogo" src="assets/company-logo.png" alt="ProEduvate logo" />
+          <span id="logoFallback" class="logo-fallback hidden">Add logo at frontend/assets/company-logo.png</span>
+        </div>
+        <div class="nav-center">
+          <h2 id="welcomeTitle">Admin Home</h2>
+          <p id="roleInfo" class="subtitle"></p>
+        </div>
+        <div class="nav-right">
+          <span id="roleBadge" class="role-badge">Admin</span>
+          <label id="studentPickerWrap" class="hidden">
+            Intern
+            <select id="studentPicker"></select>
+          </label>
+          <button id="logoutBtn" class="secondary">Logout</button>
+        </div>
+      </header>
+
+      <section class="dashboard-content">
+        <!-- METRICS CARDS -->
+        <div id="metricsContainer" class="metrics-grid"></div>
+
+        <!-- ADMIN SECTIONS -->
+        <div id="adminSections" class="admin-view">
+          <!-- Intern Detail -->
+          <div id="internDetailSection" class="section-card reveal">
+            <div class="section-header">
+              <h3>Intern Profile & Management</h3>
+            </div>
+            <p id="internDetailEmpty" class="empty-state">Select an intern to view and manage details.</p>
+            <div id="studentSections" class="student-view hidden">
+              <div id="summaryCards" class="summary-row"></div>
+              <section id="identitySection" class="section-card reveal"></section>
+              <section id="internshipSection" class="section-card reveal"></section>
+              <section id="workSection" class="section-card reveal"></section>
+              <section id="attendanceSection" class="section-card reveal"></section>
+              <section id="lorSection" class="section-card reveal"></section>
+              <section id="verificationSection" class="section-card reveal"></section>
+              <section id="projectsSection" class="section-card reveal"></section>
+              <section id="tasksSection" class="section-card reveal"></section>
+              <section id="performanceSection" class="section-card reveal"></section>
+              <section id="notificationsSection" class="section-card reveal"></section>
+            </div>
+          </div>
+
+          <!-- Add New Intern -->
+          <div id="addInternSection" class="section-card reveal">
+            <div class="section-header">
+              <h3>Add New Intern</h3>
+            </div>
+            <form id="addInternForm" class="form-grid">
+              <input type="text" id="internName" placeholder="Intern Name" required />
+              <input type="email" id="internEmail" placeholder="Email" required />
+              <input type="tel" id="internPhone" placeholder="Phone" required />
+              <input type="text" id="internCollege" placeholder="College" />
+              <input type="text" id="internDepartment" placeholder="Department" />
+              <input type="text" id="internRole" placeholder="Internship Role" />
+              <input type="text" id="internPassingYear" placeholder="Passing Out Year" />
+              <div class="form-row">
+                <input type="date" id="internStartDate" />
+                <input type="date" id="internEndDate" />
+              </div>
+              <select id="internStatus">
+                <option value="Onboarding">Onboarding</option>
+                <option value="Active" selected>Active</option>
+                <option value="Completed">Completed</option>
+              </select>
+              <button type="submit" class="btn btn-primary">Create Intern</button>
+            </form>
+          </div>
+
+          <!-- Intern Management -->
+          <div id="internManagementSection" class="section-card reveal">
+            <div class="section-header">
+              <h3>Intern Management</h3>
+              <div class="section-actions">
+                <input type="text" id="internSearch" placeholder="Search interns..." class="search-input" />
+                <select id="statusFilter" class="filter-select">
+                  <option value="">All Status</option>
+                  <option value="Onboarding">Onboarding</option>
+                  <option value="Active">Active</option>
+                  <option value="Completed">Completed</option>
+                  <option value="Pending">Pending</option>
+                </select>
+                <button class="btn btn-secondary" onclick="exportInternData()">Export Data</button>
+                <button class="btn btn-secondary" onclick="bulkOperations()">Bulk Actions</button>
+              </div>
+            </div>
+            <div id="internListContainer" class="table-container">
+              <table class="interns-table">
+                <thead>
+                  <tr>
+                    <th><input type="checkbox" id="selectAllInterns" onchange="toggleSelectAll()" /></th>
+                    <th>Intern ID</th>
+                    <th>Name</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Verified</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="internTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Internship Monitoring -->
+          <div id="monitoringSection" class="section-card reveal">
+            <div class="section-header">
+              <h3>Internship Monitoring</h3>
+            </div>
+            <div class="monitoring-grid">
+              <div class="monitoring-item">
+                <h4>Task Progress</h4>
+                <div class="progress-chart" id="taskProgressChart"></div>
+              </div>
+              <div class="monitoring-item">
+                <h4>Attendance Overview</h4>
+                <div id="attendanceOverview"></div>
+              </div>
+              <div class="monitoring-item">
+                <h4>Performance Analytics</h4>
+                <div id="performanceChart"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Verification Section -->
+          <div id="verificationAdminSection" class="section-card reveal">
+            <div class="section-header">
+              <h3>Verification & Certification</h3>
+            </div>
+            <div class="verification-grid">
+              <div class="verification-item">
+                <h4>Letter of Recommendation</h4>
+                <button class="btn btn-primary">Generate LOR</button>
+              </div>
+              <div class="verification-item">
+                <h4>Certificate Management</h4>
+                <button class="btn btn-primary">Approve Certificates</button>
+              </div>
+              <div class="verification-item">
+                <h4>Digital Verification</h4>
+                <button class="btn btn-primary">Generate Stamp</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Activity Feed -->
+          <div id="activityFeedSection" class="section-card reveal">
+            <div class="section-header">
+              <h3>Recent Activity Feed</h3>
+            </div>
+            <div class="activity-feed" id="activityFeed"></div>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script type="module" src="react-module.js"></script>
+  <script src="script.js"></script>
+</body>
+
+</html>
