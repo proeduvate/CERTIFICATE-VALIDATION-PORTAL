@@ -1,0 +1,22 @@
+{
+  "name": "proeduvate",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ProEduvate project root",
+  "scripts": {
+    "install:backend": "npm install --prefix backend",
+    "install:frontend": "npm install --prefix frontend-react",
+    "install:static": "npm install --prefix frontend",
+    "install:frontend-react": "npm install --prefix frontend-react",
+    "dev:backend": "npm run dev --prefix backend",
+    "dev": "npm run dev --prefix frontend-react",
+    "dev:frontend": "npm run dev --prefix frontend-react",
+    "dev:static": "npm run dev --prefix frontend",
+    "dev:react": "npm run dev --prefix frontend-react",
+    "start:backend": "npm run start --prefix backend",
+    "start": "npm run start --prefix frontend",
+    "start:static": "npm run start --prefix frontend",
+    "build:react": "npm run build --prefix frontend-react",
+    "preview:react": "npm run preview --prefix frontend-react"
+  }
+}
