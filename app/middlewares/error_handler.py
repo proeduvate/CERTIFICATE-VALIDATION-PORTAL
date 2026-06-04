@@ -1,0 +1,13 @@
+from fastapi import Request
+from fastapi.responses import JSONResponse
+
+from app.core.exceptions import AppException
+from app.core.exceptions import AppException, NotFoundError
+
+
+async def app_exception_handler(request: Request, exc: AppException) -> JSONResponse:
+    return JSONResponse(status_code=400, content={"detail": str(exc)})
+    status_code = 400
+    if isinstance(exc, NotFoundError):
+        status_code = 404
+    return JSONResponse(status_code=status_code, content={"detail": str(exc)})
