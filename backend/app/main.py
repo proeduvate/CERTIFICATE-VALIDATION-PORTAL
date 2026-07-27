@@ -4,7 +4,6 @@ from app.api.routes.auth import router as auth_router
 from app.api.routes.intern import router as intern_router
 from app.api.routes.dashboard import router as dashboard_router
 
-
 app = FastAPI(title="Intern Management System API", version="1.0.0")
 
 create_tables()
