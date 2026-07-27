@@ -3,74 +3,67 @@ from sqlalchemy.orm import Session
 
 from app.db.session import get_db
 from app.models.intern import Intern
-from app.schemas.intern import (
-    InternCreate,
-    InternResponse,
-    InternUpdate
-)
+from app.schemas.intern import InternCreate, InternResponse, InternUpdate
 from sqlalchemy import or_
 from app.dependencies.role_checker import role_required
-from fastapi.responses import FileResponse 
+from fastapi.responses import FileResponse
 from openpyxl import Workbook
 
-router = APIRouter(
-    prefix="/interns",
-    tags=["Intern"]
-)
+router = APIRouter(prefix="/interns", tags=["Intern"])
+
 
 @router.post("/", response_model=InternResponse)
 def create_intern(intern: InternCreate, db: Session = Depends(get_db)):
 
     new_intern = Intern(
-    name=intern.name,
-    email=intern.email,
-    department=intern.department,
-    college=intern.college,
-
-    intern_id=intern.intern_id,
-    internship_role=intern.internship_role,
-    referral_person=intern.referral_person,
-    dob=intern.dob,
-    linkedin=intern.linkedin,
-    github=intern.github,
-    year=intern.year,
-    whatsapp_group=intern.whatsapp_group,
-    location=intern.location,
-    mode=intern.mode,
-    domain=intern.domain,
-    mentor=intern.mentor,
-    organization=intern.organization,
-    start_date=intern.start_date,
-    end_date=intern.end_date,
-    duration=intern.duration,
-    status=intern.status,
-    work_year=intern.work_year,
-    work_domain=intern.work_domain,
-    responsibilities=intern.responsibilities,
-    work_information=intern.work_information,
-    present_days=intern.present_days,
-    absent_days=intern.absent_days,
-    leave_days=intern.leave_days,
-    working_days=intern.working_days,
-    holidays=intern.holidays,
-    attendance_percentage=intern.attendance_percentage,
-    offer_letter=intern.offer_letter,
-    completion_letter=intern.completion_letter,
-    lor=intern.lor,
-    certificate=intern.certificate,
-    resume=intern.resume,
-    verification_status=intern.verification_status,
-    verified_by=intern.verified_by,
-    verification_date=intern.verification_date,
-    remarks=intern.remarks
-
-)
+        name=intern.name,
+        email=intern.email,
+        department=intern.department,
+        college=intern.college,
+        intern_id=intern.intern_id,
+        internship_role=intern.internship_role,
+        referral_person=intern.referral_person,
+        dob=intern.dob,
+        linkedin=intern.linkedin,
+        github=intern.github,
+        year=intern.year,
+        whatsapp_group=intern.whatsapp_group,
+        location=intern.location,
+        mode=intern.mode,
+        domain=intern.domain,
+        mentor=intern.mentor,
+        organization=intern.organization,
+        start_date=intern.start_date,
+        end_date=intern.end_date,
+        duration=intern.duration,
+        status=intern.status,
+        work_year=intern.work_year,
+        work_domain=intern.work_domain,
+        responsibilities=intern.responsibilities,
+        work_information=intern.work_information,
+        present_days=intern.present_days,
+        absent_days=intern.absent_days,
+        leave_days=intern.leave_days,
+        working_days=intern.working_days,
+        holidays=intern.holidays,
+        attendance_percentage=intern.attendance_percentage,
+        offer_letter=intern.offer_letter,
+        completion_letter=intern.completion_letter,
+        lor=intern.lor,
+        certificate=intern.certificate,
+        resume=intern.resume,
+        verification_status=intern.verification_status,
+        verified_by=intern.verified_by,
+        verification_date=intern.verification_date,
+        remarks=intern.remarks,
+    )
 
     db.add(new_intern)
     db.commit()
     db.refresh(new_intern)
 
     return new_intern
+
 
 @router.get("/", response_model=list[InternResponse])
 def get_all_interns(db: Session = Depends(get_db)):
@@ -80,53 +73,42 @@ def get_all_interns(db: Session = Depends(get_db)):
 
 @router.get("/search")
 def search_intern(name: str, db: Session = Depends(get_db)):
-    interns = db.query(Intern).filter(
-        Intern.name.ilike(f"%{name}%")
-    ).all()
+    interns = db.query(Intern).filter(Intern.name.ilike(f"%{name}%")).all()
 
     return interns
 
 
 @router.get("/search/email")
 def search_by_email(email: str, db: Session = Depends(get_db)):
-    intern = db.query(Intern).filter(
-        Intern.email == email
-    ).first()
+    intern = db.query(Intern).filter(Intern.email == email).first()
 
     return intern
 
+
 @router.get("/department/{department}")
 def get_department(department: str, db: Session = Depends(get_db)):
-    return db.query(Intern).filter(
-        Intern.department == department
-    ).all()
+    return db.query(Intern).filter(Intern.department == department).all()
+
 
 @router.get("/status/{status}")
 def get_status(status: str, db: Session = Depends(get_db)):
-    return db.query(Intern).filter(
-        Intern.status == status
-    ).all()
+    return db.query(Intern).filter(Intern.status == status).all()
+
 
 @router.get("/mentor/{mentor}")
 def get_mentor(mentor: str, db: Session = Depends(get_db)):
-    return db.query(Intern).filter(
-        Intern.mentor == mentor
-    ).all()
+    return db.query(Intern).filter(Intern.mentor == mentor).all()
+
 
 @router.get("/pagination")
 def get_interns(
     page: int = Query(1, ge=1),
     size: int = Query(10, ge=1),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     skip = (page - 1) * size
 
-    interns = (
-        db.query(Intern)
-        .offset(skip)
-        .limit(size)
-        .all()
-    )
+    interns = db.query(Intern).offset(skip).limit(size).all()
 
     total = db.query(Intern).count()
 
@@ -135,7 +117,7 @@ def get_interns(
         "size": size,
         "total_records": total,
         "total_pages": (total + size - 1) // size,
-        "data": interns
+        "data": interns,
     }
 
 
@@ -148,26 +130,20 @@ def export_interns(db: Session = Depends(get_db)):
     sheet = workbook.active
     sheet.title = "Interns"
 
-    sheet.append([
-        "ID",
-        "Name",
-        "Email",
-        "Department",
-        "College",
-        "Status",
-        "Mentor"
-    ])
+    sheet.append(["ID", "Name", "Email", "Department", "College", "Status", "Mentor"])
 
     for intern in interns:
-        sheet.append([
-            intern.id,
-            intern.name,
-            intern.email,
-            intern.department,
-            intern.college,
-            intern.status,
-            intern.mentor
-        ])
+        sheet.append(
+            [
+                intern.id,
+                intern.name,
+                intern.email,
+                intern.department,
+                intern.college,
+                intern.status,
+                intern.mentor,
+            ]
+        )
 
     filename = "interns.xlsx"
     workbook.save(filename)
@@ -175,8 +151,9 @@ def export_interns(db: Session = Depends(get_db)):
     return FileResponse(
         filename,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        filename="interns.xlsx"
+        filename="interns.xlsx",
     )
+
 
 @router.get("/{id}", response_model=InternResponse)
 def get_intern_by_id(id: int, db: Session = Depends(get_db)):
@@ -187,12 +164,9 @@ def get_intern_by_id(id: int, db: Session = Depends(get_db)):
 
     return intern
 
+
 @router.put("/{id}", response_model=InternResponse)
-def update_intern(
-    id: int,
-    intern_data: InternUpdate,
-    db: Session = Depends(get_db)
-):
+def update_intern(id: int, intern_data: InternUpdate, db: Session = Depends(get_db)):
     intern = db.query(Intern).filter(Intern.id == id).first()
 
     if not intern:
@@ -244,6 +218,7 @@ def update_intern(
     db.refresh(intern)
 
     return intern
+
 
 @router.delete("/{id}")
 def delete_intern(id: int, db: Session = Depends(get_db)):

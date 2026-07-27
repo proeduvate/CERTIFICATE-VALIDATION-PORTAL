@@ -1,5 +1,7 @@
 from sqlalchemy import Column, Integer, String, Date, Float
 from app.db.base import Base
+
+
 class Intern(Base):
     __tablename__ = "interns"
 
@@ -22,7 +24,7 @@ class Intern(Base):
     whatsapp_group = Column(String(50))
     location = Column(String(100))
 
-    #Internship tab
+    # Internship tab
 
     mode = Column(String(50))
     domain = Column(String(100))
@@ -33,13 +35,13 @@ class Intern(Base):
     duration = Column(String(50))
     status = Column(String(50))
 
-    #work tab
+    # work tab
     work_year = Column(String(20))
     work_domain = Column(String(100))
     responsibilities = Column(String(500))
     work_information = Column(String(1000))
 
-    #attendance tab
+    # attendance tab
 
     present_days = Column(Integer)
     absent_days = Column(Integer)
@@ -48,14 +50,14 @@ class Intern(Base):
     holidays = Column(Integer)
     attendance_percentage = Column(Float)
 
-    #document tab
+    # document tab
     offer_letter = Column(String(255))
     completion_letter = Column(String(255))
     lor = Column(String(255))
     certificate = Column(String(255))
     resume = Column(String(255))
 
-    #verification tab
+    # verification tab
     verification_status = Column(String(50))
     verified_by = Column(String(100))
     verification_date = Column(Date)

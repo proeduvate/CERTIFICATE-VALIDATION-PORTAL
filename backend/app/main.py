@@ -5,10 +5,7 @@ from app.api.routes.intern import router as intern_router
 from app.api.routes.dashboard import router as dashboard_router
 
 
-app = FastAPI(
-    title="Intern Management System API",
-    version="1.0.0"
-)
+app = FastAPI(title="Intern Management System API", version="1.0.0")
 
 create_tables()
 
@@ -16,8 +13,8 @@ create_tables()
 app.include_router(auth_router)
 app.include_router(intern_router)
 app.include_router(dashboard_router)
+
+
 @app.get("/")
 def home():
-    return {
-        "message": "Intern Management System API Running Successfully"
-    }
+    return {"message": "Intern Management System API Running Successfully"}

@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from datetime import date
 
+
 class InternCreate(BaseModel):
     name: str
     email: str
@@ -42,6 +43,7 @@ class InternCreate(BaseModel):
     verified_by: str
     verification_date: date
     remarks: str
+
 
 class InternResponse(BaseModel):
     id: int
@@ -85,11 +87,9 @@ class InternResponse(BaseModel):
     verified_by: str
     verification_date: date
     remarks: str
-    
 
-    model_config = {
-        "from_attributes": True
-    }
+    model_config = {"from_attributes": True}
+
 
 class InternUpdate(BaseModel):
     name: str
