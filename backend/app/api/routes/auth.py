@@ -59,11 +59,7 @@ def forgot_password(
     request: ForgotPasswordRequest,
     db: Session = Depends(get_db),
 ):
-    user = (
-        db.query(User)
-        .filter(User.email == request.email)
-        .first()
-    )
+    user = db.query(User).filter(User.email == request.email).first()
 
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -87,6 +83,4 @@ def reset_password(
 
     db.commit()
 
-    return {
-          "message": "Password reset successfully."
-    }
+    return {"message": "Password reset successfully."}

@@ -128,11 +128,7 @@ def export_interns(db: Session = Depends(get_db)):
     sheet = workbook.active
     sheet.title = "Interns"
 
-    sheet.append(
-        [
-            "ID", "Name", "Email", "Department", "College", "Status", "Mentor"
-        ]
-    )
+    sheet.append(["ID", "Name", "Email", "Department", "College", "Status", "Mentor"])
 
     for intern in interns:
         sheet.append(
@@ -153,8 +149,7 @@ def export_interns(db: Session = Depends(get_db)):
     return FileResponse(
         filename,
         media_type=(
-            "application/"
-            "vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            "application/" "vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         ),
         filename="interns.xlsx",
     )
@@ -171,11 +166,7 @@ def get_intern_by_id(id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/{id}", response_model=InternResponse)
-def update_intern(
-    id: int,
-    intern_data: InternUpdate,
-    db: Session = Depends(get_db)
-):
+def update_intern(id: int, intern_data: InternUpdate, db: Session = Depends(get_db)):
     intern = db.query(Intern).filter(Intern.id == id).first()
 
     if not intern:
