@@ -11,12 +11,22 @@ def dashboard_summary(db: Session = Depends(get_db)):
 
     total_interns = db.query(Intern).count()
 
-    active_interns = db.query(Intern).filter(Intern.status == "Active").count()
+    active_interns = (
+        db.query(Intern)
+        .filter(Intern.status == "Active")
+        .count()
+    )
 
-    completed_interns = db.query(Intern).filter(Intern.status == "Completed").count()
+    completed_interns = (
+        db.query(Intern)
+        .filter(Intern.status == "Completed")
+        .count()
+    )
 
     pending_verification = (
-        db.query(Intern).filter(Intern.verification_status == "Pending").count()
+        db.query(Intern)
+        .filter(Intern.verification_status == "Pending")
+        .count()
     )
 
     return {

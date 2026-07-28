@@ -77,24 +77,40 @@ def search_intern(name: str, db: Session = Depends(get_db)):
 
 
 @router.get("/search/email")
-def search_by_email(email: str, db: Session = Depends(get_db)):
-    intern = db.query(Intern).filter(Intern.email == email).first()
+def search_by_email(
+    email: str,
+    db: Session = Depends(get_db),
+):
+    intern = (
+        db.query(Intern)
+        .filter(Intern.email == email)
+        .first()
+    )
 
     return intern
 
 
 @router.get("/department/{department}")
-def get_department(department: str, db: Session = Depends(get_db)):
+def get_department(
+    department: str,
+    db: Session = Depends(get_db)
+):
     return db.query(Intern).filter(Intern.department == department).all()
 
 
 @router.get("/status/{status}")
-def get_status(status: str, db: Session = Depends(get_db)):
+def get_status(
+    status: str,
+    db: Session = Depends(get_db)
+):
     return db.query(Intern).filter(Intern.status == status).all()
 
 
 @router.get("/mentor/{mentor}")
-def get_mentor(mentor: str, db: Session = Depends(get_db)):
+def get_mentor(
+    mentor: str,
+    db: Session = Depends(get_db)
+):
     return db.query(Intern).filter(Intern.mentor == mentor).all()
 
 
@@ -128,7 +144,11 @@ def export_interns(db: Session = Depends(get_db)):
     sheet = workbook.active
     sheet.title = "Interns"
 
-    sheet.append(["ID", "Name", "Email", "Department", "College", "Status", "Mentor"])
+    sheet.append(
+        [
+            "ID", "Name", "Email", "Department", "College", "Status", "Mentor"
+        ]
+    )
 
     for intern in interns:
         sheet.append(
@@ -149,28 +169,54 @@ def export_interns(db: Session = Depends(get_db)):
     return FileResponse(
         filename,
         media_type=(
-            "application/" "vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            "application/"
+            "vnd.openxmlformats-officedocument."
+            "spreadsheetml.sheet"
         ),
         filename="interns.xlsx",
     )
 
 
 @router.get("/{id}", response_model=InternResponse)
-def get_intern_by_id(id: int, db: Session = Depends(get_db)):
-    intern = db.query(Intern).filter(Intern.id == id).first()
+def get_intern_by_id(
+    id: int,
+    db: Session = Depends(get_db)
+):
+    intern = (
+        db.query(Intern)
+        .filter(Intern.id == id)
+        .first()
+    )
 
     if not intern:
-        raise HTTPException(status_code=404, detail="Intern not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Intern not found"
+        )
 
     return intern
 
 
-@router.put("/{id}", response_model=InternResponse)
-def update_intern(id: int, intern_data: InternUpdate, db: Session = Depends(get_db)):
-    intern = db.query(Intern).filter(Intern.id == id).first()
+@router.put(
+    "/{id}",
+    response_model=InternResponse,
+)
+def update_intern(
+    id: int,
+    intern_data: InternUpdate,
+    db: Session = Depends(get_db),
+):
+    intern = (
+        db.query(Intern)
+        .filter(Intern.id == id)
+        .first()
+    )
 
     if not intern:
-        raise HTTPException(status_code=404, detail="Intern not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Intern not found",
+        )
 
     intern.name = intern_data.name
     intern.email = intern_data.email
@@ -230,4 +276,6 @@ def delete_intern(id: int, db: Session = Depends(get_db)):
     db.delete(intern)
     db.commit()
 
-    return {"message": "Intern deleted successfully"}
+    return {
+        "message": "Intern deleted successfully",
+    }
