@@ -8,7 +8,6 @@ from app.schemas.auth import ForgotPasswordRequest, ResetPasswordRequest
 from app.core.security import hash_password
 from app.core.security import verify_password, create_access_token
 from app.core.auth import get_current_user
-from fastapi import Depends
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -56,17 +55,29 @@ def profile(current_user=Depends(get_current_user)):
 
 
 @router.post("/forgot-password")
-def forgot_password(request: ForgotPasswordRequest, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == request.email).first()
+def forgot_password(
+    request: ForgotPasswordRequest,
+    db: Session = Depends(get_db),
+):
+    user = (
+        db.query(User)
+        .filter(User.email == request.email)
+        .first()
+    )
 
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    return {"message": "User verified. You can reset your password."}
+    return {
+        "message": "User verified. You can reset your password.",
+    }
 
 
 @router.post("/reset-password")
-def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db)):
+def reset_password(
+    request: ResetPasswordRequest,
+    db: Session = Depends(get_db),
+):
     user = db.query(User).filter(User.email == request.email).first()
 
     if not user:
@@ -76,4 +87,6 @@ def reset_password(request: ResetPasswordRequest, db: Session = Depends(get_db))
 
     db.commit()
 
-    return {"message": "Password reset successfully."}
+    return {
+          "message": "Password reset successfully."
+    }

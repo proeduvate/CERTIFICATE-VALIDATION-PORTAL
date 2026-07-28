@@ -5,5 +5,4 @@ class Base(DeclarativeBase):
     pass
 
 
-# Import models here
-from app.models.user import User
+from app.models.user import User  # noqa: F401, E402
