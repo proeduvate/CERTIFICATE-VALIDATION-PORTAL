@@ -1,0 +1,134 @@
+from pydantic import BaseModel
+from datetime import date
+
+
+class InternCreate(BaseModel):
+    name: str
+    email: str
+    department: str
+    college: str
+    intern_id: str
+    internship_role: str
+    referral_person: str
+    dob: date
+    linkedin: str
+    github: str
+    year: str
+    whatsapp_group: str
+    location: str
+    mode: str
+    domain: str
+    mentor: str
+    organization: str
+    start_date: date
+    end_date: date
+    duration: str
+    status: str
+    work_year: str
+    work_domain: str
+    responsibilities: str
+    work_information: str
+    present_days: int
+    absent_days: int
+    leave_days: int
+    working_days: int
+    holidays: int
+    attendance_percentage: float
+    offer_letter: str
+    completion_letter: str
+    lor: str
+    certificate: str
+    resume: str
+    verification_status: str
+    verified_by: str
+    verification_date: date
+    remarks: str
+
+
+class InternResponse(BaseModel):
+    id: int
+    name: str
+    email: str
+    department: str
+    college: str
+    intern_id: str
+    internship_role: str
+    referral_person: str
+    dob: date
+    linkedin: str
+    github: str
+    year: str
+    whatsapp_group: str
+    location: str
+    mode: str
+    domain: str
+    mentor: str
+    organization: str
+    start_date: date
+    end_date: date
+    duration: str
+    status: str
+    work_year: str
+    work_domain: str
+    responsibilities: str
+    work_information: str
+    present_days: int
+    absent_days: int
+    leave_days: int
+    working_days: int
+    holidays: int
+    attendance_percentage: float
+    offer_letter: str
+    completion_letter: str
+    lor: str
+    certificate: str
+    resume: str
+    verification_status: str
+    verified_by: str
+    verification_date: date
+    remarks: str
+
+    model_config = {"from_attributes": True}
+
+
+class InternUpdate(BaseModel):
+    name: str
+    email: str
+    department: str
+    college: str
+    intern_id: str
+    internship_role: str
+    referral_person: str
+    dob: date
+    linkedin: str
+    github: str
+    year: str
+    whatsapp_group: str
+    location: str
+    mode: str
+    domain: str
+    mentor: str
+    organization: str
+    start_date: date
+    end_date: date
+    duration: str
+    status: str
+    work_year: str
+    work_domain: str
+    responsibilities: str
+    work_information: str
+    present_days: int
+    absent_days: int
+    leave_days: int
+    working_days: int
+    holidays: int
+    attendance_percentage: float
+    offer_letter: str
+    completion_letter: str
+    lor: str
+    certificate: str
+    resume: str
+    verification_status: str
+    verified_by: str
+    verification_date: date
+    remarks: str
