@@ -6,12 +6,21 @@ from app.models.intern import Intern
 from app.schemas.intern import InternCreate, InternResponse, InternUpdate
 from fastapi.responses import FileResponse
 from openpyxl import Workbook
+from app.core.security import (
+    get_current_user,
+    require_admin,
+)
+from app.models.user import User
 
 router = APIRouter(prefix="/interns", tags=["Intern"])
 
 
 @router.post("/", response_model=InternResponse)
-def create_intern(intern: InternCreate, db: Session = Depends(get_db)):
+def create_intern(
+    intern: InternCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
 
     new_intern = Intern(
         name=intern.name,
@@ -64,13 +73,20 @@ def create_intern(intern: InternCreate, db: Session = Depends(get_db)):
 
 
 @router.get("/", response_model=list[InternResponse])
-def get_all_interns(db: Session = Depends(get_db)):
+def get_all_interns(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     interns = db.query(Intern).all()
     return interns
 
 
 @router.get("/search")
-def search_intern(name: str, db: Session = Depends(get_db)):
+def search_intern(
+    name: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     interns = db.query(Intern).filter(Intern.name.ilike(f"%{name}%")).all()
 
     return interns
@@ -80,6 +96,7 @@ def search_intern(name: str, db: Session = Depends(get_db)):
 def search_by_email(
     email: str,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     intern = (
         db.query(Intern)
@@ -93,7 +110,8 @@ def search_by_email(
 @router.get("/department/{department}")
 def get_department(
     department: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     return db.query(Intern).filter(Intern.department == department).all()
 
@@ -101,7 +119,8 @@ def get_department(
 @router.get("/status/{status}")
 def get_status(
     status: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     return db.query(Intern).filter(Intern.status == status).all()
 
@@ -109,7 +128,8 @@ def get_status(
 @router.get("/mentor/{mentor}")
 def get_mentor(
     mentor: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     return db.query(Intern).filter(Intern.mentor == mentor).all()
 
@@ -119,6 +139,7 @@ def get_interns(
     page: int = Query(1, ge=1),
     size: int = Query(10, ge=1),
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     skip = (page - 1) * size
 
@@ -136,7 +157,10 @@ def get_interns(
 
 
 @router.get("/export")
-def export_interns(db: Session = Depends(get_db)):
+def export_interns(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
 
     interns = db.query(Intern).all()
 
@@ -177,10 +201,11 @@ def export_interns(db: Session = Depends(get_db)):
     )
 
 
-@router.get("/{id}", response_model=InternResponse)
+@router.get("/{id}")
 def get_intern_by_id(
     id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     intern = (
         db.query(Intern)
@@ -194,7 +219,42 @@ def get_intern_by_id(
             detail="Intern not found"
         )
 
-    return intern
+    return {
+    "identity_details": {
+        "name": intern.name,
+        "email": intern.email,
+        "intern_id": intern.intern_id,
+        "department": intern.department,
+        "college": intern.college,
+        "dob": intern.dob,
+        "linkedin": intern.linkedin,
+        "github": intern.github,
+    },
+    "internship_information": {
+        "organization": intern.organization,
+        "mentor": intern.mentor,
+        "domain": intern.domain,
+        "mode": intern.mode,
+        "status": intern.status,
+        "start_date": intern.start_date,
+        "end_date": intern.end_date,
+    },
+    "work_task_summary": {
+        "work_year": intern.work_year,
+        "work_domain": intern.work_domain,
+        "responsibilities": intern.responsibilities,
+        "work_information": intern.work_information,
+    },
+    "attendance_summary": {
+        "present_days": intern.present_days,
+        "absent_days": intern.absent_days,
+        "leave_days": intern.leave_days,
+        "working_days": intern.working_days,
+        "attendance_percentage": (
+            intern.attendance_percentage
+        ),
+    },
+}
 
 
 @router.put(
@@ -205,6 +265,7 @@ def update_intern(
     id: int,
     intern_data: InternUpdate,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
 ):
     intern = (
         db.query(Intern)
@@ -267,7 +328,11 @@ def update_intern(
 
 
 @router.delete("/{id}")
-def delete_intern(id: int, db: Session = Depends(get_db)):
+def delete_intern(
+    id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
     intern = db.query(Intern).filter(Intern.id == id).first()
 
     if not intern:
