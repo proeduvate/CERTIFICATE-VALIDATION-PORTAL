@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
@@ -12,7 +12,11 @@ from app.core.auth import get_current_user
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
-@router.post("/register", response_model=UserResponse)
+@router.post(
+    "/register",
+    response_model=UserResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 def register(user: UserCreate, db: Session = Depends(get_db)):
 
     existing_user = db.query(User).filter(User.email == user.email).first()
@@ -46,12 +50,41 @@ def login(email: str, password: str, db: Session = Depends(get_db)):
 
     token = create_access_token({"sub": user.email, "role": user.role})
 
-    return {"access_token": token, "token_type": "bearer"}
+    return {
+    "access_token": token,
+    "token_type": "bearer",
+    "user": {
+        "id": user.id,
+        "full_name": user.full_name,
+        "email": user.email,
+        "role": user.role,
+    },
+}
 
 
 @router.get("/profile")
 def profile(current_user=Depends(get_current_user)):
     return {"message": "Profile fetched successfully", "user": current_user}
+
+@router.get("/me")
+def get_me(
+    current_user: User = Depends(get_current_user),
+):
+    return {
+        "id": current_user.id,
+        "full_name": current_user.full_name,
+        "email": current_user.email,
+        "role": current_user.role,
+    }
+
+@router.post("/logout")
+def logout(
+    current_user: User = Depends(get_current_user),
+):
+    return {
+        "message": "Logout successful. Please remove the token from the client.",
+    }
+
 
 
 @router.post("/forgot-password")
