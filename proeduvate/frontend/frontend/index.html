@@ -1,0 +1,290 @@
+﻿<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Intern Verification Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Source+Sans+3:wght@400;600&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <div class="browser-top" aria-hidden="true">
+    <div class="browser-dots">
+      <span class="dot red"></span>
+      <span class="dot yellow"></span>
+      <span class="dot green"></span>
+    </div>
+    <div class="browser-address">app.interntrack.in/login</div>
+  </div>
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <main class="app-shell">
+    <section id="loginView" class="login-panel">
+      <div class="interntrack-card">
+        <div class="login-brand">
+          <div class="login-logo" aria-hidden="true">
+            <svg viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="38" height="38" rx="10" fill="#4B8DF7" />
+              <path d="M19 10.4L27 14.8L19 19.2L11 14.8L19 10.4Z" stroke="white" stroke-width="1.8" stroke-linejoin="round" />
+              <path d="M11 19L19 23.4L27 19" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+              <path d="M11 23L19 27.4L27 23" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </div>
+          <h1>InternTrack</h1>
+          <p>Internship Management System</p>
+        </div>
+
+        <form id="loginForm" class="interntrack-form" autocomplete="off">
+          <select id="role" class="role-select" required aria-label="Role">
+            <option value="admin">Admin</option>
+            <option value="student">Student</option>
+          </select>
+
+          <div class="role-toggle" aria-label="Role toggle">
+            <button class="role-btn active" type="button" data-role="admin">Admin</button>
+            <button class="role-btn" type="button" data-role="student">Student</button>
+          </div>
+
+          <label id="studentIdLabel" class="field-label">
+            <span>EMAIL</span>
+            <input id="username" type="email" value="admin@techspark.in" required />
+          </label>
+
+          <label class="field-label">
+            <span>PASSWORD</span>
+            <input id="password" type="password" value="password123" required />
+          </label>
+
+          <button class="sign-in-btn" type="submit">Sign in <span aria-hidden="true">-&gt;</span></button>
+        </form>
+
+        <div class="forgot-password">Forgot password?<a href="#reset">Reset</a></div>
+        <p id="loginError" class="error"></p>
+      </div>
+
+      <div class="design-labels" aria-hidden="true">
+        <div class="design-label role-label">Role toggle</div>
+        <div class="design-label email-label">Email field</div>
+        <div class="design-label password-label">Password field</div>
+        <div class="design-label cta-label">CTA button</div>
+      </div>
+    </section>
+
+    <section id="dashboardView" class="dashboard hidden">
+      <header class="top-nav">
+        <div class="nav-left">
+          <img id="companyLogo" src="assets/company-logo.png" alt="ProEduvate logo" />
+          <span id="logoFallback" class="logo-fallback hidden">Add logo at frontend/assets/company-logo.png</span>
+        </div>
+        <div class="nav-center">
+          <h2 id="welcomeTitle">Admin Home</h2>
+          <p id="roleInfo" class="subtitle"></p>
+        </div>
+        <div class="nav-right">
+          <span id="roleBadge" class="role-badge">Admin</span>
+          <label id="studentPickerWrap" class="hidden">
+            Student
+            <select id="studentPicker"></select>
+          </label>
+          <button id="logoutBtn" class="secondary">Logout</button>
+        </div>
+      </header>
+
+      <section class="dashboard-content">
+        <!-- METRICS CARDS -->
+        <div id="metricsContainer" class="metrics-grid"></div>
+
+        <!-- ADMIN SECTIONS -->
+        <div id="adminSections" class="admin-view">
+          <!-- Student Detail View -->
+          <div id="studentDetailSection" class="section-card reveal hidden">
+            <div class="section-header">
+              <h3>Student Profile Details</h3>
+              <button class="btn btn-secondary" onclick="closeStudentDetail()">Close</button>
+            </div>
+            <div id="studentDetailContent"></div>
+          </div>
+
+          <!-- Intern Management -->
+          <div id="internManagementSection" class="section-card reveal">
+            <div class="section-header">
+              <h3>Intern Management</h3>
+              <div class="section-actions">
+                <input type="text" id="internSearch" placeholder="Search interns..." class="search-input" />
+                <select id="statusFilter" class="filter-select">
+                  <option value="">All Status</option>
+                  <option value="Active">Active</option>
+                  <option value="Completed">Completed</option>
+                  <option value="Pending">Pending</option>
+                </select>
+              </div>
+            </div>
+            <div id="internListContainer" class="table-container">
+              <table class="interns-table">
+                <thead>
+                  <tr>
+                    <th>Student ID</th>
+                    <th>Name</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Verified</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="internTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Internship Monitoring -->
+          <div id="monitoringSection" class="section-card reveal">
+            <div class="section-header">
+              <h3>Internship Monitoring</h3>
+            </div>
+            <div class="monitoring-grid">
+              <div class="monitoring-item">
+                <h4>Task Progress</h4>
+                <div class="progress-chart" id="taskProgressChart"></div>
+              </div>
+              <div class="monitoring-item">
+                <h4>Attendance Overview</h4>
+                <div id="attendanceOverview"></div>
+              </div>
+              <div class="monitoring-item">
+                <h4>Performance Analytics</h4>
+                <div id="performanceChart"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Verification Section -->
+          <div id="verificationAdminSection" class="section-card reveal">
+            <div class="section-header">
+              <h3>Verification & Certification</h3>
+            </div>
+            <div class="verification-grid">
+              <div class="verification-item">
+                <h4>Letter of Recommendation</h4>
+                <button class="btn btn-primary">Generate LOR</button>
+              </div>
+              <div class="verification-item">
+                <h4>Certificate Management</h4>
+                <button class="btn btn-primary">Approve Certificates</button>
+              </div>
+              <div class="verification-item">
+                <h4>Digital Verification</h4>
+                <button class="btn btn-primary">Generate Stamp</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Activity Feed -->
+          <div id="activityFeedSection" class="section-card reveal">
+            <div class="section-header">
+              <h3>Recent Activity Feed</h3>
+            </div>
+            <div class="activity-feed" id="activityFeed"></div>
+          </div>
+        </div>
+
+        <!-- HR SECTIONS -->
+        <div id="hrSections" class="hr-view hidden">
+          <!-- Intern Onboarding -->
+          <div id="onboardingSection" class="section-card reveal">
+            <div class="section-header">
+              <h3>Intern Onboarding</h3>
+            </div>
+            <div class="onboarding-grid">
+              <div class="onboarding-form">
+                <h4>Add New Intern</h4>
+                <form id="addInternForm" class="form-grid">
+                  <input type="text" placeholder="Intern Name" required />
+                  <input type="email" placeholder="Email" required />
+                  <input type="tel" placeholder="Phone" required />
+                  <select required>
+                    <option>Select Department</option>
+                    <option>Frontend</option>
+                    <option>Backend</option>
+                    <option>Design</option>
+                    <option>Marketing</option>
+                  </select>
+                  <input type="date" id="startDate" required />
+                  <input type="date" id="endDate" required />
+                  <button type="submit" class="btn btn-primary">Add Intern</button>
+                </form>
+              </div>
+              <div class="onboarding-info">
+                <h4>Quick Actions</h4>
+                <button class="btn btn-secondary btn-block">Upload Documents</button>
+                <button class="btn btn-secondary btn-block">Assign Mentor</button>
+                <button class="btn btn-secondary btn-block">Send Offer Letter</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Performance Tracking -->
+          <div id="performanceTrackingSection" class="section-card reveal">
+            <div class="section-header">
+              <h3>Performance Tracking</h3>
+            </div>
+            <div class="performance-grid" id="performanceCardsContainer"></div>
+            <div class="feedback-form">
+              <h4>Submit Feedback</h4>
+              <form id="feedbackForm" class="form-grid">
+                <select id="feedbackStudent" required>
+                  <option>Select Intern</option>
+                </select>
+                <textarea placeholder="Enter feedback..." rows="4" required></textarea>
+                <input type="number" min="1" max="5" placeholder="Rating (1-5)" required />
+                <button type="submit" class="btn btn-primary">Submit Feedback</button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Attendance & Leave Management -->
+          <div id="attendanceLeaveSection" class="section-card reveal">
+            <div class="section-header">
+              <h3>Attendance & Leave Management</h3>
+            </div>
+            <div class="attendance-grid">
+              <div class="attendance-calendar">
+                <h4>Calendar View</h4>
+                <div id="attendanceCalendar"></div>
+              </div>
+              <div class="leave-requests">
+                <h4>Leave Requests</h4>
+                <div id="leaveRequestsList"></div>
+              </div>
+              <div class="attendance-summary">
+                <h4>Summary</h4>
+                <div id="attendanceSummary"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Reports & Feedback -->
+          <div id="reportsSection" class="section-card reveal">
+            <div class="section-header">
+              <h3>Reports & Feedback</h3>
+            </div>
+            <div class="reports-grid">
+              <button class="btn btn-primary">Generate Performance Report</button>
+              <button class="btn btn-primary">Export Attendance</button>
+              <button class="btn btn-primary">Feedback Summary</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+
+</html>
