@@ -1,0 +1,950 @@
+/* -------------------------------------------------------------------------- */
+/* ProEduvate Official Certificate Validation Portal Stylesheet                */
+/* Exact replication of Reference UI Image Design                             */
+/* -------------------------------------------------------------------------- */
+
+.portal-home-root {
+    min-height: 100vh;
+    width: 100%;
+    background: #FFFFFF;
+    color: #1E293B;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Top Header Navbar                                                          */
+/* -------------------------------------------------------------------------- */
+
+.portal-navbar {
+    height: 72px;
+    padding: 0 5%;
+    background: #FFFFFF;
+    border-bottom: 1px solid #EAEFF6;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.proeduvate-nav-logo {
+    height: 42px;
+    width: auto;
+    object-fit: contain;
+    display: block;
+}
+
+.navbar-menu {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+}
+
+.nav-item {
+    color: #475569;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 6px 0;
+    transition: color 0.2s ease;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.nav-btn-link {
+    display: inline-block;
+}
+
+.nav-item:hover {
+    color: #0066FF;
+}
+
+.nav-item.active {
+    color: #0066FF;
+    font-weight: 600;
+    position: relative;
+}
+
+.nav-item.active::after {
+    content: '';
+    position: absolute;
+    bottom: -18px;
+    left: 0;
+    width: 100%;
+    height: 2.5px;
+    background: #0066FF;
+    border-radius: 2px;
+}
+
+.btn-admin-login-pill {
+    background: #F4F8FF;
+    border: 1.5px solid #0066FF;
+    color: #0066FF;
+    font-weight: 600;
+    font-size: 13.5px;
+    border-radius: 20px;
+    padding: 8px 20px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    transition: all 0.2s ease;
+    font-family: inherit;
+}
+
+.btn-admin-login-pill:hover {
+    background: #0066FF;
+    color: #FFFFFF;
+    box-shadow: 0 4px 12px rgba(0, 102, 255, 0.25);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Hero Section (Split Layout)                                                */
+/* -------------------------------------------------------------------------- */
+
+.hero-container {
+    padding: 56px 5% 72px;
+    background: radial-gradient(circle at 10% 10%, rgba(0, 102, 255, 0.04) 0%, transparent 50%),
+                radial-gradient(circle at 90% 80%, rgba(0, 102, 255, 0.03) 0%, transparent 50%),
+                linear-gradient(180deg, #F4F8FD 0%, #FFFFFF 100%);
+    border-bottom: 1px solid #EAEFF6;
+}
+
+.hero-content-wrapper {
+    max-width: 1320px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 44% 53%;
+    gap: 3%;
+    align-items: center;
+}
+
+.hero-pill-badge {
+    display: inline-block;
+    background: #E6F0FF;
+    color: #0066FF;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 18px;
+    border-radius: 20px;
+    margin-bottom: 24px;
+}
+
+.hero-main-heading {
+    font-size: 46px;
+    font-weight: 800;
+    line-height: 1.15;
+    color: #0F172A;
+    margin: 0 0 20px 0;
+    letter-spacing: -1px;
+}
+
+.blue-brand-text {
+    color: #0066FF;
+}
+
+.hero-description {
+    font-size: 16px;
+    line-height: 1.6;
+    color: #475569;
+    max-width: 480px;
+    margin: 0 0 36px 0;
+}
+
+.hero-cta-buttons {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 44px;
+}
+
+.btn-primary-blue {
+    background: #0066FF;
+    color: #FFFFFF;
+    font-weight: 600;
+    font-size: 14.5px;
+    padding: 13px 26px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    box-shadow: 0 4px 14px rgba(0, 102, 255, 0.3);
+    transition: all 0.2s ease;
+    font-family: inherit;
+}
+
+.btn-primary-blue:hover {
+    background: #0052CC;
+    box-shadow: 0 6px 18px rgba(0, 102, 255, 0.4);
+    transform: translateY(-1px);
+}
+
+.btn-outline-blue {
+    background: #FFFFFF;
+    border: 1.5px solid #0066FF;
+    color: #0066FF;
+    font-weight: 600;
+    font-size: 14.5px;
+    padding: 13px 26px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    transition: all 0.2s ease;
+    font-family: inherit;
+}
+
+.btn-outline-blue:hover {
+    background: #F0F6FF;
+    transform: translateY(-1px);
+}
+
+/* Trust Badges Row */
+.hero-trust-badges {
+    display: flex;
+    gap: 28px;
+    align-items: center;
+}
+
+.trust-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.trust-icon-box {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.trust-icon-box.blue-box {
+    background: #E6F0FF;
+}
+
+.trust-item strong {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    color: #0F172A;
+    line-height: 1.2;
+}
+
+.trust-item span {
+    font-size: 11.5px;
+    color: #64748B;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Right Column: Interactive Mockup Card Preview                               */
+/* -------------------------------------------------------------------------- */
+
+.mockup-window-card {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 16px;
+    box-shadow: 0 20px 50px rgba(0, 102, 255, 0.08);
+    overflow: hidden;
+}
+
+.mockup-card-header {
+    height: 44px;
+    background: #FFFFFF;
+    border-bottom: 1px solid #EAEFF6;
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.mockup-user-avatar {
+    font-size: 12px;
+    color: #64748B;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+}
+
+.caret-down {
+    font-size: 10px;
+}
+
+.mockup-card-body {
+    display: grid;
+    grid-template-columns: 145px 1fr;
+    min-height: 470px;
+}
+
+/* Sidebar inside Mockup */
+.mockup-sidebar {
+    background: #FAFCFF;
+    border-right: 1px solid #EAEFF6;
+    padding: 14px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.sidebar-tab-btn {
+    border: none;
+    background: transparent;
+    text-align: left;
+    padding: 7.5px 12px;
+    font-size: 11.5px;
+    font-weight: 500;
+    color: #475569;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+    font-family: inherit;
+}
+
+.sidebar-tab-btn:hover {
+    background: #F0F6FF;
+    color: #0066FF;
+}
+
+.sidebar-tab-btn.active {
+    background: #E6F0FF;
+    color: #0066FF;
+    font-weight: 600;
+}
+
+.tab-icon-dot {
+    width: 4px;
+    height: 4px;
+    background: currentColor;
+    border-radius: 50%;
+    opacity: 0.7;
+}
+
+/* Main View inside Mockup */
+.mockup-main-view {
+    padding: 22px 24px;
+    background: #FFFFFF;
+}
+
+.verification-top-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.title-verified-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.title-verified-row h2 {
+    font-size: 19px;
+    font-weight: 700;
+    color: #0F172A;
+    margin: 0;
+    letter-spacing: -0.3px;
+}
+
+.verified-pill-badge {
+    background: #DCFCE7;
+    color: #16A34A;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.verified-subtext {
+    font-size: 12px;
+    color: #64748B;
+    margin: 4px 0 0 0;
+}
+
+.reference-id-box {
+    text-align: right;
+}
+
+.ref-label {
+    display: block;
+    font-size: 9.5px;
+    color: #94A3B8;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.ref-val {
+    font-size: 11.5px;
+    font-family: monospace;
+    color: #1E293B;
+    font-weight: 700;
+}
+
+/* Inner Split Display */
+.certificate-display-grid {
+    display: grid;
+    grid-template-columns: 180px 1fr;
+    gap: 20px;
+}
+
+/* Certificate Preview Frame */
+.cert-preview-frame {
+    border: 1.5px solid #CBD5E1;
+    border-radius: 8px;
+    padding: 14px 10px;
+    background: #FAFCFF;
+    margin-bottom: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+    border-top: 3px solid #0066FF;
+}
+
+.cert-inner-graphic {
+    text-align: center;
+}
+
+.cert-brand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 800;
+    color: #0066FF;
+    margin-bottom: 6px;
+}
+
+.cert-type-text {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    margin: 0;
+    color: #0F172A;
+}
+
+.cert-of-text {
+    font-size: 7.5px;
+    color: #64748B;
+    margin: 0 0 6px 0;
+    letter-spacing: 0.8px;
+}
+
+.cert-given-to {
+    font-size: 6px;
+    color: #94A3B8;
+    display: block;
+    letter-spacing: 0.5px;
+}
+
+.cert-student-name {
+    font-size: 14px;
+    font-family: 'Georgia', serif;
+    font-weight: 700;
+    color: #0066FF;
+    margin: 2px 0 6px 0;
+}
+
+.cert-body-desc {
+    font-size: 7.5px;
+    color: #475569;
+    line-height: 1.35;
+    margin: 0 0 10px 0;
+}
+
+.cert-footer-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 6px;
+    border-top: 1px solid #E2E8F0;
+}
+
+.cert-gold-seal {
+    width: 22px;
+    height: 22px;
+    background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+    border-radius: 50%;
+    color: #FFFFFF;
+    font-size: 6px;
+    font-weight: 900;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(217, 119, 6, 0.3);
+}
+
+.gold-ribbon {
+    transform: scale(0.9);
+}
+
+.cert-download-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.btn-download-cert {
+    width: 100%;
+    height: 34px;
+    background: #0066FF;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 6px;
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: background 0.2s ease;
+    font-family: inherit;
+}
+
+.btn-download-cert:hover {
+    background: #0052CC;
+}
+
+.btn-view-image {
+    width: 100%;
+    height: 34px;
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    color: #0066FF;
+    border-radius: 6px;
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: background 0.2s ease;
+    font-family: inherit;
+}
+
+.btn-view-image:hover {
+    background: #F4F8FF;
+}
+
+/* Detail Groups (Right of Split) */
+.detail-group {
+    margin-bottom: 18px;
+}
+
+.detail-group-title {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #0F172A;
+    margin: 0 0 10px 0;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #F1F5F9;
+}
+
+.detail-table {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+.table-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+}
+
+.row-key {
+    color: #64748B;
+}
+
+.row-val {
+    color: #0F172A;
+    font-weight: 500;
+}
+
+.row-val.status-green {
+    color: #16A34A;
+    font-weight: 700;
+}
+
+.row-val.font-bold {
+    font-weight: 700;
+}
+
+/* -------------------------------------------------------------------------- */
+/* "Why ProEduvate Certificate Portal?" Section                               */
+/* -------------------------------------------------------------------------- */
+
+.why-section {
+    padding: 72px 5%;
+    background: #FFFFFF;
+    text-align: center;
+}
+
+.section-title-wrapper h2 {
+    font-size: 32px;
+    font-weight: 800;
+    color: #0F172A;
+    margin: 0 0 44px 0;
+    letter-spacing: -0.6px;
+}
+
+.why-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 20px;
+    max-width: 1320px;
+    margin: 0 auto;
+}
+
+.why-card {
+    background: #FFFFFF;
+    border: 1px solid #EAEFF6;
+    border-radius: 14px;
+    padding: 32px 20px;
+    text-align: center;
+    box-shadow: 0 4px 16px rgba(0, 102, 255, 0.03);
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.why-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 14px 28px rgba(0, 102, 255, 0.08);
+    border-color: #CBD5E1;
+}
+
+.card-icon-wrapper {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+}
+
+.card-icon-wrapper.blue-icon { background: #E6F0FF; }
+.card-icon-wrapper.green-icon { background: #DCFCE7; }
+.card-icon-wrapper.purple-icon { background: #F3E8FF; }
+.card-icon-wrapper.orange-icon { background: #FFEDD5; }
+.card-icon-wrapper.cyan-icon { background: #E0F2FE; }
+
+.why-card h3 {
+    font-size: 15px;
+    font-weight: 700;
+    color: #0F172A;
+    margin: 0 0 10px 0;
+    line-height: 1.3;
+}
+
+.why-card p {
+    font-size: 12.5px;
+    color: #64748B;
+    line-height: 1.5;
+    margin: 0;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Blue Callout CTA Banner                                                    */
+/* -------------------------------------------------------------------------- */
+
+.cta-banner-wrapper {
+    padding: 0 5% 56px;
+    background: #FFFFFF;
+}
+
+.cta-banner-card {
+    max-width: 1320px;
+    margin: 0 auto;
+    background: #0066FF;
+    border-radius: 12px;
+    padding: 28px 44px;
+    color: #FFFFFF;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 12px 32px rgba(0, 102, 255, 0.28);
+}
+
+.cta-left-content {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    z-index: 1;
+}
+
+.cta-left-content h2 {
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0 0 4px 0;
+    letter-spacing: -0.3px;
+}
+
+.cta-left-content p {
+    font-size: 14px;
+    opacity: 0.92;
+    margin: 0;
+}
+
+.btn-banner-action {
+    background: transparent;
+    border: 1.5px solid #FFFFFF;
+    color: #FFFFFF;
+    font-weight: 700;
+    font-size: 14px;
+    padding: 10px 24px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+    z-index: 1;
+    font-family: inherit;
+}
+
+.btn-banner-action:hover {
+    background: #FFFFFF;
+    color: #0066FF;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Footer                                                                     */
+/* -------------------------------------------------------------------------- */
+
+.portal-footer {
+    padding: 24px 5%;
+    background: #FFFFFF;
+    border-top: 1px solid #EAEFF6;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13px;
+    color: #64748B;
+}
+
+.footer-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.footer-left a {
+    color: #64748B;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.footer-left a:hover {
+    color: #0066FF;
+}
+
+.footer-separator {
+    opacity: 0.5;
+}
+
+.footer-right {
+    font-weight: 500;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Search Modal                                                               */
+/* -------------------------------------------------------------------------- */
+
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-card {
+    width: 100%;
+    max-width: 480px;
+    background: #FFFFFF;
+    border-radius: 12px;
+    padding: 28px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+    color: #0F172A;
+}
+
+.close-modal-btn {
+    background: none;
+    border: none;
+    font-size: 18px;
+    color: #64748B;
+    cursor: pointer;
+}
+
+.modal-form label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 8px;
+}
+
+.modal-input-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.modal-text-input {
+    flex: 1;
+    height: 42px;
+    border: 1.5px solid #CBD5E1;
+    border-radius: 6px;
+    padding: 0 12px;
+    font-size: 14px;
+    outline: none;
+}
+
+.modal-text-input:focus {
+    border-color: #0066FF;
+}
+
+.btn-modal-search {
+    height: 42px;
+    padding: 0 20px;
+    background: #0066FF;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 6px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.modal-error {
+    color: #DC2626;
+    font-size: 12px;
+    margin-bottom: 16px;
+}
+
+.sample-id-chips p {
+    font-size: 12px;
+    color: #64748B;
+    margin: 0 0 8px 0;
+}
+
+.chip-btn {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 12.5px;
+    color: #0F172A;
+    margin-bottom: 6px;
+    cursor: pointer;
+}
+
+.chip-btn:hover {
+    background: #E6F0FF;
+    color: #0066FF;
+    border-color: #0066FF;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Responsive Adjustments                                                     */
+/* -------------------------------------------------------------------------- */
+
+@media (max-width: 1100px) {
+    .hero-content-wrapper {
+        grid-template-columns: 1fr;
+        gap: 48px;
+    }
+    .why-cards-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .portal-navbar {
+        padding: 0 20px;
+    }
+    .navbar-menu {
+        display: none;
+    }
+    .hero-container {
+        padding: 36px 20px 48px;
+    }
+    .hero-main-heading {
+        font-size: 32px;
+    }
+    .hero-cta-buttons {
+        flex-direction: column;
+    }
+    .hero-trust-badges {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+    .mockup-card-body {
+        grid-template-columns: 1fr;
+    }
+    .mockup-sidebar {
+        display: none;
+    }
+    .certificate-display-grid {
+        grid-template-columns: 1fr;
+    }
+    .why-cards-grid {
+        grid-template-columns: 1fr;
+    }
+    .cta-banner-card {
+        flex-direction: column;
+        gap: 20px;
+        text-align: center;
+        padding: 28px 20px;
+    }
+    .portal-footer {
+        flex-direction: column;
+        gap: 12px;
+        text-align: center;
+    }
+    .footer-left {
+        flex-direction: column;
+        gap: 6px;
+    }
+    .footer-separator {
+        display: none;
+    }
+}
