@@ -11,9 +11,12 @@ class Settings(BaseSettings):
     boots.
     """
 
-    # SQLite keeps local development dependency-free. Point at MySQL in
-    # deployment, e.g. mysql+pymysql://user:pass@host/dbname
-    DATABASE_URL: str = "sqlite:///./app.db"
+    # PostgreSQL via psycopg 3. Override in .env for other environments.
+    # The schema is owned by Alembic — run `alembic upgrade head`, not
+    # create_all.
+    DATABASE_URL: str = (
+        "postgresql+psycopg://postgres@localhost:5432/proeduvate_portal"
+    )
 
     SECRET_KEY: str = "dev-only-change-me"
     ALGORITHM: str = "HS256"

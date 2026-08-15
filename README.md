@@ -12,22 +12,32 @@ frontend/   React 19 + Vite single-page app
 
 Two processes: the API on `:8000` and the frontend on `:5173`.
 
-### 1. Backend
+### 1. Database
+
+PostgreSQL. Create the database once:
+
+```bash
+createdb proeduvate_portal
+```
+
+### 2. Backend
 
 ```bash
 cd backend
 python3 -m venv .venv
 .venv/bin/pip install -r app/requirements.txt
-cp .env.example .env          # defaults work as-is for local development
+cp .env.example .env          # set DATABASE_URL to your Postgres user
+.venv/bin/alembic upgrade head
 .venv/bin/python -m uvicorn app.main:app --reload --port 8000
 ```
 
 Interactive API docs: <http://localhost:8000/docs>
 
-The default `.env` uses SQLite (`app.db`), created on first start. For MySQL,
-set `DATABASE_URL=mysql+pymysql://user:password@localhost:3306/proeduvate`.
+The schema is owned by Alembic — the app does **not** create tables on start,
+so `alembic upgrade head` is required before first run and after every pull
+that adds a migration.
 
-### 2. Frontend
+### 3. Frontend
 
 ```bash
 cd frontend
@@ -39,7 +49,7 @@ npm run dev -- --port 5173
 Port 5173 matters: it is the origin allowed by `CORS_ORIGINS` in the backend
 `.env`. Change both together if you use a different port.
 
-### 3. Create your account
+### 4. Create your account
 
 Register at <http://localhost:5173/login> → "Forgot your password?" has the
 sign-up path, or POST directly:
@@ -56,6 +66,33 @@ is created as `intern` (read-only). Promote someone afterwards with:
 ```sql
 UPDATE users SET role = 'admin' WHERE email = 'them@example.com';
 ```
+
+## Migrations
+
+The schema lives in `backend/migrations/`. After changing a model:
+
+```bash
+cd backend
+.venv/bin/alembic revision --autogenerate -m "what changed"
+```
+
+Read the generated file before applying it — autogenerate is a starting point,
+not an oracle. It does not detect table or column renames (it emits a drop plus
+an add, which loses the data), and it cannot infer how to backfill a new
+NOT NULL column.
+
+```bash
+.venv/bin/alembic upgrade head     # apply
+.venv/bin/alembic downgrade -1     # step back one
+.venv/bin/alembic current          # what is applied
+.venv/bin/alembic history          # full history
+```
+
+`migrations/env.py` takes the URL from `app.core.config.settings`, so
+migrations always target the same database as the application.
+
+To confirm models and database agree, autogenerate a throwaway revision: an
+empty `upgrade()` means there is no drift. Delete the file afterwards.
 
 ## Verifying the stack
 
@@ -106,7 +143,6 @@ existing attendance database is connected.
 - `/auth/forgot-password` returns the reset token in its response because no
   mail transport is configured yet. Send it by email and stop returning it
   before going live.
-- `create_tables()` runs at import and only creates missing tables; it will not
-  migrate existing ones. Adopt Alembic before changing a live schema.
+- Run `alembic upgrade head` as part of deployment, before starting the app.
 - Change `VERIFICATION_CODE` from its default and share it only with the
   admins allowed to sign records off.

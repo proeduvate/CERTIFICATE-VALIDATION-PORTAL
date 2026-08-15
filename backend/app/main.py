@@ -5,7 +5,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
-from app.db.init_db import create_tables
 from app.api.routes.auth import router as auth_router
 from app.api.routes.intern import router as intern_router
 from app.api.routes.dashboard import router as dashboard_router
@@ -22,8 +21,6 @@ app = FastAPI(
         "Backend for the intern management and certificate validation portal."
     ),
 )
-
-create_tables()
 
 # The browser blocks every cross-origin request without this. The API and the
 # Vite dev server run on different ports, so without CORS the frontend could

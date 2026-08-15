@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, Date, Float
-from app.db.base import Base
+from app.db.base_class import Base
 
 
 class Intern(Base):

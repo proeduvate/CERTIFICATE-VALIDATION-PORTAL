@@ -6,7 +6,9 @@ venv/
 # Local secrets — .env.example is the tracked template
 .env
 
-# Local SQLite database and uploaded files
+# Uploaded certificates and documents
+uploads/
+
+# Legacy local SQLite file, superseded by PostgreSQL
 *.db
 *.sqlite3
-uploads/
