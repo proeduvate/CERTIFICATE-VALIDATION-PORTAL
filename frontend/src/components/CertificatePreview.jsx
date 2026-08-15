@@ -46,7 +46,9 @@ export default function CertificatePreview({
         >
             <div className="cert-art__frame">
                 <header className="cert-art__brand">
-                    <img src="/icon only Transparent.png" alt="" />
+                    <span className="cert-art__brand-mark">
+                        <img src="/icon only Transparent.png" alt="" />
+                    </span>
                     <span>{APP.name}</span>
                 </header>
 

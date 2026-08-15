@@ -24,16 +24,20 @@ export default function Logo({ variant = 'full', height, className }) {
     const style = height ? { '--logo-height': `${height}px` } : undefined;
 
     if (variant === 'mark') {
+        // `icon only Transparent.png` is 4167x4167 but only ~3% of its pixels
+        // are opaque: the plane sits centred in a large transparent canvas and
+        // fills roughly the middle 38%. Rendered directly at 30px the visible
+        // glyph is about 5px, which is why the mark read as missing. The box
+        // clips and the image is scaled up so the glyph fills it.
         return (
-            <img
-                src="/icon only Transparent.png"
-                alt=""
-                className={cn('logo__mark', className)}
-                style={style}
-                width="512"
-                height="512"
-                decoding="async"
-            />
+            <span className={cn('logo__mark-box', className)} style={style}>
+                <img
+                    src="/icon only Transparent.png"
+                    alt=""
+                    className="logo__mark"
+                    decoding="async"
+                />
+            </span>
         );
     }
 

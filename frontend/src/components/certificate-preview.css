@@ -42,9 +42,22 @@
     margin-bottom: auto;
 }
 
-.cert-art__brand img {
+/* Same clipping treatment as .logo__mark-box — the source asset is mostly
+   transparent padding, so it must be scaled up and cropped to read at all. */
+.cert-art__brand-mark {
+    display: grid;
+    place-items: center;
+    width: clamp(14px, 3cqi, 20px);
     height: clamp(14px, 3cqi, 20px);
-    width: auto;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.cert-art__brand-mark img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    transform: scale(2.6);
 }
 
 .cert-art__brand span {

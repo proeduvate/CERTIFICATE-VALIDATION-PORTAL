@@ -31,9 +31,20 @@
     display: block;
 }
 
-.logo__mark {
+/* The mark asset carries ~2.6x of transparent padding around a centred glyph,
+   so it is scaled up inside a clipping box rather than rendered as-is. */
+.logo__mark-box {
+    display: grid;
+    place-items: center;
+    width: var(--logo-height, 28px);
     height: var(--logo-height, 28px);
-    width: auto;
-    object-fit: contain;
+    overflow: hidden;
     flex-shrink: 0;
+}
+
+.logo__mark {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    transform: scale(2.6);
 }
