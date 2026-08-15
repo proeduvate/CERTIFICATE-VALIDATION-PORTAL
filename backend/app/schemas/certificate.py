@@ -31,6 +31,19 @@ class CertificateResponse(CertificateBase):
     model_config = {"from_attributes": True}
 
 
+class CertificateListItem(CertificateResponse):
+    """
+    List row.
+
+    Carries the intern's name and printed ID so the certificates table can
+    identify who a certificate belongs to. Without these the list showed only
+    a numeric foreign key.
+    """
+
+    intern_name: str | None = None
+    intern_code: str | None = None
+
+
 class PublicCertificateResponse(BaseModel):
     """
     What an anonymous verifier is allowed to see.

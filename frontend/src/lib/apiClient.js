@@ -136,8 +136,14 @@ export async function request(path, options = {}) {
         );
     }
 
-    if (response.status === 401 || response.status === 403) {
-        // Let the auth layer clear session state before the caller sees this.
+    // Only 401 means "your session is not valid" — let the auth layer clear it
+    // before the caller sees the error.
+    //
+    // 403 must NOT end the session: it means the request was authenticated but
+    // not permitted. Treating it as a session failure signed people out for
+    // ordinary refusals — a mistyped verification code, or a non-admin opening
+    // a page with admin-only figures on it.
+    if (response.status === 401) {
         unauthorizedHandlers.forEach((handler) => handler(response.status));
     }
 

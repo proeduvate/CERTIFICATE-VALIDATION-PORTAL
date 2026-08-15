@@ -12,6 +12,7 @@ from app.models.certificate import Certificate
 from app.models.user import User
 from app.schemas.certificate import (
     CertificateCreate,
+    CertificateListItem,
     CertificateResponse,
     CertificateUpdate,
     PublicCertificateResponse,
@@ -93,12 +94,30 @@ def verify_certificate(certificate_number: str, db: Session = Depends(get_db)):
 # ---------------------------------------------------------------------------
 
 
-@router.get("/", response_model=list[CertificateResponse])
+@router.get("/", response_model=list[CertificateListItem])
 def get_certificates(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return db.query(Certificate).order_by(Certificate.id.desc()).all()
+    certificates = db.query(Certificate).order_by(Certificate.id.desc()).all()
+
+    # Join through the relationship so the table can show who each certificate
+    # belongs to rather than a bare intern_id.
+    return [
+        CertificateListItem(
+            id=certificate.id,
+            intern_id=certificate.intern_id,
+            certificate_number=certificate.certificate_number,
+            issue_date=certificate.issue_date,
+            file_path=certificate.file_path,
+            qr_code=certificate.qr_code,
+            intern_name=certificate.intern.name if certificate.intern else None,
+            intern_code=(
+                certificate.intern.intern_id if certificate.intern else None
+            ),
+        )
+        for certificate in certificates
+    ]
 
 
 @router.post(

@@ -16,9 +16,10 @@ import {
     StatusBadge,
 } from '../../components/ui/Display';
 import { Breadcrumbs, Tabs, TabPanel } from '../../components/ui/Navigation';
+import VerifyInternModal from './VerifyInternModal';
+import { useAuth } from '../../context/AuthContext';
 import { useAsync } from '../../hooks/useAsync';
 import { getIntern } from '../../services/interns';
-import { getInternDocuments } from '../../services/documents';
 import {
     EMPTY,
     attendanceBand,
@@ -36,6 +37,7 @@ const TABS = [
     { id: 'work', label: 'Work & tasks', icon: 'clipboard' },
     { id: 'attendance', label: 'Attendance', icon: 'calendar' },
     { id: 'documents', label: 'Documents', icon: 'folder' },
+    { id: 'verification', label: 'Verification', icon: 'shieldCheck' },
 ];
 
 /**
@@ -51,17 +53,13 @@ const TABS = [
 export default function InternDetail() {
     const { id } = useParams();
     const navigate = useNavigate();
+    const { isAdmin } = useAuth();
     const [tab, setTab] = useState('identity');
+    const [verifying, setVerifying] = useState(false);
 
     const { data, error, loading, reload } = useAsync(
         (signal) => getIntern(id, { signal }),
         [id],
-    );
-
-    const documents = useAsync(
-        (signal) => getInternDocuments(id, { signal }),
-        [id],
-        { enabled: tab === 'documents' },
     );
 
     if (loading) return <LoadingBlock label="Loading intern record…" />;
@@ -87,6 +85,11 @@ export default function InternDetail() {
     const internship = data?.internship_information ?? {};
     const work = data?.work_task_summary ?? {};
     const attendance = data?.attendance_summary ?? {};
+    const docs = data?.documents ?? {};
+    const verification = data?.verification ?? {};
+
+    const isVerified =
+        (verification.verification_status ?? '').toLowerCase() === 'verified';
 
     const band = attendanceBand(attendance.attendance_percentage);
 
@@ -147,6 +150,19 @@ export default function InternDetail() {
                     <Button variant="secondary" icon="refresh" onClick={reload}>
                         Refresh
                     </Button>
+
+                    {/* Verification is its own action, not a field in the edit
+                        form — it needs the shared code as well as an admin
+                        session. */}
+                    {isAdmin && (
+                        <Button
+                            variant={isVerified ? 'secondary' : 'primary'}
+                            icon="shieldCheck"
+                            onClick={() => setVerifying(true)}
+                        >
+                            {isVerified ? 'Re-verify' : 'Verify record'}
+                        </Button>
+                    )}
                 </div>
             </header>
 
@@ -170,7 +186,7 @@ export default function InternDetail() {
                     label="Mode"
                     value={orEmpty(internship.mode)}
                     icon="globe"
-                    tint="purple"
+                    tint="brand"
                     meta={orEmpty(internship.domain, 'No domain set')}
                 />
                 <StatCard
@@ -401,11 +417,87 @@ export default function InternDetail() {
 
                     {tab === 'documents' && (
                         <TabPanel id="documents">
-                            <InternDocuments state={documents} />
+                            <InternDocuments docs={docs} />
+                        </TabPanel>
+                    )}
+
+                    {tab === 'verification' && (
+                        <TabPanel id="verification">
+                            <div className="verify-panel">
+                                <div
+                                    className={`verify-panel__state${isVerified ? ' is-verified' : ''}`}
+                                >
+                                    <span className="verify-panel__icon">
+                                        <Icon
+                                            name={isVerified ? 'shieldCheck' : 'clock'}
+                                            size={22}
+                                        />
+                                    </span>
+                                    <div>
+                                        <strong>
+                                            {orEmpty(
+                                                verification.verification_status,
+                                                'Pending',
+                                            )}
+                                        </strong>
+                                        <p>
+                                            {isVerified
+                                                ? 'This record has been signed off and is shown as verified publicly.'
+                                                : 'This record has not been signed off yet.'}
+                                        </p>
+                                    </div>
+
+                                    {isAdmin && (
+                                        <Button
+                                            variant={isVerified ? 'secondary' : 'primary'}
+                                            icon="shieldCheck"
+                                            onClick={() => setVerifying(true)}
+                                        >
+                                            {isVerified ? 'Re-verify' : 'Verify record'}
+                                        </Button>
+                                    )}
+                                </div>
+
+                                <KeyValueList
+                                    items={[
+                                        {
+                                            key: 'Verified by',
+                                            value: orEmpty(
+                                                verification.verified_by,
+                                                'Not yet signed off',
+                                            ),
+                                        },
+                                        {
+                                            key: 'Verified on',
+                                            value: verification.verification_date
+                                                ? formatDate(
+                                                      verification.verification_date,
+                                                  )
+                                                : EMPTY,
+                                        },
+                                        {
+                                            key: 'Remarks',
+                                            value: orEmpty(verification.remarks),
+                                            muted: true,
+                                        },
+                                    ]}
+                                />
+                            </div>
                         </TabPanel>
                     )}
                 </CardBody>
             </Card>
+
+            {verifying && (
+                <VerifyInternModal
+                    intern={{ id, name: identity.name, remarks: verification.remarks }}
+                    onClose={() => setVerifying(false)}
+                    onVerified={() => {
+                        setVerifying(false);
+                        reload();
+                    }}
+                />
+            )}
         </div>
     );
 }
@@ -425,67 +517,62 @@ function ExternalValue({ url }) {
     );
 }
 
-function InternDocuments({ state }) {
-    if (state.loading) return <LoadingBlock label="Loading documents…" />;
-
-    if (state.error) {
-        return state.error.status === 404 ? (
-            <EmptyState
-                icon="folder"
-                title="No documents uploaded"
-                message="Appointment letters, offer letters and transfer certificates appear here once they are attached to this intern."
-            />
-        ) : (
-            <ErrorState error={state.error} onRetry={state.reload} />
-        );
-    }
-
+function InternDocuments({ docs }) {
+    // The four the public verification page exposes, plus the extras an admin
+    // can see. LOR is optional by design.
     const entries = [
-        { label: 'Appointment letter', path: state.data?.appointment_letter_url },
-        { label: 'Offer letter', path: state.data?.offer_letter_url },
-        { label: 'Transfer certificate', path: state.data?.transfer_certificate_url },
-        ...(state.data?.others ?? []).map((path, index) => ({
-            label: `Other document ${index + 1}`,
-            path,
-        })),
-    ].filter((entry) => Boolean(entry.path));
+        { key: 'OL', label: 'Offer letter', path: docs.offer_letter },
+        { key: 'AL', label: 'Acknowledgement letter', path: docs.acknowledgement_letter },
+        { key: 'TC', label: 'Terms and conditions', path: docs.terms_conditions },
+        { key: 'LOR', label: 'Letter of recommendation', path: docs.lor },
+        { key: 'CL', label: 'Completion letter', path: docs.completion_letter },
+        { key: 'CV', label: 'Resume', path: docs.resume },
+    ];
 
-    if (entries.length === 0) {
+    if (entries.every((entry) => !entry.path)) {
         return (
             <EmptyState
                 icon="folder"
-                title="No documents uploaded"
-                message="Nothing has been attached to this intern record yet."
+                title="No documents recorded"
+                message="Add the offer letter, acknowledgement letter and terms from the edit dialog. They appear on the public verification page."
             />
         );
     }
 
     return (
         <div className="doc-list">
-            {entries.map((entry) => (
-                <a
-                    key={entry.label}
-                    className="doc-item"
-                    href={
-                        /^https?:\/\//i.test(entry.path)
-                            ? entry.path
-                            : `${API_BASE_URL}/${String(entry.path).replace(/^\/+/, '')}`
-                    }
-                    target="_blank"
-                    rel="noreferrer"
-                >
-                    <span className="doc-item__icon tint-brand">
-                        <Icon name="fileText" size={18} />
-                    </span>
-
-                    <span className="doc-item__text">
-                        <strong>{entry.label}</strong>
-                        <small className="truncate">{fileNameFromPath(entry.path)}</small>
-                    </span>
-
-                    <Icon name="externalLink" size={16} />
-                </a>
-            ))}
+            {entries.map((entry) =>
+                entry.path ? (
+                    <a
+                        key={entry.key}
+                        className="doc-item"
+                        href={
+                            /^https?:\/\//i.test(entry.path)
+                                ? entry.path
+                                : `${API_BASE_URL}/${String(entry.path).replace(/^\/+/, '')}`
+                        }
+                        target="_blank"
+                        rel="noreferrer"
+                    >
+                        <span className="doc-item__icon tint-brand">{entry.key}</span>
+                        <span className="doc-item__text">
+                            <strong>{entry.label}</strong>
+                            <small className="truncate">
+                                {fileNameFromPath(entry.path)}
+                            </small>
+                        </span>
+                        <Icon name="externalLink" size={16} />
+                    </a>
+                ) : (
+                    <div key={entry.key} className="doc-item doc-item--empty">
+                        <span className="doc-item__icon tint-grey">{entry.key}</span>
+                        <span className="doc-item__text">
+                            <strong>{entry.label}</strong>
+                            <small>Not provided</small>
+                        </span>
+                    </div>
+                ),
+            )}
         </div>
     );
 }

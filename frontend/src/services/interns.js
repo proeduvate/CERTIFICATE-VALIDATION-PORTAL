@@ -60,60 +60,64 @@ export function exportInterns() {
 }
 
 /**
- * The API's `InternCreate`/`InternUpdate` schemas require every column, so a
- * partial form submission gets rejected with a 422. This fills the gaps with
- * type-correct empty values and converts our camelCase form state to the
- * snake_case the backend expects.
+ * Maps the form's fields onto the API payload.
+ *
+ * Sends only what the form actually collects. The API accepts partial
+ * create/update now, so there is no need to pad the request with all 38
+ * columns — and padding it would be actively harmful: it would overwrite the
+ * verification fields (set by the separate, code-gated sign-off) and the
+ * attendance figures (owned by the attendance system) on every edit.
  */
-const TODAY = () => new Date().toISOString().slice(0, 10);
-
-export function toInternPayload(form = {}, existing = {}) {
-    const merged = { ...existing, ...form };
-
-    const str = (key, fallback = '') => merged[key] ?? fallback;
-    const num = (key) => Number(merged[key] ?? 0) || 0;
-    const date = (key) => merged[key] || TODAY();
+export function toInternPayload(form = {}) {
+    const text = (value) => {
+        const trimmed = typeof value === 'string' ? value.trim() : value;
+        return trimmed === '' || trimmed === undefined ? null : trimmed;
+    };
 
     return {
-        name: str('name'),
-        email: str('email'),
-        department: str('department'),
-        college: str('college'),
-        intern_id: str('intern_id'),
-        internship_role: str('internship_role'),
-        referral_person: str('referral_person'),
-        dob: date('dob'),
-        linkedin: str('linkedin'),
-        github: str('github'),
-        year: str('year'),
-        whatsapp_group: str('whatsapp_group'),
-        location: str('location'),
-        mode: str('mode'),
-        domain: str('domain'),
-        mentor: str('mentor'),
-        organization: str('organization', 'ProEduvate'),
-        start_date: date('start_date'),
-        end_date: date('end_date'),
-        duration: str('duration'),
-        status: str('status', 'Active'),
-        work_year: str('work_year'),
-        work_domain: str('work_domain'),
-        responsibilities: str('responsibilities'),
-        work_information: str('work_information'),
-        present_days: num('present_days'),
-        absent_days: num('absent_days'),
-        leave_days: num('leave_days'),
-        working_days: num('working_days'),
-        holidays: num('holidays'),
-        attendance_percentage: Number(merged.attendance_percentage ?? 0) || 0,
-        offer_letter: str('offer_letter'),
-        completion_letter: str('completion_letter'),
-        lor: str('lor'),
-        certificate: str('certificate'),
-        resume: str('resume'),
-        verification_status: str('verification_status', 'Pending'),
-        verified_by: str('verified_by'),
-        verification_date: date('verification_date'),
-        remarks: str('remarks'),
+        name: form.name?.trim(),
+        email: form.email?.trim(),
+        department: form.department?.trim(),
+        college: form.college?.trim(),
+
+        intern_id: text(form.intern_id),
+        dob: text(form.dob),
+        year: text(form.year),
+        location: text(form.location),
+        linkedin: text(form.linkedin),
+        github: text(form.github),
+        referral_person: text(form.referral_person),
+
+        organization: text(form.organization),
+        internship_role: text(form.internship_role),
+        domain: text(form.domain),
+        mentor: text(form.mentor),
+        mode: text(form.mode),
+        duration: text(form.duration),
+        start_date: text(form.start_date),
+        end_date: text(form.end_date),
+        status: text(form.status),
+        responsibilities: text(form.responsibilities),
+
+        offer_letter: text(form.offer_letter),
+        acknowledgement_letter: text(form.acknowledgement_letter),
+        terms_conditions: text(form.terms_conditions),
+        lor: text(form.lor),
     };
+}
+
+/**
+ * Sign a record off as verified.
+ *
+ * Deliberately separate from updateIntern: verification is an approval step,
+ * not another editable field. It requires a shared code on top of the admin
+ * session, so only admins entrusted with that code can approve a record.
+ */
+export function verifyIntern(id, { code, verifiedBy, status = 'Verified', remarks }) {
+    return api.post(`/interns/${id}/verify`, {
+        code,
+        verified_by: verifiedBy,
+        verification_status: status,
+        remarks,
+    });
 }

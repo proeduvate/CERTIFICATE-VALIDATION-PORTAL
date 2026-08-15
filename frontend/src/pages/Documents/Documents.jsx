@@ -135,7 +135,7 @@ export default function Documents() {
                     label="Files on record"
                     value={formatNumber(totalFiles)}
                     icon="folder"
-                    tint="purple"
+                    tint="brand"
                     loading={loading}
                 />
                 <StatCard

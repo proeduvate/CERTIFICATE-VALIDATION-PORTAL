@@ -202,7 +202,7 @@ export default function DashboardHome() {
                             label="Completed"
                             value={loading ? '—' : formatNumber(stats?.completed ?? 0)}
                             icon="checkCircle"
-                            tint="purple"
+                            tint="brand"
                             loading={loading}
                             meta="Finished placements"
                             action={
@@ -319,7 +319,7 @@ export default function DashboardHome() {
                                         className="dash-action"
                                         onClick={() => navigate('/dashboard/certificates')}
                                     >
-                                        <span className="dash-action__icon tint-purple">
+                                        <span className="dash-action__icon tint-brand">
                                             <Icon name="award" size={18} />
                                         </span>
                                         <span>
@@ -333,7 +333,7 @@ export default function DashboardHome() {
                                         className="dash-action"
                                         onClick={() => navigate('/dashboard/lor')}
                                     >
-                                        <span className="dash-action__icon tint-amber">
+                                        <span className="dash-action__icon tint-brand">
                                             <Icon name="scroll" size={18} />
                                         </span>
                                         <span>
@@ -347,7 +347,7 @@ export default function DashboardHome() {
                                         className="dash-action"
                                         onClick={() => navigate('/dashboard/attendance')}
                                     >
-                                        <span className="dash-action__icon tint-green">
+                                        <span className="dash-action__icon tint-brand">
                                             <Icon name="clipboard" size={18} />
                                         </span>
                                         <span>

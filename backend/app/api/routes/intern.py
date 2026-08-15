@@ -283,6 +283,14 @@ def get_intern_by_id(
             "holidays": intern.holidays,
             "attendance_percentage": intern.attendance_percentage,
         },
+        "documents": {
+            "offer_letter": intern.offer_letter,
+            "acknowledgement_letter": intern.acknowledgement_letter,
+            "terms_conditions": intern.terms_conditions,
+            "lor": intern.lor,
+            "completion_letter": intern.completion_letter,
+            "resume": intern.resume,
+        },
         "verification": {
             "verification_status": intern.verification_status,
             "verified_by": intern.verified_by,

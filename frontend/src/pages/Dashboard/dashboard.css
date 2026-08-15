@@ -111,29 +111,6 @@
     text-decoration: underline;
 }
 
-/* --- Person cell (shared by every table that lists people) ----------------- */
-
-.cell-person {
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-    min-width: 0;
-}
-
-.cell-person > div {
-    min-width: 0;
-}
-
-.cell-person small {
-    display: block;
-    font-size: var(--text-xs);
-    color: var(--text-muted);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 220px;
-}
-
 @media (max-width: 1024px) {
     .dash-columns {
         grid-template-columns: 1fr;

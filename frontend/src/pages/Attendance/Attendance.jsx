@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Button from '../../components/ui/Button';
 import { Input, Select } from '../../components/ui/Field';
 import {
+    Alert,
     Avatar,
     Badge,
     Card,
@@ -148,6 +149,15 @@ export default function Attendance() {
                     </Button>
                 </div>
             </header>
+
+            {/* Attendance is no longer entered by hand in the intern form; this
+                page reads whatever the records currently hold until the
+                existing attendance database is connected. */}
+            <Alert variant="info" icon="info">
+                Attendance is not captured in the admin forms. These figures come from
+                the intern records as they stand and will be replaced when the existing
+                attendance system is connected.
+            </Alert>
 
             <div className="stat-grid">
                 <StatCard

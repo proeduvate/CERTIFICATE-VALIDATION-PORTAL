@@ -44,7 +44,7 @@ export default function App() {
                                 <Route element={<PublicLayout />}>
                                     <Route index element={<Home />} />
                                     <Route path="verify" element={<Verify />} />
-                                    <Route path="verify/:number" element={<Verify />} />
+                                    <Route path="verify/:internId" element={<Verify />} />
                                 </Route>
 
                                 <Route path="/login" element={<Login />} />

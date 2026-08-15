@@ -42,21 +42,27 @@ export default function Sidebar({ collapsed, mobileOpen, onNavigate, onToggleCol
             >
                 <div className="sidebar__brand">
                     <Link to="/" className="sidebar__logo" aria-label={`${APP.name} home`}>
-                        {/* Mark plus text rather than the full wordmark: the rail
-                            collapses to 68px, where the wordmark would not fit. */}
-                        <Logo variant="mark" height={30} className="sidebar__logo-mark" />
-                        <span className="sidebar__logo-text">{APP.name}</span>
+                        {/* The wordmark carries the name, so no separate text
+                            label. Collapsed to 68px there is only room for the
+                            mark, and the topbar control expands it again. */}
+                        {collapsed && !mobileOpen ? (
+                            <Logo variant="mark" height={30} />
+                        ) : (
+                            <Logo height={32} />
+                        )}
                     </Link>
 
-                    <button
-                        type="button"
-                        className="sidebar__collapse"
-                        onClick={onToggleCollapse}
-                        aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-                        title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-                    >
-                        <Icon name="panelLeft" size={16} />
-                    </button>
+                    {!collapsed && (
+                        <button
+                            type="button"
+                            className="sidebar__collapse"
+                            onClick={onToggleCollapse}
+                            aria-label="Collapse sidebar"
+                            title="Collapse sidebar"
+                        >
+                            <Icon name="panelLeft" size={16} />
+                        </button>
+                    )}
                 </div>
 
                 <nav className="sidebar__nav">

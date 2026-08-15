@@ -14,7 +14,7 @@ import { orEmpty } from '../../lib/format';
  * of the search box, and a notification bell hardcoded to "5" with three fixed
  * messages — there is no notifications endpoint, so it only ever lied.
  */
-export default function Topbar({ onToggleSidebar }) {
+export default function Topbar({ collapsed, onToggleSidebar }) {
     const navigate = useNavigate();
     const { user, signOut } = useAuth();
     const { isDark, toggleTheme } = useTheme();
@@ -33,13 +33,18 @@ export default function Topbar({ onToggleSidebar }) {
 
     return (
         <header className="topbar">
+            {/* Always visible, in both states. The sidebar's own control used to
+                be the only way to collapse and was hidden once collapsed, which
+                left no way to bring the sidebar back. */}
             <button
                 type="button"
                 className="topbar__menu-btn"
                 onClick={onToggleSidebar}
-                aria-label="Toggle navigation"
+                aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'}
+                title={collapsed ? 'Expand navigation' : 'Collapse navigation'}
+                aria-expanded={!collapsed}
             >
-                <Icon name="menu" size={20} />
+                <Icon name="panelLeft" size={20} />
             </button>
 
             <form className="topbar__search" role="search" onSubmit={handleSearch}>

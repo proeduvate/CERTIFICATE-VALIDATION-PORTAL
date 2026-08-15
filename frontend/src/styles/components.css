@@ -543,9 +543,11 @@
     background: var(--danger-soft);
     color: var(--danger);
 }
+/* Retired: purple was decorative only. Kept as an alias so any stray usage
+   still lands on the brand colour rather than an unstyled tile. */
 .tint-purple {
-    background: var(--info-soft);
-    color: var(--purple-600);
+    background: var(--accent-soft);
+    color: var(--accent);
 }
 .tint-grey {
     background: var(--bg-sunken);
@@ -1400,4 +1402,99 @@
     border-radius: var(--radius-pill);
     background: var(--accent);
     transition: width var(--duration-slow) var(--ease-out);
+}
+
+/* --------------------------------------------------------------------------
+   Person cell — shared by every table that lists people
+   -------------------------------------------------------------------------- */
+
+.cell-person {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-width: 0;
+}
+
+.cell-person > div {
+    min-width: 0;
+}
+
+.cell-person small {
+    display: block;
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 220px;
+}
+
+/* --------------------------------------------------------------------------
+   Verification panel (intern record)
+   -------------------------------------------------------------------------- */
+
+.verify-panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+}
+
+.verify-panel__state {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    flex-wrap: wrap;
+    padding: var(--space-4) var(--space-5);
+    border-radius: var(--radius-lg);
+    background: var(--warning-soft);
+    border: 1px solid color-mix(in srgb, var(--warning) 28%, transparent);
+}
+
+.verify-panel__state.is-verified {
+    background: var(--success-soft);
+    border-color: color-mix(in srgb, var(--success) 28%, transparent);
+}
+
+.verify-panel__icon {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--warning);
+    color: #fff;
+    flex-shrink: 0;
+}
+
+.verify-panel__state.is-verified .verify-panel__icon {
+    background: var(--success);
+}
+
+.verify-panel__state > div {
+    flex: 1;
+    min-width: 180px;
+}
+
+.verify-panel__state strong {
+    display: block;
+    font-size: var(--text-md);
+    color: var(--text-primary);
+}
+
+.verify-panel__state p {
+    font-size: var(--text-sm);
+    color: var(--text-secondary);
+}
+
+.verify-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+/* Document tiles use a short code (OL / AL / TC) rather than a glyph */
+.doc-item__icon {
+    font-size: var(--text-2xs);
+    font-weight: var(--weight-bold);
+    letter-spacing: 0.04em;
 }

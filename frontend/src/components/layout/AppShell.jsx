@@ -6,6 +6,9 @@ import cn from '../../lib/cn';
 import { STORAGE_KEYS } from '../../config';
 import './layout.css';
 
+/** Matches the breakpoint in layout.css where the sidebar becomes a drawer. */
+const MOBILE_QUERY = '(max-width: 1024px)';
+
 function readCollapsed() {
     try {
         return localStorage.getItem(STORAGE_KEYS.sidebarCollapsed) === 'true';
@@ -42,6 +45,34 @@ export default function AppShell() {
         document.getElementById('workspace')?.scrollTo({ top: 0 });
     }, [location.pathname]);
 
+    /**
+     * The topbar control is the reliable way in and out of the collapsed state.
+     * Below the breakpoint the sidebar overlays as a drawer, so the same button
+     * opens and closes that instead.
+     *
+     * The breakpoint is tracked with a subscription rather than read inside the
+     * click handler: querying at click time gives the wrong answer whenever the
+     * viewport reports a bogus width, which silently sends the toggle down the
+     * wrong branch.
+     */
+    const [isMobile, setIsMobile] = useState(
+        () => window.matchMedia?.(MOBILE_QUERY).matches ?? false,
+    );
+
+    useEffect(() => {
+        const media = window.matchMedia?.(MOBILE_QUERY);
+        if (!media) return undefined;
+
+        const onChange = (event) => setIsMobile(event.matches);
+        media.addEventListener('change', onChange);
+        return () => media.removeEventListener('change', onChange);
+    }, []);
+
+    const toggleSidebar = () => {
+        if (isMobile) setMobileOpen((open) => !open);
+        else setCollapsed((value) => !value);
+    };
+
     return (
         <div className={cn('app-shell', collapsed && 'app-shell--collapsed')}>
             <a className="skip-link" href="#workspace">
@@ -56,7 +87,7 @@ export default function AppShell() {
             />
 
             <div className="app-shell__main">
-                <Topbar onToggleSidebar={() => setMobileOpen((open) => !open)} />
+                <Topbar collapsed={collapsed} onToggleSidebar={toggleSidebar} />
 
                 <main className="app-shell__workspace" id="workspace" tabIndex={-1}>
                     <div className="app-shell__content">

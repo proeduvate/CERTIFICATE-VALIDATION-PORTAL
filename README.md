@@ -78,10 +78,26 @@ registers the first user and expects that account to be the admin.
 | Issue certificates and letters | ❌ | ✅ |
 | Dashboard summary | ❌ | ✅ |
 
-Public certificate verification (`GET /certificates/verify/{number}`) needs no
-account at all, and returns a narrow projection: it confirms issuance and
-describes the internship without exposing the intern's contact details,
-attendance or documents.
+### Verification
+
+Public verification (`GET /verify/{intern_id}`) needs no account. It is keyed on
+the **intern ID** printed on the certificate and returns the intern's public
+identity, the internship, the certificate issued for it, and the supporting
+documents — offer letter (OL), acknowledgement letter (AL), terms and
+conditions (TC), and the letter of recommendation (LOR) where one exists.
+
+Email, date of birth, attendance and internal remarks are withheld.
+
+Marking a record verified is a **separate, code-gated action**, not a field in
+the edit form. An admin must also enter the shared `VERIFICATION_CODE`, so only
+the admins entrusted with it can sign a record off even though any admin can
+edit one. Editing a record never resets its verification.
+
+### Attendance
+
+Attendance is not entered through the admin forms. The Attendance page reads
+whatever the intern records currently hold and is a placeholder until the
+existing attendance database is connected.
 
 ## Notes for deployment
 
@@ -92,3 +108,5 @@ attendance or documents.
   before going live.
 - `create_tables()` runs at import and only creates missing tables; it will not
   migrate existing ones. Adopt Alembic before changing a live schema.
+- Change `VERIFICATION_CODE` from its default and share it only with the
+  admins allowed to sign records off.

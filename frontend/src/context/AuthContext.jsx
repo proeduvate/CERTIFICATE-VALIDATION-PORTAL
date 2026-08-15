@@ -52,7 +52,8 @@ export function AuthProvider({ children }) {
         setStatus('unauthenticated');
     }, []);
 
-    // Any 401/403 from anywhere in the app ends the session.
+    // A 401 from anywhere in the app ends the session. A 403 does not — it
+    // means authenticated but not permitted, which the caller handles.
     useEffect(() => onUnauthorized(() => clearSession()), [clearSession]);
 
     // Revalidate the stored token once on mount. When there is no token the

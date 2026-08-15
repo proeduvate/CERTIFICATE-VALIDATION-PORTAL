@@ -289,7 +289,7 @@ export default function Interns() {
                     label="Completed"
                     value={formatNumber(stats.completed)}
                     icon="checkCircle"
-                    tint="purple"
+                    tint="brand"
                     loading={loading}
                 />
                 <StatCard

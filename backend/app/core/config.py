@@ -28,6 +28,11 @@ class Settings(BaseSettings):
     # Where uploaded certificates and documents are written.
     UPLOAD_DIR: str = "uploads"
 
+    # Second factor for marking an intern verified. Being signed in as an admin
+    # is not enough: the verifier must also know this code, so only the subset
+    # of admins holding it can sign off a record.
+    VERIFICATION_CODE: str = "change-me-verification-code"
+
     # Emit SQL to the console. Noisy; off by default.
     SQL_ECHO: bool = False
 

@@ -53,10 +53,12 @@ class InternBase(BaseModel):
     holidays: int | None = Field(default=0, ge=0)
     attendance_percentage: float | None = Field(default=0, ge=0, le=100)
 
-    # Documents
+    # Documents. OL / AL / TC / LOR are the set public verification exposes.
     offer_letter: str | None = None
-    completion_letter: str | None = None
+    acknowledgement_letter: str | None = None
+    terms_conditions: str | None = None
     lor: str | None = None
+    completion_letter: str | None = None
     certificate: str | None = None
     resume: str | None = None
 
@@ -106,8 +108,10 @@ class InternUpdate(BaseModel):
     holidays: int | None = Field(default=None, ge=0)
     attendance_percentage: float | None = Field(default=None, ge=0, le=100)
     offer_letter: str | None = None
-    completion_letter: str | None = None
+    acknowledgement_letter: str | None = None
+    terms_conditions: str | None = None
     lor: str | None = None
+    completion_letter: str | None = None
     certificate: str | None = None
     resume: str | None = None
     verification_status: str | None = None

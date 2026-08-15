@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import { Input, Select, Textarea } from '../../components/ui/Field';
@@ -10,7 +10,7 @@ import {
     toInternPayload,
     updateIntern,
 } from '../../services/interns';
-import { INTERN_STATUS, INTERNSHIP_MODES, VERIFICATION_STATUS } from '../../config';
+import { INTERN_STATUS, INTERNSHIP_MODES } from '../../config';
 import { toDateInput } from '../../lib/format';
 
 /**
@@ -21,11 +21,16 @@ import { toDateInput } from '../../lib/format';
  * `toInternPayload` fills the remainder with type-correct defaults, keeping
  * the dialog usable without dropping data on edit.
  */
+/**
+ * Attendance is not captured here — it will come from the existing attendance
+ * system rather than being typed in by hand. Verification is not here either:
+ * signing a record off is a separate, code-gated action on the intern page,
+ * not a field anyone editing the record can set.
+ */
 const SECTIONS = [
     { id: 'identity', label: 'Identity', icon: 'user' },
     { id: 'internship', label: 'Internship', icon: 'briefcase' },
-    { id: 'attendance', label: 'Attendance', icon: 'clipboard' },
-    { id: 'verification', label: 'Verification', icon: 'shieldCheck' },
+    { id: 'documents', label: 'Documents', icon: 'folder' },
 ];
 
 function initialForm(intern) {
@@ -53,16 +58,10 @@ function initialForm(intern) {
         status: intern?.status ?? 'Active',
         responsibilities: intern?.responsibilities ?? '',
 
-        working_days: intern?.working_days ?? 0,
-        present_days: intern?.present_days ?? 0,
-        absent_days: intern?.absent_days ?? 0,
-        leave_days: intern?.leave_days ?? 0,
-        holidays: intern?.holidays ?? 0,
-
-        verification_status: intern?.verification_status ?? 'Pending',
-        verified_by: intern?.verified_by ?? '',
-        verification_date: toDateInput(intern?.verification_date),
-        remarks: intern?.remarks ?? '',
+        offer_letter: intern?.offer_letter ?? '',
+        acknowledgement_letter: intern?.acknowledgement_letter ?? '',
+        terms_conditions: intern?.terms_conditions ?? '',
+        lor: intern?.lor ?? '',
     };
 }
 
@@ -82,15 +81,6 @@ export default function InternFormModal({ intern, onClose, onSaved }) {
         setErrors((current) => ({ ...current, [key]: undefined }));
     };
 
-    // Attendance percentage is stored on the record but is entirely derivable,
-    // so we compute it rather than asking someone to keep it in sync by hand.
-    const attendancePercentage = useMemo(() => {
-        const working = Number(form.working_days) || 0;
-        const present = Number(form.present_days) || 0;
-        if (working <= 0) return 0;
-        return Math.round((present / working) * 1000) / 10;
-    }, [form.working_days, form.present_days]);
-
     const validate = () => {
         const next = {};
 
@@ -107,12 +97,6 @@ export default function InternFormModal({ intern, onClose, onSaved }) {
             next.end_date = 'End date cannot be before the start date';
         }
 
-        const present = Number(form.present_days) || 0;
-        const working = Number(form.working_days) || 0;
-        if (working > 0 && present > working) {
-            next.present_days = 'Present days cannot exceed working days';
-        }
-
         setErrors(next);
 
         if (Object.keys(next).length > 0) {
@@ -120,7 +104,6 @@ export default function InternFormModal({ intern, onClose, onSaved }) {
             if (next.name || next.email || next.department || next.college)
                 setSection('identity');
             else if (next.end_date) setSection('internship');
-            else if (next.present_days) setSection('attendance');
         }
 
         return Object.keys(next).length === 0;
@@ -135,10 +118,7 @@ export default function InternFormModal({ intern, onClose, onSaved }) {
         setSaving(true);
 
         try {
-            const payload = toInternPayload(
-                { ...form, attendance_percentage: attendancePercentage },
-                intern ?? {},
-            );
+            const payload = toInternPayload(form);
 
             if (isEdit) await updateIntern(intern.id, payload);
             else await createIntern(payload);
@@ -344,84 +324,42 @@ export default function InternFormModal({ intern, onClose, onSaved }) {
                         </div>
                     )}
 
-                    {section === 'attendance' && (
+                    {section === 'documents' && (
                         <>
+                            <Alert variant="info" className="form-modal__alert">
+                                These are the documents public verification shows for
+                                this intern. Enter the stored path or a full URL; leave
+                                blank for anything not issued.
+                            </Alert>
+
                             <div className="form-grid">
                                 <Input
-                                    label="Working days"
-                                    type="number"
-                                    min="0"
-                                    value={form.working_days}
-                                    onChange={set('working_days')}
+                                    label="Offer letter (OL)"
+                                    value={form.offer_letter}
+                                    onChange={set('offer_letter')}
+                                    placeholder="uploads/documents/offer.pdf"
                                 />
                                 <Input
-                                    label="Present days"
-                                    type="number"
-                                    min="0"
-                                    value={form.present_days}
-                                    onChange={set('present_days')}
-                                    error={errors.present_days}
+                                    label="Acknowledgement letter (AL)"
+                                    value={form.acknowledgement_letter}
+                                    onChange={set('acknowledgement_letter')}
+                                    placeholder="uploads/documents/acknowledgement.pdf"
                                 />
                                 <Input
-                                    label="Absent days"
-                                    type="number"
-                                    min="0"
-                                    value={form.absent_days}
-                                    onChange={set('absent_days')}
+                                    label="Terms and conditions (TC)"
+                                    value={form.terms_conditions}
+                                    onChange={set('terms_conditions')}
+                                    placeholder="uploads/documents/terms.pdf"
                                 />
                                 <Input
-                                    label="Leave days"
-                                    type="number"
-                                    min="0"
-                                    value={form.leave_days}
-                                    onChange={set('leave_days')}
-                                />
-                                <Input
-                                    label="Holidays"
-                                    type="number"
-                                    min="0"
-                                    value={form.holidays}
-                                    onChange={set('holidays')}
+                                    label="Letter of recommendation (LOR)"
+                                    value={form.lor}
+                                    onChange={set('lor')}
+                                    placeholder="Optional"
+                                    hint="Optional — only if one was issued."
                                 />
                             </div>
-
-                            <Alert variant="info" className="form-modal__alert">
-                                Attendance is calculated as present ÷ working days, and
-                                will be saved as <strong>{attendancePercentage}%</strong>.
-                            </Alert>
                         </>
-                    )}
-
-                    {section === 'verification' && (
-                        <div className="form-grid">
-                            <Select
-                                label="Verification status"
-                                value={form.verification_status}
-                                onChange={set('verification_status')}
-                                options={VERIFICATION_STATUS}
-                            />
-                            <Input
-                                label="Verified by"
-                                value={form.verified_by}
-                                onChange={set('verified_by')}
-                                placeholder="Name of the reviewer"
-                            />
-                            <Input
-                                label="Verification date"
-                                type="date"
-                                value={form.verification_date}
-                                onChange={set('verification_date')}
-                            />
-
-                            <Textarea
-                                label="Remarks"
-                                value={form.remarks}
-                                onChange={set('remarks')}
-                                placeholder="Anything a future reviewer should know"
-                                fieldClassName="form-grid__full"
-                                maxLength={500}
-                            />
-                        </div>
                     )}
                 </div>
 

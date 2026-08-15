@@ -121,6 +121,11 @@ status, intern = call("POST", "/interns/", {
     "email": "aarav@example.com",
     "department": "Computer Science",
     "college": "Anna University",
+    "intern_id": "PEV-INT-000123",
+    "internship_role": "Full Stack Developer Intern",
+    "offer_letter": "uploads/documents/ol.pdf",
+    "acknowledgement_letter": "uploads/documents/al.pdf",
+    "terms_conditions": "uploads/documents/tc.pdf",
 }, token=TOKEN)
 check("create intern with only the 4 required fields", 201, status)
 INTERN_ID = intern["id"]
@@ -174,6 +179,61 @@ check("'verify' is not parsed as an id", 404, call(
     "GET", "/certificates/verify/not-a-number")[0])
 check("admin lookup by number", 200, call(
     "GET", f"/certificates/number/{NUMBER}", token=TOKEN)[0])
+
+listing = call("GET", "/certificates/", token=TOKEN)[1]
+check("list row carries the intern name", "Aarav Menon",
+      listing[0]["intern_name"])
+check("list row carries the printed intern ID", "PEV-INT-000123",
+      listing[0]["intern_code"])
+
+# ------------------------------------------- verification by intern id
+section("Public verification by intern ID")
+
+status, public = call("GET", "/verify/PEV-INT-000123")
+check("verify by intern ID with no token", 200, status)
+check("returns the intern name", "Aarav Menon", public["intern"]["name"])
+check("returns the internship role", "Full Stack Developer Intern",
+      public["internship"]["internship_role"])
+check("returns the certificate", True, public["certificate"] is not None)
+check("exposes OL / AL / TC / LOR", ["OL", "AL", "TC", "LOR"],
+      [d["key"] for d in public["documents"]])
+
+by_key = {d["key"]: d["url"] for d in public["documents"]}
+check("OL resolves", "/uploads/documents/ol.pdf", by_key["OL"])
+check("AL resolves", "/uploads/documents/al.pdf", by_key["AL"])
+check("TC resolves", "/uploads/documents/tc.pdf", by_key["TC"])
+check("LOR is null when none was issued", None, by_key["LOR"])
+check("withholds email", False, "email" in public["intern"])
+check("withholds attendance", False,
+      any("days" in key for key in public["intern"]))
+check("lookup is case-insensitive", 200,
+      call("GET", "/verify/pev-int-000123")[0])
+check("unknown intern ID 404s", 404, call("GET", "/verify/NOPE-000")[0])
+check("starts unverified", "Pending", public["verification"]["status"])
+
+# ------------------------------------------------ code-gated sign-off
+section("Code-gated verification")
+
+check("wrong code is refused", 403, call(
+    "POST", f"/interns/{INTERN_ID}/verify",
+    {"code": "not-the-code", "verified_by": "Someone"}, token=TOKEN)[0])
+check("still unverified after a failed attempt", "Pending",
+      call("GET", "/verify/PEV-INT-000123")[1]["verification"]["status"])
+check("correct code is accepted", 200, call(
+    "POST", f"/interns/{INTERN_ID}/verify",
+    {"code": "proeduvate-verify-2026", "verified_by": "Dhanush C",
+     "remarks": "Checked all documents"}, token=TOKEN)[0])
+
+public = call("GET", "/verify/PEV-INT-000123")[1]
+check("now reads Verified publicly", "Verified",
+      public["verification"]["status"])
+check("records who signed it off", "Dhanush C",
+      public["verification"]["verified_by"])
+
+# Editing must not silently undo a sign-off.
+call("PUT", f"/interns/{INTERN_ID}", {"mentor": "New Mentor"}, token=TOKEN)
+check("an edit does not reset verification", "Verified",
+      call("GET", "/verify/PEV-INT-000123")[1]["verification"]["status"])
 
 # ------------------------------------------------------ lor & documents
 section("LOR & documents")
@@ -233,6 +293,10 @@ check("non-admin CAN read interns", 200, call(
     "GET", "/interns/", token=ITOKEN)[0])
 check("garbage token rejected", 401, call(
     "GET", "/interns/", token="garbage")[0])
+check("non-admin cannot verify even with the code", 403, call(
+    "POST", f"/interns/{INTERN_ID}/verify",
+    {"code": "proeduvate-verify-2026", "verified_by": "Sneaky"},
+    token=ITOKEN)[0])
 
 # ------------------------------------------------------------------ cors
 section("CORS")

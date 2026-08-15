@@ -165,7 +165,7 @@ export default function Lors() {
                     label="With document"
                     value={formatNumber(withFile)}
                     icon="fileCheck"
-                    tint="purple"
+                    tint="brand"
                     loading={loading}
                 />
             </div>

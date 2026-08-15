@@ -51,9 +51,15 @@ class Intern(Base):
     attendance_percentage = Column(Float)
 
     # document tab
+    # The first four are what public verification exposes: offer letter (OL),
+    # acknowledgement letter (AL), terms and conditions (TC), and the letter of
+    # recommendation (LOR), which is optional.
     offer_letter = Column(String(255))
-    completion_letter = Column(String(255))
+    acknowledgement_letter = Column(String(255))
+    terms_conditions = Column(String(255))
     lor = Column(String(255))
+
+    completion_letter = Column(String(255))
     certificate = Column(String(255))
     resume = Column(String(255))
 

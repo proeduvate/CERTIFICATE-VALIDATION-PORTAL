@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Button, { IconButton } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Field';
 import {
+    Avatar,
     Badge,
     Card,
     EmptyState,
@@ -51,7 +52,7 @@ export default function Certificates() {
         if (!term) return records;
 
         return records.filter((cert) =>
-            [cert.certificate_number, cert.intern_id, cert.file_path]
+            [cert.certificate_number, cert.intern_name, cert.intern_code]
                 .filter(Boolean)
                 .some((field) => String(field).toLowerCase().includes(term)),
         );
@@ -91,7 +92,9 @@ export default function Certificates() {
     ).length;
 
     const copyVerifyLink = async (cert) => {
-        const url = `${window.location.origin}/verify/${encodeURIComponent(cert.certificate_number)}`;
+        // Public verification is keyed on the intern ID, not the certificate
+        // reference.
+        const url = `${window.location.origin}/verify/${encodeURIComponent(cert.intern_code ?? '')}`;
 
         try {
             await navigator.clipboard.writeText(url);
@@ -149,7 +152,7 @@ export default function Certificates() {
                     label="With uploaded file"
                     value={formatNumber(withFile)}
                     icon="fileCheck"
-                    tint="purple"
+                    tint="brand"
                     loading={loading}
                     meta={
                         records.length > 0
@@ -170,7 +173,7 @@ export default function Certificates() {
                 <Input
                     icon="search"
                     type="search"
-                    placeholder="Search by certificate number or intern id…"
+                    placeholder="Search by intern name, intern ID or certificate number…"
                     value={search}
                     onChange={(event) => {
                         setSearch(event.target.value);
@@ -225,18 +228,18 @@ export default function Certificates() {
                                 <thead>
                                     <tr>
                                         <SortHeader
+                                            column="intern_name"
+                                            sort={sort}
+                                            onSort={setSort}
+                                        >
+                                            Intern
+                                        </SortHeader>
+                                        <SortHeader
                                             column="certificate_number"
                                             sort={sort}
                                             onSort={setSort}
                                         >
                                             Certificate no.
-                                        </SortHeader>
-                                        <SortHeader
-                                            column="intern_id"
-                                            sort={sort}
-                                            onSort={setSort}
-                                        >
-                                            Intern
                                         </SortHeader>
                                         <SortHeader
                                             column="issue_date"
@@ -261,14 +264,30 @@ export default function Certificates() {
                                                 navigate(`/dashboard/certificates/${cert.id}`)
                                             }
                                         >
+                                            {/* Each intern has exactly one
+                                                certificate, so the row is
+                                                identified by who it belongs to. */}
                                             <td>
-                                                <span className="table__primary mono">
-                                                    {orEmpty(cert.certificate_number)}
-                                                </span>
+                                                <div className="cell-person">
+                                                    <Avatar
+                                                        name={cert.intern_name}
+                                                        size="sm"
+                                                    />
+                                                    <div>
+                                                        <span className="table__primary">
+                                                            {orEmpty(cert.intern_name)}
+                                                        </span>
+                                                        <small className="mono">
+                                                            {orEmpty(cert.intern_code)}
+                                                        </small>
+                                                    </div>
+                                                </div>
                                             </td>
 
-                                            <td className="mono">
-                                                {orEmpty(cert.intern_id)}
+                                            <td>
+                                                <span className="mono">
+                                                    {orEmpty(cert.certificate_number)}
+                                                </span>
                                             </td>
 
                                             <td>{formatDate(cert.issue_date)}</td>
@@ -298,8 +317,9 @@ export default function Certificates() {
                                                     />
                                                     <IconButton
                                                         icon="link"
-                                                        label="Copy verification link"
+                                                        label="Copy public verification link"
                                                         onClick={() => copyVerifyLink(cert)}
+                                                        disabled={!cert.intern_code}
                                                     />
                                                 </div>
                                             </td>

@@ -73,11 +73,9 @@
     letter-spacing: -0.035em;
 }
 
+/* One accent colour, not a gradient across two hues. */
 .auth-aside__accent {
-    background: linear-gradient(100deg, var(--brand-500), var(--purple-500));
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    color: var(--accent);
 }
 
 .auth-aside__copy p {

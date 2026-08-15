@@ -16,43 +16,38 @@ import {
 } from '../../components/ui/Display';
 import CertificatePreview from '../../components/CertificatePreview';
 import { useAsync } from '../../hooks/useAsync';
-import { verifyCertificate } from '../../services/certificates';
+import { verifyByInternId } from '../../services/verification';
+import { API_BASE_URL, APP } from '../../config';
 import { formatDate, formatDateTime, orEmpty } from '../../lib/format';
-import { APP } from '../../config';
 import './verify.css';
 
 /**
- * Public certificate verification.
+ * Public credential verification.
  *
- * Previously this page ignored the id in the URL entirely and rendered the
- * same hardcoded "John Doe" record for every lookup, with no loading, empty,
- * invalid or error state — an unknown reference silently displayed a verified
- * certificate belonging to someone else.
- *
- * It now performs a real lookup against the public verification endpoint and
- * distinguishes three outcomes: found, not found, and service unreachable.
+ * Keyed on the intern ID printed on the certificate rather than a certificate
+ * reference: one lookup returns the intern, the internship, the certificate
+ * issued for it, and the supporting documents.
  */
 export default function Verify() {
-    const { number: numberParam } = useParams();
+    const { internId: paramId } = useParams();
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
 
-    // Accept /verify/:number, /verify?id=… and the legacy ?number=… form.
+    // Accept /verify/:internId plus the older ?id= / ?number= query forms.
     const requested = (
-        numberParam ??
+        paramId ??
         searchParams.get('id') ??
         searchParams.get('number') ??
         ''
     ).trim();
 
     const { data, error, loading } = useAsync(
-        (signal) => verifyCertificate(requested, { signal }),
+        (signal) => verifyByInternId(requested, { signal }),
         [requested],
         { enabled: Boolean(requested) },
     );
 
-    // Mirror the reference from the URL into the input, following React's
-    // "adjust state when a prop changes" pattern rather than an effect.
+    // Mirror the URL into the input using React's adjust-on-change pattern.
     const [query, setQuery] = useState(requested);
     const [lastRequested, setLastRequested] = useState(requested);
 
@@ -79,24 +74,24 @@ export default function Verify() {
 
     return (
         <div className="verify-page">
-            {/* ---------------- Search ---------------- */}
             <section className="verify-hero">
                 <div className="verify-hero__inner">
                     <Badge variant="brand" icon="shieldCheck">
-                        Certificate validation
+                        Credential verification
                     </Badge>
 
-                    <h1 className="verify-hero__title">Verify a certificate</h1>
+                    <h1 className="verify-hero__title">Verify an internship</h1>
                     <p className="verify-hero__lede">
-                        Enter the reference number printed on the certificate to confirm it
-                        was issued by {APP.name} and view the record behind it.
+                        Enter the intern ID printed on the certificate to see the
+                        internship it belongs to and the documents {APP.name} issued
+                        for it.
                     </p>
 
                     <form className="verify-search" onSubmit={handleSubmit} role="search">
                         <Input
-                            label="Certificate reference number"
-                            icon="award"
-                            placeholder="e.g. PEV-2024-000123"
+                            label="Intern ID"
+                            icon="user"
+                            placeholder="e.g. PEV-INT-000123"
                             value={query}
                             onChange={(event) => setQuery(event.target.value)}
                             fieldClassName="verify-search__field"
@@ -117,15 +112,12 @@ export default function Verify() {
                 </div>
             </section>
 
-            {/* ---------------- Result ---------------- */}
             <section className="verify-result" aria-live="polite">
                 {status === 'idle' && <IdleState />}
                 {status === 'loading' && <LoadingBlock label={`Checking ${requested}…`} />}
                 {status === 'not-found' && <NotFoundState reference={requested} />}
                 {status === 'error' && <ErrorOutcome error={error} />}
-                {status === 'found' && (
-                    <FoundState certificate={data} reference={requested} />
-                )}
+                {status === 'found' && <FoundState result={data} />}
             </section>
         </div>
     );
@@ -138,19 +130,19 @@ export default function Verify() {
 function IdleState() {
     const steps = [
         {
-            icon: 'search',
-            title: 'Enter the reference',
-            body: 'Find it printed on the certificate, usually beneath the recipient name.',
+            icon: 'user',
+            title: 'Enter the intern ID',
+            body: 'It appears on the certificate, usually alongside the recipient name.',
         },
         {
             icon: 'shieldCheck',
             title: 'We check the record',
-            body: `The reference is matched against ${APP.name}'s issuing records in real time.`,
+            body: `The ID is matched against ${APP.name}'s internship records in real time.`,
         },
         {
-            icon: 'fileCheck',
-            title: 'See the result',
-            body: 'A verified result shows the issue date and the internship it belongs to.',
+            icon: 'folder',
+            title: 'See everything issued',
+            body: 'The internship, the certificate, and the supporting documents.',
         },
     ];
 
@@ -172,25 +164,24 @@ function IdleState() {
 
 function NotFoundState({ reference }) {
     return (
-        <Card className="verify-outcome verify-outcome--invalid">
+        <Card className="verify-outcome">
             <CardBody>
                 <span className="verify-outcome__icon verify-outcome__icon--invalid">
                     <Icon name="xCircle" size={28} />
                 </span>
 
-                <h2 className="verify-outcome__title">No certificate found</h2>
+                <h2 className="verify-outcome__title">No record found</h2>
                 <p className="verify-outcome__body">
-                    We could not find a certificate with reference{' '}
-                    <strong className="mono">{reference}</strong>. Check the reference for
-                    typos — it is case-insensitive but the digits and dashes must match
-                    exactly.
+                    We could not find an intern with ID{' '}
+                    <strong className="mono">{reference}</strong>. Check it for typos —
+                    it is case-insensitive, but the digits and dashes must match.
                 </p>
 
                 <Alert variant="warning" className="verify-outcome__alert">
-                    A reference that does not resolve is not proof of forgery, but it does
-                    mean {APP.name} holds no matching issued record. Contact{' '}
+                    An ID that does not resolve is not proof of forgery, but it does mean{' '}
+                    {APP.name} holds no matching record. Contact{' '}
                     <a href={`mailto:${APP.supportEmail}`}>{APP.supportEmail}</a> if you
-                    believe the certificate is genuine.
+                    believe the credential is genuine.
                 </Alert>
             </CardBody>
         </Card>
@@ -210,7 +201,7 @@ function ErrorOutcome({ error }) {
                     }
                     message={
                         error?.message ??
-                        'Something went wrong while checking this reference. Please try again shortly.'
+                        'Something went wrong while checking this ID. Please try again shortly.'
                     }
                     action={
                         <Button
@@ -227,29 +218,35 @@ function ErrorOutcome({ error }) {
     );
 }
 
-function FoundState({ certificate, reference }) {
-    const issuedOn = formatDate(certificate?.issue_date);
+function FoundState({ result }) {
+    const { intern, internship, certificate, documents, verification } = result;
+
+    const isVerified = (verification?.status ?? '').toLowerCase() === 'verified';
+    const available = documents.filter((document) => Boolean(document.url));
 
     return (
         <div className="verify-found">
-            {/* Verdict banner */}
-            <div className="verify-verdict">
+            {/* Verdict reflects the record's own verification state rather than
+                asserting "verified" merely because the ID resolved. */}
+            <div
+                className={`verify-verdict${isVerified ? '' : ' verify-verdict--pending'}`}
+            >
                 <span className="verify-verdict__icon">
-                    <Icon name="shieldCheck" size={26} />
+                    <Icon name={isVerified ? 'shieldCheck' : 'clock'} size={26} />
                 </span>
 
                 <div className="verify-verdict__text">
-                    <strong>Verified</strong>
+                    <strong>{isVerified ? 'Verified' : 'Record found'}</strong>
                     <p>
-                        This certificate matches a record issued by {APP.name}.
+                        {isVerified
+                            ? `This internship has been verified by ${APP.name}.`
+                            : `${APP.name} holds this record, but it has not been signed off yet.`}
                     </p>
                 </div>
 
                 <div className="verify-verdict__ref">
-                    <span>Reference</span>
-                    <strong className="mono">
-                        {orEmpty(certificate?.certificate_number, reference)}
-                    </strong>
+                    <span>Intern ID</span>
+                    <strong className="mono">{orEmpty(intern.intern_id)}</strong>
                 </div>
             </div>
 
@@ -257,107 +254,193 @@ function FoundState({ certificate, reference }) {
                 <Card>
                     <CardHeader title="Certificate" icon="award" />
                     <CardBody>
-                        <CertificatePreview
-                            recipientName={certificate?.intern_name}
-                            role={certificate?.internship_role}
-                            certificateNumber={orEmpty(
-                                certificate?.certificate_number,
-                                reference,
-                            )}
-                            issueDate={issuedOn}
-                            startDate={formatDate(certificate?.start_date)}
-                            endDate={formatDate(certificate?.end_date)}
-                            filePath={certificate?.file_path}
-                        />
+                        {certificate ? (
+                            <>
+                                <CertificatePreview
+                                    recipientName={intern.name}
+                                    role={internship.internship_role}
+                                    certificateNumber={certificate.certificate_number}
+                                    issueDate={formatDate(certificate.issue_date)}
+                                    startDate={formatDate(internship.start_date)}
+                                    endDate={formatDate(internship.end_date)}
+                                    filePath={certificate.url}
+                                />
+
+                                {certificate.url && (
+                                    <Button
+                                        href={resolveUrl(certificate.url)}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        variant="secondary"
+                                        icon="externalLink"
+                                        block
+                                        className="verify-found__open"
+                                    >
+                                        Open the issued certificate
+                                    </Button>
+                                )}
+                            </>
+                        ) : (
+                            <EmptyState
+                                icon="award"
+                                title="No certificate issued yet"
+                                message="This internship record exists, but no certificate has been issued against it."
+                            />
+                        )}
                     </CardBody>
                 </Card>
 
-                <Card>
-                    <CardHeader title="What this certifies" icon="fileText" />
-                    <CardBody>
-                        <KeyValueList
-                            items={[
-                                {
-                                    key: 'Certificate number',
-                                    value: (
-                                        <span className="mono">
-                                            {orEmpty(
-                                                certificate?.certificate_number,
-                                                reference,
-                                            )}
-                                        </span>
-                                    ),
-                                },
-                                {
-                                    key: 'Issued to',
-                                    value: orEmpty(certificate?.intern_name),
-                                },
-                                {
-                                    key: 'Role',
-                                    value: orEmpty(certificate?.internship_role),
-                                },
-                                {
-                                    key: 'Department',
-                                    value: orEmpty(certificate?.department),
-                                },
-                                {
-                                    key: 'Institution',
-                                    value: orEmpty(certificate?.college),
-                                },
-                                {
-                                    key: 'Internship period',
-                                    value:
-                                        certificate?.start_date && certificate?.end_date
-                                            ? `${formatDate(certificate.start_date)} – ${formatDate(certificate.end_date)}`
-                                            : orEmpty(certificate?.duration),
-                                },
-                                { key: 'Issue date', value: issuedOn },
-                                {
-                                    key: 'Issued by',
-                                    value: orEmpty(
-                                        certificate?.organization,
-                                        `${APP.name} Academic Board`,
-                                    ),
-                                },
-                                {
-                                    key: 'Status',
-                                    value: <Badge variant="success" dot>Verified</Badge>,
-                                },
-                            ]}
-                        />
-                    </CardBody>
-                </Card>
+                <div className="verify-found__side">
+                    <Card>
+                        <CardHeader title="Intern" icon="user" />
+                        <CardBody>
+                            <KeyValueList
+                                items={[
+                                    { key: 'Name', value: orEmpty(intern.name) },
+                                    {
+                                        key: 'Intern ID',
+                                        value: (
+                                            <span className="mono">
+                                                {orEmpty(intern.intern_id)}
+                                            </span>
+                                        ),
+                                    },
+                                    { key: 'Department', value: orEmpty(intern.department) },
+                                    { key: 'Institution', value: orEmpty(intern.college) },
+                                    { key: 'Year', value: orEmpty(intern.year) },
+                                ]}
+                            />
+                        </CardBody>
+                    </Card>
+
+                    <Card>
+                        <CardHeader title="Internship" icon="briefcase" />
+                        <CardBody>
+                            <KeyValueList
+                                items={[
+                                    {
+                                        key: 'Role',
+                                        value: orEmpty(internship.internship_role),
+                                    },
+                                    { key: 'Domain', value: orEmpty(internship.domain) },
+                                    {
+                                        key: 'Organisation',
+                                        value: orEmpty(internship.organization),
+                                    },
+                                    { key: 'Mentor', value: orEmpty(internship.mentor) },
+                                    { key: 'Mode', value: orEmpty(internship.mode) },
+                                    {
+                                        key: 'Period',
+                                        value:
+                                            internship.start_date && internship.end_date
+                                                ? `${formatDate(internship.start_date)} – ${formatDate(internship.end_date)}`
+                                                : orEmpty(internship.duration),
+                                    },
+                                    {
+                                        key: 'Status',
+                                        value: (
+                                            <Badge
+                                                variant={
+                                                    internship.status === 'Completed'
+                                                        ? 'success'
+                                                        : 'neutral'
+                                                }
+                                            >
+                                                {orEmpty(internship.status)}
+                                            </Badge>
+                                        ),
+                                    },
+                                ]}
+                            />
+                        </CardBody>
+                    </Card>
+                </div>
             </div>
 
+            {/* ---------------- Documents ---------------- */}
             <Card>
-                <CardHeader title="Verification metadata" icon="shield" />
+                <CardHeader
+                    title="Issued documents"
+                    icon="folder"
+                    subtitle={`${available.length} of ${documents.length} available`}
+                />
+
+                <CardBody>
+                    <div className="verify-docs">
+                        {documents.map((document) => (
+                            <DocumentTile key={document.key} document={document} />
+                        ))}
+                    </div>
+                </CardBody>
+            </Card>
+
+            <Card>
+                <CardHeader title="Verification details" icon="shield" />
                 <CardBody>
                     <MetaGrid
                         items={[
                             {
-                                key: 'Checked at',
-                                value: formatDateTime(new Date()),
-                            },
-                            { key: 'Data source', value: `${APP.name} records` },
-                            {
-                                key: 'Method',
-                                value: 'Reference number lookup',
+                                key: 'Status',
+                                value: orEmpty(verification.status, 'Pending'),
                             },
                             {
-                                key: 'Scope',
-                                value: 'Issuance record only',
+                                key: 'Verified by',
+                                value: orEmpty(verification.verified_by, 'Not yet signed off'),
                             },
+                            {
+                                key: 'Verified on',
+                                value: verification.verification_date
+                                    ? formatDate(verification.verification_date)
+                                    : '—',
+                            },
+                            { key: 'Checked at', value: formatDateTime(new Date()) },
                         ]}
                     />
 
                     <Alert variant="info" className="verify-found__note">
-                        This result confirms that {APP.name} issued a certificate under
-                        this reference. It is not an assessment of any document image you
-                        may have been sent separately — always compare the reference on the
-                        document against the one shown here.
+                        This page reflects the record {APP.name} holds for this intern ID.
+                        Always compare the ID printed on the document you were sent
+                        against the one shown here.
                     </Alert>
                 </CardBody>
             </Card>
         </div>
+    );
+}
+
+function resolveUrl(url) {
+    if (!url) return null;
+    return /^https?:\/\//i.test(url)
+        ? url
+        : `${API_BASE_URL}/${String(url).replace(/^\/+/, '')}`;
+}
+
+function DocumentTile({ document }) {
+    if (!document.url) {
+        return (
+            <div className="verify-doc verify-doc--missing">
+                <span className="verify-doc__key">{document.key}</span>
+                <span className="verify-doc__text">
+                    <strong>{document.label}</strong>
+                    <small>Not provided</small>
+                </span>
+            </div>
+        );
+    }
+
+    return (
+        <a
+            className="verify-doc"
+            href={resolveUrl(document.url)}
+            target="_blank"
+            rel="noreferrer"
+        >
+            <span className="verify-doc__key">{document.key}</span>
+            <span className="verify-doc__text">
+                <strong>{document.label}</strong>
+                <small>View document</small>
+            </span>
+            <Icon name="externalLink" size={16} />
+        </a>
     );
 }

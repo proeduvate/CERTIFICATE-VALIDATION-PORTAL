@@ -12,6 +12,7 @@ from app.api.routes.dashboard import router as dashboard_router
 from app.api.routes.certificate import router as certificate_router
 from app.api.routes.document import router as document_router
 from app.api.routes.lor import router as lor_router
+from app.api.routes.verification import router as verification_router
 
 
 app = FastAPI(
@@ -50,6 +51,7 @@ app.include_router(dashboard_router)
 app.include_router(certificate_router)
 app.include_router(lor_router)
 app.include_router(document_router)
+app.include_router(verification_router)
 
 
 @app.get("/", tags=["Health"])

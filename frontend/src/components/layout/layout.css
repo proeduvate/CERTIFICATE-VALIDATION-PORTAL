@@ -171,7 +171,6 @@
 
 /* Collapsed: icons only */
 
-.app-shell--collapsed .sidebar__logo-text,
 .app-shell--collapsed .sidebar__link-label {
     display: none;
 }
@@ -179,10 +178,6 @@
 .app-shell--collapsed .sidebar__brand {
     justify-content: center;
     padding: 0 var(--space-2);
-}
-
-.app-shell--collapsed .sidebar__collapse {
-    display: none;
 }
 
 .app-shell--collapsed .sidebar__link,
@@ -243,7 +238,7 @@
 }
 
 .topbar__menu-btn {
-    display: none;
+    display: inline-flex;
     place-items: center;
     width: 36px;
     height: 36px;
@@ -495,9 +490,15 @@
         width: var(--sidebar-width);
     }
 
-    .app-shell--collapsed .sidebar__logo-text,
+    /* Below the breakpoint the sidebar is a drawer at full width, so the
+       collapsed styling is ignored entirely. */
     .app-shell--collapsed .sidebar__link-label {
         display: block;
+    }
+
+    .app-shell--collapsed .sidebar__brand {
+        justify-content: space-between;
+        padding: 0 var(--space-4);
     }
 
     .app-shell--collapsed .sidebar__link,
@@ -509,10 +510,6 @@
     .app-shell__main,
     .app-shell--collapsed .app-shell__main {
         margin-left: 0;
-    }
-
-    .topbar__menu-btn {
-        display: grid;
     }
 
     .sidebar-scrim.is-visible {
