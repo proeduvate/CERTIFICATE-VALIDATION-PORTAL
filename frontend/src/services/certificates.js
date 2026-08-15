@@ -11,12 +11,20 @@ export function getCertificate(id, options) {
 }
 
 /**
- * Public certificate lookup by printed reference number.
+ * Public certificate lookup by printed reference — no authentication.
  *
- * NOTE: this route is currently guarded by `get_current_user`, so anonymous
- * visitors on /verify receive a 401. The verification page surfaces that as an
- * explicit message rather than pretending the certificate is invalid.
+ * Returns a deliberately narrow projection (see PublicCertificateResponse):
+ * enough to confirm issuance and describe the internship, without exposing the
+ * intern's contact details, attendance or documents.
  */
+export function verifyCertificate(certificateNumber, options) {
+    return api.get(
+        `/certificates/verify/${encodeURIComponent(certificateNumber)}`,
+        { ...options, auth: false },
+    );
+}
+
+/** Admin lookup by reference, returning the full record. */
 export function getCertificateByNumber(certificateNumber, options) {
     return api.get(
         `/certificates/number/${encodeURIComponent(certificateNumber)}`,

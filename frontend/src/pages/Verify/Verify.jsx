@@ -16,7 +16,7 @@ import {
 } from '../../components/ui/Display';
 import CertificatePreview from '../../components/CertificatePreview';
 import { useAsync } from '../../hooks/useAsync';
-import { getCertificateByNumber } from '../../services/certificates';
+import { verifyCertificate } from '../../services/certificates';
 import { formatDate, formatDateTime, orEmpty } from '../../lib/format';
 import { APP } from '../../config';
 import './verify.css';
@@ -29,8 +29,8 @@ import './verify.css';
  * invalid or error state — an unknown reference silently displayed a verified
  * certificate belonging to someone else.
  *
- * It now performs a real lookup and distinguishes four outcomes: found,
- * not found, access-restricted, and network failure.
+ * It now performs a real lookup against the public verification endpoint and
+ * distinguishes three outcomes: found, not found, and service unreachable.
  */
 export default function Verify() {
     const { number: numberParam } = useParams();
@@ -46,7 +46,7 @@ export default function Verify() {
     ).trim();
 
     const { data, error, loading } = useAsync(
-        (signal) => getCertificateByNumber(requested, { signal }),
+        (signal) => verifyCertificate(requested, { signal }),
         [requested],
         { enabled: Boolean(requested) },
     );
@@ -122,7 +122,7 @@ export default function Verify() {
                 {status === 'idle' && <IdleState />}
                 {status === 'loading' && <LoadingBlock label={`Checking ${requested}…`} />}
                 {status === 'not-found' && <NotFoundState reference={requested} />}
-                {status === 'error' && <ErrorOutcome error={error} reference={requested} />}
+                {status === 'error' && <ErrorOutcome error={error} />}
                 {status === 'found' && (
                     <FoundState certificate={data} reference={requested} />
                 )}
@@ -197,45 +197,7 @@ function NotFoundState({ reference }) {
     );
 }
 
-function ErrorOutcome({ error, reference }) {
-    // The lookup route is currently behind `get_current_user`, so anonymous
-    // visitors get a 401 rather than a result. Say so plainly instead of
-    // implying the certificate is invalid.
-    if (error?.status === 401 || error?.status === 403) {
-        return (
-            <Card className="verify-outcome">
-                <CardBody>
-                    <span className="verify-outcome__icon verify-outcome__icon--pending">
-                        <Icon name="lock" size={28} />
-                    </span>
-
-                    <h2 className="verify-outcome__title">
-                        Public verification is not available yet
-                    </h2>
-                    <p className="verify-outcome__body">
-                        The lookup service currently requires a signed-in account, so{' '}
-                        <strong className="mono">{reference}</strong> could not be checked
-                        anonymously. This is a server-side permission setting, not a
-                        problem with the certificate.
-                    </p>
-
-                    <div className="verify-outcome__actions">
-                        <Button to="/login" variant="primary" icon="logIn">
-                            Sign in to verify
-                        </Button>
-                        <Button
-                            href={`mailto:${APP.supportEmail}?subject=Certificate verification ${reference}`}
-                            variant="secondary"
-                            icon="mail"
-                        >
-                            Ask {APP.name} to verify
-                        </Button>
-                    </div>
-                </CardBody>
-            </Card>
-        );
-    }
-
+function ErrorOutcome({ error }) {
     return (
         <Card className="verify-outcome">
             <CardBody>
@@ -296,18 +258,22 @@ function FoundState({ certificate, reference }) {
                     <CardHeader title="Certificate" icon="award" />
                     <CardBody>
                         <CertificatePreview
+                            recipientName={certificate?.intern_name}
+                            role={certificate?.internship_role}
                             certificateNumber={orEmpty(
                                 certificate?.certificate_number,
                                 reference,
                             )}
                             issueDate={issuedOn}
+                            startDate={formatDate(certificate?.start_date)}
+                            endDate={formatDate(certificate?.end_date)}
                             filePath={certificate?.file_path}
                         />
                     </CardBody>
                 </Card>
 
                 <Card>
-                    <CardHeader title="Record details" icon="fileText" />
+                    <CardHeader title="What this certifies" icon="fileText" />
                     <CardBody>
                         <KeyValueList
                             items={[
@@ -322,14 +288,36 @@ function FoundState({ certificate, reference }) {
                                         </span>
                                     ),
                                 },
-                                { key: 'Issue date', value: issuedOn },
                                 {
-                                    key: 'Intern record',
-                                    value: orEmpty(certificate?.intern_id),
+                                    key: 'Issued to',
+                                    value: orEmpty(certificate?.intern_name),
                                 },
                                 {
+                                    key: 'Role',
+                                    value: orEmpty(certificate?.internship_role),
+                                },
+                                {
+                                    key: 'Department',
+                                    value: orEmpty(certificate?.department),
+                                },
+                                {
+                                    key: 'Institution',
+                                    value: orEmpty(certificate?.college),
+                                },
+                                {
+                                    key: 'Internship period',
+                                    value:
+                                        certificate?.start_date && certificate?.end_date
+                                            ? `${formatDate(certificate.start_date)} – ${formatDate(certificate.end_date)}`
+                                            : orEmpty(certificate?.duration),
+                                },
+                                { key: 'Issue date', value: issuedOn },
+                                {
                                     key: 'Issued by',
-                                    value: `${APP.name} Academic Board`,
+                                    value: orEmpty(
+                                        certificate?.organization,
+                                        `${APP.name} Academic Board`,
+                                    ),
                                 },
                                 {
                                     key: 'Status',

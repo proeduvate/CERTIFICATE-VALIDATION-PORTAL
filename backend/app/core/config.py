@@ -1,0 +1,46 @@
+from pydantic_settings import BaseSettings
+
+
+class Settings(BaseSettings):
+    """
+    Runtime configuration, read from backend/.env.
+
+    Every field previously had no default, so the app refused to start until a
+    complete .env existed. Only DATABASE_URL and SECRET_KEY are genuinely
+    deployment-specific; the rest now have workable defaults so a fresh clone
+    boots.
+    """
+
+    # SQLite keeps local development dependency-free. Point at MySQL in
+    # deployment, e.g. mysql+pymysql://user:pass@host/dbname
+    DATABASE_URL: str = "sqlite:///./app.db"
+
+    SECRET_KEY: str = "dev-only-change-me"
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+
+    # Password-reset links are short-lived and single-purpose.
+    RESET_TOKEN_EXPIRE_MINUTES: int = 30
+
+    # Origins allowed to call the API from a browser. Comma-separated.
+    CORS_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173"
+
+    # Where uploaded certificates and documents are written.
+    UPLOAD_DIR: str = "uploads"
+
+    # Emit SQL to the console. Noisy; off by default.
+    SQL_ECHO: bool = False
+
+    @property
+    def cors_origins(self) -> list[str]:
+        return [
+            origin.strip()
+            for origin in self.CORS_ORIGINS.split(",")
+            if origin.strip()
+        ]
+
+    class Config:
+        env_file = ".env"
+
+
+settings = Settings()

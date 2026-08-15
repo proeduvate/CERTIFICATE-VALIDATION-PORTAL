@@ -1,18 +1,12 @@
 import { api, setToken } from '../lib/apiClient';
 
-/**
- * Auth endpoints — backend/app/api/routes/auth.py
- *
- * NOTE: `POST /auth/login` declares `email` and `password` as bare function
- * arguments, so FastAPI reads them from the *query string* rather than the
- * body. We match that here. It is worth moving to a request body server-side:
- * query params land in access logs and browser history.
- */
+/** Auth endpoints — backend/app/api/routes/auth.py */
 export async function login({ email, password }) {
-    const data = await api.post('/auth/login', undefined, {
-        auth: false,
-        query: { email, password },
-    });
+    const data = await api.post(
+        '/auth/login',
+        { email, password },
+        { auth: false },
+    );
 
     if (data?.access_token) setToken(data.access_token);
 
@@ -42,14 +36,20 @@ export async function logout() {
     }
 }
 
+/**
+ * Always resolves with the same message whether or not the address is
+ * registered. While no mail transport is configured the server also returns
+ * `reset_token` so the flow can be completed in the UI.
+ */
 export function forgotPassword(email) {
     return api.post('/auth/forgot-password', { email }, { auth: false });
 }
 
-export function resetPassword({ email, newPassword }) {
+/** Requires the signed token issued by forgotPassword — not just an email. */
+export function resetPassword({ token, newPassword }) {
     return api.post(
         '/auth/reset-password',
-        { email, new_password: newPassword },
+        { token, new_password: newPassword },
         { auth: false },
     );
 }
