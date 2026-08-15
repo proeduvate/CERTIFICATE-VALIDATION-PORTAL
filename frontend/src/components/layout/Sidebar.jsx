@@ -1,60 +1,114 @@
-import { Link } from 'react-router-dom';
+import { NavLink, Link } from 'react-router-dom';
+import cn from '../../lib/cn';
+import Icon from '../ui/Icon';
+import { APP } from '../../config';
 
-export default function Sidebar({ view = 'dashboard', setView = () => {} }) {
-  const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: '🏠' },
-    { id: 'interns', label: 'Interns', icon: '👥' },
-    { id: 'certificates', label: 'Certificates', icon: '📜' },
-    { id: 'lor', label: 'LOR', icon: '📄' },
-    { id: 'documents', label: 'Documents', icon: '📁' },
-    { id: 'attendance', label: 'Attendance', icon: '📋' },
-    { id: 'tasks', label: 'Tasks & Projects', icon: '☑️' },
-    { id: 'analytics', label: 'Analytics', icon: '📊' },
-    { id: 'users', label: 'Users & Roles', icon: '👤' },
-    { id: 'settings', label: 'Settings', icon: '⚙️' },
-  ];
+/**
+ * Workspace navigation.
+ *
+ * Only routes that actually render a page are listed. The previous sidebar
+ * offered ten destinations of which seven silently did nothing — clicking
+ * "Analytics" or "Settings" left you on the dashboard with no feedback.
+ */
+const NAV_ITEMS = [
+    { to: '/dashboard', label: 'Dashboard', icon: 'home', end: true },
+    { to: '/dashboard/interns', label: 'Interns', icon: 'users' },
+    { to: '/dashboard/certificates', label: 'Certificates', icon: 'award' },
+    { to: '/dashboard/lor', label: 'Letters of Rec.', icon: 'scroll' },
+    { to: '/dashboard/documents', label: 'Documents', icon: 'folder' },
+    { to: '/dashboard/attendance', label: 'Attendance', icon: 'clipboard' },
+];
 
-  return (
-    <aside className="dash-sidebar">
-      {/* Brand Header */}
-      <div className="dash-sidebar-logo-row">
-        <Link to="/">
-          <img src="/proeduvate-logo-black.png" alt="ProEduvate" className="dash-sidebar-logo" />
-        </Link>
-      </div>
+const FOOTER_ITEMS = [{ to: '/dashboard/settings', label: 'Settings', icon: 'settings' }];
 
-      {/* Navigation List */}
-      <nav className="dash-sidebar-nav">
-        {navItems.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            className={`dash-nav-btn ${view === item.id ? 'active' : ''}`}
-            onClick={() => setView(item.id)}
-          >
-            <span className="dash-nav-icon">{item.icon}</span>
-            <span className="dash-nav-label">{item.label}</span>
-          </button>
-        ))}
-      </nav>
+export default function Sidebar({ collapsed, mobileOpen, onNavigate, onToggleCollapse }) {
+    return (
+        <>
+            {/* Backdrop only exists on small screens, where the sidebar overlays */}
+            <div
+                className={cn('sidebar-scrim', mobileOpen && 'is-visible')}
+                onClick={onNavigate}
+                aria-hidden="true"
+            />
 
-      {/* Bottom Support Widget */}
-      <div className="dash-sidebar-help-widget">
-        <div className="help-widget-header">
-          <div className="help-icon-circle">🎧</div>
-          <div>
-            <strong>Need Help?</strong>
-            <p>Contact support team</p>
-          </div>
-        </div>
-        <button 
-          type="button" 
-          className="btn-help-contact"
-          onClick={() => alert('Support team contacted: support@proeduvate.in')}
-        >
-          Contact Us →
-        </button>
-      </div>
-    </aside>
-  );
+            <aside
+                className={cn(
+                    'sidebar',
+                    collapsed && 'sidebar--collapsed',
+                    mobileOpen && 'sidebar--open',
+                )}
+                aria-label="Main navigation"
+            >
+                <div className="sidebar__brand">
+                    <Link to="/" className="sidebar__logo" aria-label={`${APP.name} home`}>
+                        <img
+                            src="/icon only Transparent.png"
+                            alt=""
+                            className="sidebar__logo-mark"
+                        />
+                        <span className="sidebar__logo-text">{APP.name}</span>
+                    </Link>
+
+                    <button
+                        type="button"
+                        className="sidebar__collapse"
+                        onClick={onToggleCollapse}
+                        aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                        title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                    >
+                        <Icon name="panelLeft" size={16} />
+                    </button>
+                </div>
+
+                <nav className="sidebar__nav">
+                    {NAV_ITEMS.map((item) => (
+                        <NavLink
+                            key={item.to}
+                            to={item.to}
+                            end={item.end}
+                            className={({ isActive }) =>
+                                cn('sidebar__link', isActive && 'is-active')
+                            }
+                            onClick={onNavigate}
+                            title={collapsed ? item.label : undefined}
+                        >
+                            <Icon name={item.icon} size={18} />
+                            <span className="sidebar__link-label">{item.label}</span>
+                        </NavLink>
+                    ))}
+                </nav>
+
+                <div className="sidebar__footer">
+                    {FOOTER_ITEMS.map((item) => (
+                        <NavLink
+                            key={item.to}
+                            to={item.to}
+                            className={({ isActive }) =>
+                                cn('sidebar__link', isActive && 'is-active')
+                            }
+                            onClick={onNavigate}
+                            title={collapsed ? item.label : undefined}
+                        >
+                            <Icon name={item.icon} size={18} />
+                            <span className="sidebar__link-label">{item.label}</span>
+                        </NavLink>
+                    ))}
+
+                    <a
+                        className="sidebar__support"
+                        href={`mailto:${APP.supportEmail}`}
+                        title={collapsed ? 'Contact support' : undefined}
+                    >
+                        <span className="sidebar__support-icon">
+                            <Icon name="headphones" size={16} />
+                        </span>
+                        <span className="sidebar__link-label">
+                            <strong>Need help?</strong>
+                            <small>{APP.supportEmail}</small>
+                        </span>
+                    </a>
+                </div>
+            </aside>
+        </>
+    );
 }

@@ -1,0 +1,282 @@
+/* ==========================================================================
+   Public certificate verification.
+   ========================================================================== */
+
+.verify-page {
+    display: flex;
+    flex-direction: column;
+}
+
+/* --------------------------------------------------------------------------
+   Search hero
+   -------------------------------------------------------------------------- */
+
+.verify-hero {
+    padding: clamp(var(--space-10), 6vw, var(--space-16)) var(--space-6)
+        var(--space-10);
+    background:
+        radial-gradient(
+            ellipse 70% 100% at 50% 0%,
+            var(--accent-soft) 0%,
+            transparent 70%
+        ),
+        var(--bg-surface);
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.verify-hero__inner {
+    max-width: 720px;
+    margin: 0 auto;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-4);
+}
+
+.verify-hero__title {
+    font-size: clamp(var(--text-3xl), 4.5vw, var(--text-5xl));
+    letter-spacing: -0.035em;
+}
+
+.verify-hero__lede {
+    font-size: var(--text-md);
+    color: var(--text-secondary);
+    max-width: 56ch;
+}
+
+.verify-search {
+    display: flex;
+    align-items: flex-end;
+    gap: var(--space-3);
+    width: 100%;
+    max-width: 560px;
+    margin-top: var(--space-4);
+    text-align: left;
+}
+
+.verify-search__field {
+    flex: 1;
+}
+
+.verify-search .input {
+    height: 46px;
+    font-family: var(--font-mono);
+    letter-spacing: 0.02em;
+}
+
+/* --------------------------------------------------------------------------
+   Result region
+   -------------------------------------------------------------------------- */
+
+.verify-result {
+    max-width: var(--public-max);
+    width: 100%;
+    margin: 0 auto;
+    padding: var(--space-10) var(--space-6);
+}
+
+/* --- Idle: how it works ---------------------------------------------------- */
+
+.verify-steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: var(--space-5);
+}
+
+.verify-step {
+    position: relative;
+    padding: var(--space-6) var(--space-5);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+}
+
+.verify-step__index {
+    position: absolute;
+    top: var(--space-4);
+    right: var(--space-5);
+    font-size: var(--text-3xl);
+    font-weight: var(--weight-extrabold);
+    color: var(--border-subtle);
+    line-height: 1;
+}
+
+.verify-step__icon {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-md);
+    background: var(--accent-soft);
+    color: var(--accent);
+    margin-bottom: var(--space-4);
+}
+
+.verify-step h2 {
+    font-size: var(--text-md);
+    margin-bottom: var(--space-2);
+}
+
+.verify-step p {
+    font-size: var(--text-base);
+    color: var(--text-muted);
+}
+
+/* --- Outcome cards --------------------------------------------------------- */
+
+.verify-outcome {
+    max-width: 640px;
+    margin: 0 auto;
+    text-align: center;
+}
+
+.verify-outcome .card__body {
+    padding: var(--space-10) var(--space-6);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.verify-outcome__icon {
+    display: grid;
+    place-items: center;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    margin-bottom: var(--space-2);
+}
+
+.verify-outcome__icon--invalid {
+    background: var(--danger-soft);
+    color: var(--danger);
+}
+
+.verify-outcome__icon--pending {
+    background: var(--warning-soft);
+    color: var(--warning);
+}
+
+.verify-outcome__title {
+    font-size: var(--text-xl);
+}
+
+.verify-outcome__body {
+    font-size: var(--text-base);
+    color: var(--text-secondary);
+    max-width: 52ch;
+}
+
+.verify-outcome__alert,
+.verify-found__note {
+    text-align: left;
+    margin-top: var(--space-3);
+}
+
+.verify-outcome__actions {
+    display: flex;
+    gap: var(--space-3);
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: var(--space-3);
+}
+
+/* --- Verified result ------------------------------------------------------- */
+
+.verify-found {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+}
+
+.verify-verdict {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    flex-wrap: wrap;
+    padding: var(--space-5);
+    border-radius: var(--radius-lg);
+    background: var(--success-soft);
+    border: 1px solid color-mix(in srgb, var(--success) 30%, transparent);
+}
+
+.verify-verdict__icon {
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--success);
+    color: #fff;
+    flex-shrink: 0;
+}
+
+.verify-verdict__text {
+    flex: 1;
+    min-width: 200px;
+}
+
+.verify-verdict__text strong {
+    display: block;
+    font-size: var(--text-xl);
+    color: var(--success-soft-text);
+    letter-spacing: -0.02em;
+}
+
+.verify-verdict__text p {
+    font-size: var(--text-base);
+    color: var(--success-soft-text);
+    opacity: 0.9;
+}
+
+.verify-verdict__ref {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: var(--space-2) var(--space-4);
+    background: var(--bg-surface);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-subtle);
+}
+
+.verify-verdict__ref span {
+    font-size: var(--text-2xs);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+}
+
+.verify-verdict__ref strong {
+    font-size: var(--text-md);
+    color: var(--text-primary);
+}
+
+.verify-found__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--space-5);
+    align-items: start;
+}
+
+@media (max-width: 900px) {
+    .verify-found__grid {
+        grid-template-columns: 1fr;
+    }
+
+    .verify-search {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}
+
+@media (max-width: 640px) {
+    .verify-result {
+        padding: var(--space-6) var(--space-4);
+    }
+
+    .verify-hero {
+        padding: var(--space-10) var(--space-4) var(--space-8);
+    }
+}

@@ -1,0 +1,237 @@
+/* ==========================================================================
+   Sign-in / password recovery.
+   Only layout lives here — buttons, fields and alerts come from the shared
+   component layer.
+   ========================================================================== */
+
+.auth-page {
+    display: grid;
+    grid-template-columns: 1.05fr 1fr;
+    min-height: 100vh;
+    background: var(--bg-app);
+}
+
+.auth-page--narrow {
+    grid-template-columns: 1fr;
+}
+
+/* --------------------------------------------------------------------------
+   Brand panel
+   -------------------------------------------------------------------------- */
+
+.auth-aside {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: var(--space-10);
+    padding: var(--space-12) clamp(var(--space-8), 6vw, var(--space-20));
+    background:
+        radial-gradient(
+            ellipse 80% 60% at 15% 0%,
+            var(--accent-soft) 0%,
+            transparent 60%
+        ),
+        radial-gradient(
+            ellipse 60% 50% at 100% 100%,
+            color-mix(in srgb, var(--purple-500) 12%, transparent) 0%,
+            transparent 55%
+        ),
+        var(--bg-surface);
+    border-right: 1px solid var(--border-subtle);
+    overflow: hidden;
+}
+
+/* Subtle grid texture behind the copy */
+.auth-aside::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(var(--border-subtle) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border-subtle) 1px, transparent 1px);
+    background-size: 56px 56px;
+    opacity: 0.4;
+    mask-image: radial-gradient(ellipse 70% 70% at 40% 40%, #000 20%, transparent 75%);
+    pointer-events: none;
+}
+
+.auth-aside > * {
+    position: relative;
+    z-index: 1;
+}
+
+.auth-aside__logo img {
+    height: 34px;
+    width: auto;
+    object-fit: contain;
+}
+
+:root[data-theme='dark'] .auth-aside__logo img {
+    filter: invert(1) brightness(1.8);
+}
+
+.auth-aside__copy h1 {
+    font-size: clamp(var(--text-3xl), 3.6vw, var(--text-5xl));
+    line-height: 1.1;
+    letter-spacing: -0.035em;
+}
+
+.auth-aside__accent {
+    background: linear-gradient(100deg, var(--brand-500), var(--purple-500));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+
+.auth-aside__copy p {
+    margin-top: var(--space-4);
+    font-size: var(--text-md);
+    color: var(--text-secondary);
+    max-width: 46ch;
+}
+
+.auth-aside__features {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+}
+
+.auth-aside__features li {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-4);
+}
+
+.auth-aside__feature-icon {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-md);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    color: var(--accent);
+    box-shadow: var(--shadow-xs);
+    flex-shrink: 0;
+}
+
+.auth-aside__features strong {
+    display: block;
+    font-size: var(--text-base);
+    color: var(--text-primary);
+}
+
+.auth-aside__features p {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    margin-top: 2px;
+    max-width: 42ch;
+}
+
+.auth-aside__foot {
+    font-size: var(--text-xs);
+    color: var(--text-faint);
+}
+
+/* --------------------------------------------------------------------------
+   Form panel
+   -------------------------------------------------------------------------- */
+
+.auth-main {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-8) var(--space-6);
+}
+
+.auth-card {
+    width: 100%;
+    max-width: 420px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+}
+
+.auth-card__back {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+    color: var(--text-muted);
+    align-self: flex-start;
+}
+
+.auth-card__back:hover {
+    color: var(--accent);
+    text-decoration: none;
+}
+
+.auth-card__head {
+    text-align: center;
+}
+
+.auth-card__badge {
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 52px;
+    margin: 0 auto var(--space-4);
+    border-radius: var(--radius-lg);
+    background: var(--accent-soft);
+    color: var(--accent);
+}
+
+.auth-card__head h2 {
+    font-size: var(--text-2xl);
+    letter-spacing: -0.03em;
+}
+
+.auth-card__head p {
+    margin-top: var(--space-2);
+    font-size: var(--text-base);
+    color: var(--text-muted);
+}
+
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+}
+
+.auth-form__row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    margin-top: calc(var(--space-1) * -1);
+}
+
+.auth-form__link {
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+}
+
+.auth-card__foot {
+    text-align: center;
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+}
+
+/* --------------------------------------------------------------------------
+   Responsive
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 900px) {
+    .auth-page {
+        grid-template-columns: 1fr;
+    }
+
+    .auth-aside {
+        display: none;
+    }
+
+    .auth-main {
+        min-height: 100vh;
+    }
+}

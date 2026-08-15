@@ -1,0 +1,190 @@
+/* ==========================================================================
+   Certificate artwork — shared by the verification result and the admin
+   certificate detail page.
+   ========================================================================== */
+
+.cert-art {
+    container-type: inline-size;
+    background: linear-gradient(150deg, #fdfcf8 0%, #f7f9fd 100%);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: clamp(var(--space-3), 3cqi, var(--space-5));
+    box-shadow: var(--shadow-sm);
+    aspect-ratio: 1.414 / 1;
+    display: flex;
+}
+
+/* The artwork is a document, so it keeps its light appearance in dark mode
+   rather than inverting into something that no longer resembles the print. */
+:root[data-theme='dark'] .cert-art {
+    background: linear-gradient(150deg, #f6f4ee 0%, #eef2f8 100%);
+}
+
+.cert-art__frame {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: clamp(2px, 1cqi, var(--space-2));
+    padding: clamp(var(--space-3), 3cqi, var(--space-6));
+    border: 2px solid var(--brand-200);
+    border-radius: var(--radius-sm);
+    outline: 1px solid var(--brand-100);
+    outline-offset: 3px;
+    color: #1e293b;
+}
+
+.cert-art__brand {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-bottom: auto;
+}
+
+.cert-art__brand img {
+    height: clamp(14px, 3cqi, 20px);
+    width: auto;
+}
+
+.cert-art__brand span {
+    font-size: clamp(9px, 2.2cqi, 13px);
+    font-weight: var(--weight-bold);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--brand-700);
+}
+
+.cert-art__kicker {
+    font-family: var(--font-serif);
+    font-size: clamp(15px, 5.6cqi, 34px);
+    font-weight: var(--weight-bold);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #0f172a;
+    line-height: 1.1;
+}
+
+.cert-art__subkicker {
+    font-size: clamp(7px, 1.9cqi, 11px);
+    font-weight: var(--weight-semibold);
+    letter-spacing: 0.34em;
+    text-transform: uppercase;
+    color: var(--brand-600);
+}
+
+.cert-art__presented {
+    margin-top: clamp(var(--space-2), 2cqi, var(--space-4));
+    font-size: clamp(7px, 1.8cqi, 11px);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #64748b;
+}
+
+.cert-art__name {
+    font-family: var(--font-serif);
+    font-size: clamp(14px, 5cqi, 30px);
+    font-weight: var(--weight-bold);
+    color: #0f172a;
+    line-height: 1.15;
+    padding-bottom: clamp(2px, 1cqi, var(--space-2));
+    border-bottom: 1px solid var(--brand-200);
+    max-width: 88%;
+    overflow-wrap: anywhere;
+}
+
+.cert-art__body {
+    font-size: clamp(7px, 1.85cqi, 12px);
+    line-height: 1.65;
+    color: #475569;
+    max-width: 82%;
+    margin-bottom: auto;
+}
+
+.cert-art__body strong {
+    color: #1e293b;
+}
+
+.cert-art__footer {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: var(--space-3);
+    width: 100%;
+    margin-top: auto;
+}
+
+.cert-art__ref {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    text-align: left;
+    min-width: 0;
+}
+
+.cert-art__ref--right {
+    text-align: right;
+}
+
+.cert-art__ref span {
+    font-size: clamp(6px, 1.5cqi, 9px);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #94a3b8;
+}
+
+.cert-art__ref strong {
+    font-size: clamp(7px, 1.8cqi, 11px);
+    color: #1e293b;
+    overflow-wrap: anywhere;
+}
+
+.cert-art__seal {
+    display: grid;
+    place-items: center;
+    gap: 1px;
+    width: clamp(28px, 9cqi, 54px);
+    height: clamp(28px, 9cqi, 54px);
+    border-radius: 50%;
+    background: radial-gradient(circle at 32% 28%, #fde68a, #d4a017 70%);
+    color: #713f12;
+    box-shadow:
+        0 0 0 2px rgba(255, 255, 255, 0.7),
+        0 0 0 3px #d4a017;
+    flex-shrink: 0;
+}
+
+.cert-art__seal small {
+    font-size: clamp(5px, 1.3cqi, 8px);
+    font-weight: var(--weight-bold);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.cert-art--compact {
+    aspect-ratio: 1.6 / 1;
+}
+
+/* --------------------------------------------------------------------------
+   Uploaded scan
+   -------------------------------------------------------------------------- */
+
+.cert-scan {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.cert-scan img {
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    background: var(--bg-sunken);
+}
+
+.cert-scan figcaption {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    text-align: center;
+}

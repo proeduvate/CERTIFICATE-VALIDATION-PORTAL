@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local environment overrides (keep .env.example tracked)
+.env
+.env.local
+.env.*.local

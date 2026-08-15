@@ -1,0 +1,45 @@
+/* ==========================================================================
+   Settings.
+   ========================================================================== */
+
+.settings-identity {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    padding-bottom: var(--space-5);
+    margin-bottom: var(--space-2);
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.settings-identity__name {
+    font-size: var(--text-lg);
+    font-weight: var(--weight-bold);
+}
+
+.settings-identity__meta {
+    font-size: var(--text-base);
+    color: var(--text-muted);
+}
+
+.settings-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-5);
+    flex-wrap: wrap;
+}
+
+.settings-row strong {
+    font-size: var(--text-base);
+}
+
+.settings-row__hint {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+    margin-top: 2px;
+    max-width: 62ch;
+}
+
+.settings-note {
+    margin-top: var(--space-4);
+}

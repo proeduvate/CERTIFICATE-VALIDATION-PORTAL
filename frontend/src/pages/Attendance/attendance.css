@@ -1,0 +1,26 @@
+/* ==========================================================================
+   Attendance table.
+   ========================================================================== */
+
+.attendance-cell {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    min-width: 170px;
+}
+
+.attendance-cell__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+}
+
+.attendance-cell__top strong {
+    font-size: var(--text-base);
+    color: var(--text-primary);
+}
+
+.attendance-of {
+    color: var(--text-faint);
+}

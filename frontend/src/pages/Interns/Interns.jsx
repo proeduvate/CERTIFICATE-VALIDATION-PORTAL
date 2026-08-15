@@ -1,579 +1,601 @@
-import { useState } from 'react';
-import './Interns.css';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import Button, { IconButton } from '../../components/ui/Button';
+import { Input, Select } from '../../components/ui/Field';
+import Modal from '../../components/ui/Modal';
+import {
+    Avatar,
+    Card,
+    EmptyState,
+    ErrorState,
+    LoadingBlock,
+    StatCard,
+    StatusBadge,
+} from '../../components/ui/Display';
+import { Pagination, SortHeader } from '../../components/ui/Navigation';
+import { useToast } from '../../components/ui/Toast';
+import InternFormModal from './InternFormModal';
+import { useAsync } from '../../hooks/useAsync';
+import useDebounce from '../../hooks/useDebounce';
+import { useAuth } from '../../context/AuthContext';
+import { deleteIntern, exportInterns, listInterns } from '../../services/interns';
+import {
+    INTERN_STATUS,
+    PAGE_SIZES,
+    VERIFICATION_STATUS,
+} from '../../config';
+import { formatDate, formatNumber, orEmpty } from '../../lib/format';
+import './interns.css';
 
-// 8 Sample Intern Records matching reference UI image
-const INITIAL_INTERNS = [
-  {
-    id: 'PEV-INT-000123',
-    name: 'John Doe',
-    email: 'john.doe@email.com',
-    college: 'Vel Tech University',
-    department: 'Computer Science',
-    role: 'Full Stack Developer',
-    duration: '6 Months',
-    status: 'Active',
-    joinedOn: '23 Jan 2024',
-    avatarBg: '#0066FF'
-  },
-  {
-    id: 'PEV-INT-000122',
-    name: 'Jane Smith',
-    email: 'jane.smith@email.com',
-    college: 'SRM Institute',
-    department: 'Information Technology',
-    role: 'UI/UX Design Intern',
-    duration: '3 Months',
-    status: 'Active',
-    joinedOn: '25 Jan 2024',
-    avatarBg: '#EC4899'
-  },
-  {
-    id: 'PEV-INT-000121',
-    name: 'Rohan Kumar',
-    email: 'rohan.kumar@email.com',
-    college: 'VIT University',
-    department: 'Mechanical Engineering',
-    role: 'ML Intern',
-    duration: '6 Months',
-    status: 'Active',
-    joinedOn: '01 Feb 2024',
-    avatarBg: '#10B981'
-  },
-  {
-    id: 'PEV-INT-000120',
-    name: 'Priya Sharma',
-    email: 'priya.sharma@email.com',
-    college: 'Anna University',
-    department: 'Data Science',
-    role: 'Data Science Intern',
-    duration: '6 Months',
-    status: 'Active',
-    joinedOn: '05 Feb 2024',
-    avatarBg: '#8B5CF6'
-  },
-  {
-    id: 'PEV-INT-000119',
-    name: 'Arun N',
-    email: 'arun.n@email.com',
-    college: 'Dr. MGR University',
-    department: 'Electronics & Comm.',
-    role: 'Embedded Intern',
-    duration: '3 Months',
-    status: 'Inactive',
-    joinedOn: '10 Feb 2024',
-    avatarBg: '#F59E0B'
-  },
-  {
-    id: 'PEV-INT-000118',
-    name: 'Sneha Reddy',
-    email: 'sneha.reddy@email.com',
-    college: 'Bharath University',
-    department: 'Computer Science',
-    role: 'Frontend Developer',
-    duration: '6 Months',
-    status: 'Inactive',
-    joinedOn: '15 Feb 2024',
-    avatarBg: '#EF4444'
-  },
-  {
-    id: 'PEV-INT-000117',
-    name: 'Vikram Raj',
-    email: 'vikram.raj@email.com',
-    college: 'PSG College',
-    department: 'Information Technology',
-    role: 'Backend Developer',
-    duration: '3 Months',
-    status: 'Completed',
-    joinedOn: '20 Nov 2023',
-    avatarBg: '#6366F1'
-  },
-  {
-    id: 'PEV-INT-000116',
-    name: 'Ananya Iyer',
-    email: 'ananya.iyer@email.com',
-    college: 'Amrita University',
-    department: 'Computer Science',
-    role: 'AI/ML Intern',
-    duration: '6 Months',
-    status: 'Completed',
-    joinedOn: '18 Nov 2023',
-    avatarBg: '#14B8A6'
-  }
-];
+/**
+ * Intern directory.
+ *
+ * Rewritten from the mock version: the four summary tiles counted 248/178/70/96
+ * against a table holding eight rows, the "Internship Mode" and "Duration"
+ * selects had no state at all, and the pagination footer rendered pages 1–31
+ * with no click handlers over a list that never paginated. Everything here is
+ * derived from the records actually loaded.
+ */
+export default function Interns() {
+    const navigate = useNavigate();
+    const toast = useToast();
+    const { isAdmin } = useAuth();
+    const [searchParams, setSearchParams] = useSearchParams();
 
-export default function Interns({ onSelectIntern }) {
-  const [internsList, setInternsList] = useState(INITIAL_INTERNS);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('All');
-  const [deptFilter, setDeptFilter] = useState('All');
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [selectedIntern, setSelectedIntern] = useState(null);
+    const { data, error, loading, reload } = useAsync(
+        (signal) => listInterns({ signal }),
+        [],
+    );
 
-  // New Intern Form State
-  const [newIntern, setNewIntern] = useState({
-    name: '',
-    email: '',
-    college: '',
-    department: 'Computer Science',
-    role: '',
-    duration: '6 Months',
-    status: 'Active'
-  });
+    // Filters live in the URL so a filtered view can be shared and survives
+    // a refresh — the topbar search and dashboard tiles both link into it.
+    const search = searchParams.get('q') ?? '';
+    const status = searchParams.get('status') ?? 'All';
+    const department = searchParams.get('department') ?? 'All';
+    const mode = searchParams.get('mode') ?? 'All';
+    const verification = searchParams.get('verification') ?? 'All';
+    const page = Number(searchParams.get('page') ?? 1);
+    const pageSize = Number(searchParams.get('size') ?? 10);
 
-  // Filtered List
-  const filteredInterns = internsList.filter((item) => {
-    const matchesSearch = 
-      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.college.toLowerCase().includes(searchQuery.toLowerCase());
+    const [searchInput, setSearchInput] = useState(search);
+    const debouncedSearch = useDebounce(searchInput, 250);
 
-    const matchesStatus = statusFilter === 'All' || item.status === statusFilter;
-    const matchesDept = deptFilter === 'All' || item.department === deptFilter;
+    const [sort, setSort] = useState({ column: 'name', direction: 'asc' });
+    const [editing, setEditing] = useState(null);
+    const [confirmDelete, setConfirmDelete] = useState(null);
+    const [deleting, setDeleting] = useState(false);
+    const [exporting, setExporting] = useState(false);
 
-    return matchesSearch && matchesStatus && matchesDept;
-  });
+    const showForm = searchParams.get('new') === '1' || editing !== null;
 
-  const handleAddSubmit = (e) => {
-    e.preventDefault();
-    if (!newIntern.name || !newIntern.email) return;
+    // Keep the input in step when the URL changes from elsewhere (the topbar
+    // search, a dashboard tile). React's "adjust state on change" pattern,
+    // which avoids an extra render pass compared with an effect.
+    const [lastSearch, setLastSearch] = useState(search);
+    if (search !== lastSearch) {
+        setLastSearch(search);
+        setSearchInput(search);
+    }
 
-    const created = {
-      id: `PEV-INT-000${124 + internsList.length}`,
-      ...newIntern,
-      joinedOn: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-      avatarBg: '#0066FF'
+    // Push the debounced term back into the URL.
+    useEffect(() => {
+        if (debouncedSearch === search) return;
+
+        setSearchParams(
+            (params) => {
+                const next = new URLSearchParams(params);
+                if (debouncedSearch) next.set('q', debouncedSearch);
+                else next.delete('q');
+                next.delete('page');
+                return next;
+            },
+            { replace: true },
+        );
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [debouncedSearch]);
+
+    const setFilter = (key, value) => {
+        setSearchParams((params) => {
+            const next = new URLSearchParams(params);
+            if (value && value !== 'All') next.set(key, value);
+            else next.delete(key);
+            next.delete('page');
+            return next;
+        });
     };
 
-    setInternsList([created, ...internsList]);
-    setShowAddModal(false);
-    setNewIntern({
-      name: '',
-      email: '',
-      college: '',
-      department: 'Computer Science',
-      role: '',
-      duration: '6 Months',
-      status: 'Active'
-    });
-  };
+    const setPage = (value) => {
+        setSearchParams((params) => {
+            const next = new URLSearchParams(params);
+            next.set('page', String(value));
+            return next;
+        });
+    };
 
-  const handleResetFilters = () => {
-    setSearchQuery('');
-    setStatusFilter('All');
-    setDeptFilter('All');
-  };
+    const records = useMemo(() => (Array.isArray(data) ? data : []), [data]);
 
-  return (
-    <div className="interns-page-container">
-      {/* -------------------------------------------------------------------- */}
-      {/* Title & Add Button Header                                            */}
-      {/* -------------------------------------------------------------------- */}
-      <div className="interns-page-header">
-        <div>
-          <h1 className="interns-title">Interns</h1>
-          <p className="interns-subtitle">Manage and view all interns in the program.</p>
-        </div>
+    const departments = useMemo(
+        () =>
+            [...new Set(records.map((r) => r.department).filter(Boolean))].sort((a, b) =>
+                a.localeCompare(b),
+            ),
+        [records],
+    );
 
-        <button type="button" className="btn-add-new-intern" onClick={() => setShowAddModal(true)}>
-          <span className="plus-icon">+</span> Add New Intern
-        </button>
-      </div>
+    const modes = useMemo(
+        () => [...new Set(records.map((r) => r.mode).filter(Boolean))].sort(),
+        [records],
+    );
 
-      {/* -------------------------------------------------------------------- */}
-      {/* 4 Summary Metric Cards Row                                           */}
-      {/* -------------------------------------------------------------------- */}
-      <div className="interns-metrics-grid">
-        {/* Total Interns */}
-        <div className="summary-card">
-          <div className="summary-icon-circle blue">👥</div>
-          <div className="summary-info">
-            <span className="summary-label">Total Interns</span>
-            <strong className="summary-val">248</strong>
-            <span className="summary-subtext">All Time</span>
-          </div>
-        </div>
+    const filtered = useMemo(() => {
+        const term = search.trim().toLowerCase();
 
-        {/* Active Interns */}
-        <div className="summary-card">
-          <div className="summary-icon-circle green">☑️</div>
-          <div className="summary-info">
-            <span className="summary-label">Active Interns</span>
-            <strong className="summary-val">178</strong>
-            <span className="summary-subtext text-green">🟢 72% of total</span>
-          </div>
-        </div>
+        return records.filter((intern) => {
+            if (status !== 'All' && intern.status !== status) return false;
+            if (department !== 'All' && intern.department !== department) return false;
+            if (mode !== 'All' && intern.mode !== mode) return false;
+            if (
+                verification !== 'All' &&
+                intern.verification_status !== verification
+            )
+                return false;
 
-        {/* Inactive Interns */}
-        <div className="summary-card">
-          <div className="summary-icon-circle amber">👤</div>
-          <div className="summary-info">
-            <span className="summary-label">Inactive Interns</span>
-            <strong className="summary-val">70</strong>
-            <span className="summary-subtext text-red">🔴 28% of total</span>
-          </div>
-        </div>
+            if (!term) return true;
 
-        {/* Completed Interns */}
-        <div className="summary-card">
-          <div className="summary-icon-circle purple">☑️</div>
-          <div className="summary-info">
-            <span className="summary-label">Completed Interns</span>
-            <strong className="summary-val">96</strong>
-            <span className="summary-subtext">This Year</span>
-          </div>
-        </div>
-      </div>
+            return [
+                intern.name,
+                intern.email,
+                intern.intern_id,
+                intern.college,
+                intern.department,
+                intern.internship_role,
+                intern.mentor,
+            ]
+                .filter(Boolean)
+                .some((field) => String(field).toLowerCase().includes(term));
+        });
+    }, [records, search, status, department, mode, verification]);
 
-      {/* -------------------------------------------------------------------- */}
-      {/* Search & Filters Controls Panel                                      */}
-      {/* -------------------------------------------------------------------- */}
-      <div className="filters-control-card">
-        {/* Search Input Box */}
-        <div className="search-filter-box">
-          <input
-            type="text"
-            placeholder="Search by name, email, ID, college..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-          <span className="search-magnifier">🔍</span>
-        </div>
+    const sorted = useMemo(() => {
+        const factor = sort.direction === 'asc' ? 1 : -1;
 
-        {/* Dropdown Filters */}
-        <div className="select-filter-group">
-          <div className="filter-select-wrapper">
-            <label>Status</label>
-            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-              <option value="All">All</option>
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
-              <option value="Completed">Completed</option>
-            </select>
-          </div>
+        return [...filtered].sort((a, b) => {
+            const left = a[sort.column];
+            const right = b[sort.column];
 
-          <div className="filter-select-wrapper">
-            <label>Department</label>
-            <select value={deptFilter} onChange={(e) => setDeptFilter(e.target.value)}>
-              <option value="All">All</option>
-              <option value="Computer Science">Computer Science</option>
-              <option value="Information Technology">Information Technology</option>
-              <option value="Mechanical Engineering">Mechanical Engineering</option>
-              <option value="Data Science">Data Science</option>
-              <option value="Electronics & Comm.">Electronics &amp; Comm.</option>
-            </select>
-          </div>
+            if (left == null) return 1;
+            if (right == null) return -1;
 
-          <div className="filter-select-wrapper">
-            <label>Internship Mode</label>
-            <select>
-              <option>All</option>
-              <option>Full Time</option>
-              <option>Part Time</option>
-              <option>Remote</option>
-            </select>
-          </div>
+            if (sort.column === 'start_date' || sort.column === 'end_date') {
+                return (new Date(left) - new Date(right)) * factor;
+            }
 
-          <div className="filter-select-wrapper">
-            <label>Duration</label>
-            <select>
-              <option>All</option>
-              <option>3 Months</option>
-              <option>6 Months</option>
-            </select>
-          </div>
+            if (typeof left === 'number' && typeof right === 'number') {
+                return (left - right) * factor;
+            }
 
-          <button type="button" className="btn-more-filters">
-            <span>🎛️</span> More Filters
-          </button>
+            return String(left).localeCompare(String(right)) * factor;
+        });
+    }, [filtered, sort]);
 
-          <button type="button" className="btn-reset-filters" onClick={handleResetFilters}>
-            <span>🔄</span> Reset
-          </button>
-        </div>
-      </div>
+    const paged = useMemo(
+        () => sorted.slice((page - 1) * pageSize, page * pageSize),
+        [sorted, page, pageSize],
+    );
 
-      {/* -------------------------------------------------------------------- */}
-      {/* Interns Table Card                                                   */}
-      {/* -------------------------------------------------------------------- */}
-      <div className="interns-table-card">
-        <div className="table-overflow-wrapper">
-          <table className="interns-data-table">
-            <thead>
-              <tr>
-                <th>Intern</th>
-                <th>Intern ID</th>
-                <th>College</th>
-                <th>Department</th>
-                <th>Role</th>
-                <th>Duration</th>
-                <th>Status <span className="info-icon">ℹ️</span></th>
-                <th>Joined On</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredInterns.map((intern) => (
-                <tr key={intern.id}>
-                  {/* Intern Profile Column */}
-                  <td>
-                    <div 
-                      className="intern-profile-cell"
-                      style={{ cursor: 'pointer' }}
-                      onClick={() => onSelectIntern ? onSelectIntern(intern) : setSelectedIntern(intern)}
+    const stats = useMemo(
+        () => ({
+            total: records.length,
+            active: records.filter((r) => r.status === 'Active').length,
+            completed: records.filter((r) => r.status === 'Completed').length,
+            pending: records.filter((r) => r.verification_status === 'Pending').length,
+        }),
+        [records],
+    );
+
+    const activeFilters =
+        (status !== 'All') +
+        (department !== 'All') +
+        (mode !== 'All') +
+        (verification !== 'All') +
+        (search ? 1 : 0);
+
+    const closeForm = () => {
+        setEditing(null);
+        setSearchParams((params) => {
+            const next = new URLSearchParams(params);
+            next.delete('new');
+            return next;
+        });
+    };
+
+    const handleExport = async () => {
+        setExporting(true);
+        try {
+            await exportInterns();
+            toast.success('Export ready', 'interns.xlsx has been downloaded.');
+        } catch (err) {
+            toast.error('Export failed', err?.message);
+        } finally {
+            setExporting(false);
+        }
+    };
+
+    const handleDelete = async () => {
+        setDeleting(true);
+        try {
+            await deleteIntern(confirmDelete.id);
+            toast.success('Intern deleted', `${confirmDelete.name} has been removed.`);
+            setConfirmDelete(null);
+            reload();
+        } catch (err) {
+            toast.error('Could not delete', err?.message);
+        } finally {
+            setDeleting(false);
+        }
+    };
+
+    return (
+        <div className="page">
+            <header className="page__header">
+                <div>
+                    <h1 className="page__title">Interns</h1>
+                    <p className="page__subtitle">
+                        {loading
+                            ? 'Loading records…'
+                            : `${formatNumber(filtered.length)} of ${formatNumber(records.length)} records`}
+                    </p>
+                </div>
+
+                <div className="page__actions">
+                    <Button
+                        variant="secondary"
+                        icon="spreadsheet"
+                        onClick={handleExport}
+                        loading={exporting}
                     >
-                      <div className="intern-avatar-circle" style={{ background: intern.avatarBg }}>
-                        {intern.name.split(' ').map(n => n[0]).join('')}
-                      </div>
-                      <div>
-                        <strong className="cell-intern-name">{intern.name}</strong>
-                        <span className="cell-intern-email">{intern.email}</span>
-                      </div>
-                    </div>
-                  </td>
+                        Export
+                    </Button>
 
-                  {/* Intern ID */}
-                  <td className="cell-mono-id">{intern.id}</td>
+                    {isAdmin && (
+                        <Button
+                            variant="primary"
+                            icon="plus"
+                            onClick={() => setSearchParams({ new: '1' })}
+                        >
+                            Add intern
+                        </Button>
+                    )}
+                </div>
+            </header>
 
-                  {/* College */}
-                  <td>{intern.college}</td>
-
-                  {/* Department */}
-                  <td>{intern.department}</td>
-
-                  {/* Role */}
-                  <td>{intern.role}</td>
-
-                  {/* Duration */}
-                  <td>{intern.duration}</td>
-
-                  {/* Status Badge */}
-                  <td>
-                    <span className={`status-pill-badge ${intern.status.toLowerCase()}`}>
-                      {intern.status}
-                    </span>
-                  </td>
-
-                  {/* Joined On */}
-                  <td className="cell-date">{intern.joinedOn}</td>
-
-                  {/* Action Icons */}
-                  <td>
-                    <div className="action-buttons-cell">
-                      <button 
-                        type="button" 
-                        className="btn-action-icon view"
-                        title="View Intern Profile"
-                        onClick={() => onSelectIntern ? onSelectIntern(intern) : setSelectedIntern(intern)}
-                      >
-                        👁️
-                      </button>
-
-                      <button 
-                        type="button" 
-                        className="btn-action-icon edit"
-                        title="Edit Intern Details"
-                        onClick={() => alert(`Editing intern ${intern.name}...`)}
-                      >
-                        ✏️
-                      </button>
-
-                      <button 
-                        type="button" 
-                        className="btn-action-icon more"
-                        title="More Actions"
-                        onClick={() => alert(`Options for ${intern.name}`)}
-                      >
-                        ⋮
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Table Pagination Footer */}
-        <div className="table-pagination-footer">
-          <div className="pagination-info">
-            Showing 1 to {filteredInterns.length} of 248 interns
-          </div>
-
-          <div className="pagination-controls">
-            <button type="button" className="page-nav-btn">&lt;</button>
-            <button type="button" className="page-num-btn active">1</button>
-            <button type="button" className="page-num-btn">2</button>
-            <button type="button" className="page-num-btn">3</button>
-            <span className="dots-sep">...</span>
-            <button type="button" className="page-num-btn">31</button>
-            <button type="button" className="page-nav-btn">&gt;</button>
-
-            <select className="page-size-select">
-              <option>10 / page</option>
-              <option>20 / page</option>
-              <option>50 / page</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      {/* -------------------------------------------------------------------- */}
-      {/* Add New Intern Modal                                                 */}
-      {/* -------------------------------------------------------------------- */}
-      {showAddModal && (
-        <div className="modal-backdrop" onClick={() => setShowAddModal(false)}>
-          <div className="modal-card-box" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-top-bar">
-              <h2>Add New Intern</h2>
-              <button type="button" className="close-btn" onClick={() => setShowAddModal(false)}>✕</button>
+            {/* ---------------- Summary ---------------- */}
+            <div className="stat-grid">
+                <StatCard
+                    label="Total"
+                    value={formatNumber(stats.total)}
+                    icon="users"
+                    tint="brand"
+                    loading={loading}
+                />
+                <StatCard
+                    label="Active"
+                    value={formatNumber(stats.active)}
+                    icon="userCheck"
+                    tint="green"
+                    loading={loading}
+                />
+                <StatCard
+                    label="Completed"
+                    value={formatNumber(stats.completed)}
+                    icon="checkCircle"
+                    tint="purple"
+                    loading={loading}
+                />
+                <StatCard
+                    label="Pending verification"
+                    value={formatNumber(stats.pending)}
+                    icon="clock"
+                    tint="amber"
+                    loading={loading}
+                />
             </div>
 
-            <form onSubmit={handleAddSubmit} className="add-intern-form">
-              <div className="form-grid-2col">
-                <div className="form-field">
-                  <label>Full Name *</label>
-                  <input
-                    type="text"
-                    required
-                    value={newIntern.name}
-                    onChange={(e) => setNewIntern({ ...newIntern, name: e.target.value })}
-                    placeholder="e.g. Rohit Gupta"
-                  />
+            {/* ---------------- Filters ---------------- */}
+            <div className="toolbar">
+                <Input
+                    icon="search"
+                    type="search"
+                    placeholder="Search name, email, ID, college, mentor…"
+                    value={searchInput}
+                    onChange={(event) => setSearchInput(event.target.value)}
+                    fieldClassName="toolbar__search"
+                    aria-label="Search interns"
+                />
+
+                <div className="toolbar__filters">
+                    <Select
+                        value={status}
+                        onChange={(event) => setFilter('status', event.target.value)}
+                        aria-label="Filter by status"
+                        options={['All', ...INTERN_STATUS].map((value) => ({
+                            value,
+                            label: value === 'All' ? 'All statuses' : value,
+                        }))}
+                    />
+
+                    <Select
+                        value={department}
+                        onChange={(event) => setFilter('department', event.target.value)}
+                        aria-label="Filter by department"
+                        options={['All', ...departments].map((value) => ({
+                            value,
+                            label: value === 'All' ? 'All departments' : value,
+                        }))}
+                    />
+
+                    {modes.length > 0 && (
+                        <Select
+                            value={mode}
+                            onChange={(event) => setFilter('mode', event.target.value)}
+                            aria-label="Filter by mode"
+                            options={['All', ...modes].map((value) => ({
+                                value,
+                                label: value === 'All' ? 'All modes' : value,
+                            }))}
+                        />
+                    )}
+
+                    <Select
+                        value={verification}
+                        onChange={(event) => setFilter('verification', event.target.value)}
+                        aria-label="Filter by verification status"
+                        options={['All', ...VERIFICATION_STATUS].map((value) => ({
+                            value,
+                            label: value === 'All' ? 'Any verification' : value,
+                        }))}
+                    />
+
+                    {activeFilters > 0 && (
+                        <Button
+                            variant="ghost"
+                            icon="x"
+                            onClick={() => {
+                                setSearchInput('');
+                                setSearchParams({});
+                            }}
+                        >
+                            Clear ({activeFilters})
+                        </Button>
+                    )}
                 </div>
-
-                <div className="form-field">
-                  <label>Email Address *</label>
-                  <input
-                    type="email"
-                    required
-                    value={newIntern.email}
-                    onChange={(e) => setNewIntern({ ...newIntern, email: e.target.value })}
-                    placeholder="rohit.gupta@email.com"
-                  />
-                </div>
-
-                <div className="form-field">
-                  <label>College / University</label>
-                  <input
-                    type="text"
-                    value={newIntern.college}
-                    onChange={(e) => setNewIntern({ ...newIntern, college: e.target.value })}
-                    placeholder="e.g. SRM Institute"
-                  />
-                </div>
-
-                <div className="form-field">
-                  <label>Department</label>
-                  <select
-                    value={newIntern.department}
-                    onChange={(e) => setNewIntern({ ...newIntern, department: e.target.value })}
-                  >
-                    <option value="Computer Science">Computer Science</option>
-                    <option value="Information Technology">Information Technology</option>
-                    <option value="Mechanical Engineering">Mechanical Engineering</option>
-                    <option value="Data Science">Data Science</option>
-                    <option value="Electronics & Comm.">Electronics &amp; Comm.</option>
-                  </select>
-                </div>
-
-                <div className="form-field">
-                  <label>Internship Role</label>
-                  <input
-                    type="text"
-                    value={newIntern.role}
-                    onChange={(e) => setNewIntern({ ...newIntern, role: e.target.value })}
-                    placeholder="e.g. Full Stack Developer"
-                  />
-                </div>
-
-                <div className="form-field">
-                  <label>Duration</label>
-                  <select
-                    value={newIntern.duration}
-                    onChange={(e) => setNewIntern({ ...newIntern, duration: e.target.value })}
-                  >
-                    <option value="3 Months">3 Months</option>
-                    <option value="6 Months">6 Months</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="modal-actions-bar">
-                <button type="button" className="btn-cancel" onClick={() => setShowAddModal(false)}>Cancel</button>
-                <button type="submit" className="btn-submit-add">Add Intern Record</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* -------------------------------------------------------------------- */}
-      {/* View Intern Profile Modal                                            */}
-      {/* -------------------------------------------------------------------- */}
-      {selectedIntern && (
-        <div className="modal-backdrop" onClick={() => setSelectedIntern(null)}>
-          <div className="modal-card-box profile-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-top-bar">
-              <h2>Intern Profile Details</h2>
-              <button type="button" className="close-btn" onClick={() => setSelectedIntern(null)}>✕</button>
             </div>
 
-            <div className="intern-detail-view">
-              <div className="profile-detail-header">
-                <div className="profile-avatar-large" style={{ background: selectedIntern.avatarBg }}>
-                  {selectedIntern.name.split(' ').map(n => n[0]).join('')}
-                </div>
-                <div>
-                  <h3>{selectedIntern.name}</h3>
-                  <p>{selectedIntern.role} • {selectedIntern.department}</p>
-                  <span className={`status-pill-badge ${selectedIntern.status.toLowerCase()}`}>
-                    {selectedIntern.status}
-                  </span>
-                </div>
-              </div>
+            {/* ---------------- Table ---------------- */}
+            <Card>
+                {loading ? (
+                    <LoadingBlock label="Loading interns…" />
+                ) : error ? (
+                    <ErrorState error={error} onRetry={reload} />
+                ) : records.length === 0 ? (
+                    <EmptyState
+                        icon="users"
+                        title="No interns yet"
+                        message="Intern records you create will be listed here."
+                        action={
+                            isAdmin && (
+                                <Button
+                                    variant="primary"
+                                    icon="plus"
+                                    onClick={() => setSearchParams({ new: '1' })}
+                                >
+                                    Add the first intern
+                                </Button>
+                            )
+                        }
+                    />
+                ) : filtered.length === 0 ? (
+                    <EmptyState
+                        icon="search"
+                        title="No matches"
+                        message="No intern matches the current search and filters."
+                        action={
+                            <Button
+                                variant="secondary"
+                                icon="refresh"
+                                onClick={() => {
+                                    setSearchInput('');
+                                    setSearchParams({});
+                                }}
+                            >
+                                Clear filters
+                            </Button>
+                        }
+                    />
+                ) : (
+                    <>
+                        <div className="table-scroll">
+                            <table className="table">
+                                <thead>
+                                    <tr>
+                                        <SortHeader column="name" sort={sort} onSort={setSort}>
+                                            Intern
+                                        </SortHeader>
+                                        <SortHeader
+                                            column="intern_id"
+                                            sort={sort}
+                                            onSort={setSort}
+                                        >
+                                            ID
+                                        </SortHeader>
+                                        <SortHeader
+                                            column="department"
+                                            sort={sort}
+                                            onSort={setSort}
+                                        >
+                                            Department
+                                        </SortHeader>
+                                        <SortHeader
+                                            column="internship_role"
+                                            sort={sort}
+                                            onSort={setSort}
+                                        >
+                                            Role
+                                        </SortHeader>
+                                        <SortHeader
+                                            column="start_date"
+                                            sort={sort}
+                                            onSort={setSort}
+                                        >
+                                            Started
+                                        </SortHeader>
+                                        <SortHeader
+                                            column="status"
+                                            sort={sort}
+                                            onSort={setSort}
+                                        >
+                                            Status
+                                        </SortHeader>
+                                        <th scope="col" style={{ textAlign: 'right' }}>
+                                            Actions
+                                        </th>
+                                    </tr>
+                                </thead>
 
-              <div className="detail-fields-grid">
-                <div>
-                  <label>INTERN ID</label>
-                  <strong>{selectedIntern.id}</strong>
-                </div>
+                                <tbody>
+                                    {paged.map((intern) => (
+                                        <tr key={intern.id}>
+                                            <td>
+                                                <button
+                                                    type="button"
+                                                    className="cell-person cell-person--link"
+                                                    onClick={() =>
+                                                        navigate(
+                                                            `/dashboard/interns/${intern.id}`,
+                                                        )
+                                                    }
+                                                >
+                                                    <Avatar name={intern.name} size="sm" />
+                                                    <div>
+                                                        <span className="table__primary">
+                                                            {orEmpty(intern.name)}
+                                                        </span>
+                                                        <small>{orEmpty(intern.email)}</small>
+                                                    </div>
+                                                </button>
+                                            </td>
 
-                <div>
-                  <label>EMAIL ADDRESS</label>
-                  <span>{selectedIntern.email}</span>
-                </div>
+                                            <td className="mono">
+                                                {orEmpty(intern.intern_id)}
+                                            </td>
+                                            <td>{orEmpty(intern.department)}</td>
+                                            <td>{orEmpty(intern.internship_role)}</td>
+                                            <td>{formatDate(intern.start_date)}</td>
+                                            <td>
+                                                <StatusBadge status={intern.status} />
+                                            </td>
 
-                <div>
-                  <label>COLLEGE / UNIVERSITY</label>
-                  <span>{selectedIntern.college}</span>
-                </div>
+                                            <td>
+                                                <div className="table__actions">
+                                                    <IconButton
+                                                        icon="eye"
+                                                        label={`View ${intern.name}`}
+                                                        onClick={() =>
+                                                            navigate(
+                                                                `/dashboard/interns/${intern.id}`,
+                                                            )
+                                                        }
+                                                    />
 
-                <div>
-                  <label>DURATION</label>
-                  <span>{selectedIntern.duration}</span>
-                </div>
+                                                    {isAdmin && (
+                                                        <>
+                                                            <IconButton
+                                                                icon="edit"
+                                                                label={`Edit ${intern.name}`}
+                                                                onClick={() =>
+                                                                    setEditing(intern)
+                                                                }
+                                                            />
+                                                            <IconButton
+                                                                icon="trash"
+                                                                tone="danger"
+                                                                label={`Delete ${intern.name}`}
+                                                                onClick={() =>
+                                                                    setConfirmDelete(intern)
+                                                                }
+                                                            />
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
 
-                <div>
-                  <label>JOINED DATE</label>
-                  <span>{selectedIntern.joinedOn}</span>
-                </div>
+                        <Pagination
+                            page={page}
+                            pageSize={pageSize}
+                            totalItems={filtered.length}
+                            onPageChange={setPage}
+                            onPageSizeChange={(size) =>
+                                setSearchParams((params) => {
+                                    const next = new URLSearchParams(params);
+                                    next.set('size', String(size));
+                                    next.delete('page');
+                                    return next;
+                                })
+                            }
+                            pageSizes={PAGE_SIZES}
+                        />
+                    </>
+                )}
+            </Card>
 
-                <div>
-                  <label>CERTIFICATE STATUS</label>
-                  <span className="text-green">✓ Verified &amp; Issued</span>
-                </div>
-              </div>
+            {/* ---------------- Create / edit ---------------- */}
+            {showForm && (
+                <InternFormModal
+                    intern={editing}
+                    onClose={closeForm}
+                    onSaved={() => {
+                        closeForm();
+                        reload();
+                    }}
+                />
+            )}
 
-              <div className="modal-actions-bar">
-                <button type="button" className="btn-submit-add" onClick={() => setSelectedIntern(null)}>
-                  Close Record
-                </button>
-              </div>
-            </div>
-          </div>
+            {/* ---------------- Delete confirmation ---------------- */}
+            <Modal
+                open={confirmDelete !== null}
+                onClose={() => setConfirmDelete(null)}
+                title="Delete this intern?"
+                size="sm"
+                footer={
+                    <>
+                        <Button variant="ghost" onClick={() => setConfirmDelete(null)}>
+                            Cancel
+                        </Button>
+                        <Button
+                            variant="danger"
+                            icon="trash"
+                            loading={deleting}
+                            onClick={handleDelete}
+                        >
+                            Delete intern
+                        </Button>
+                    </>
+                }
+            >
+                <p>
+                    <strong>{confirmDelete?.name}</strong> and their record will be removed
+                    permanently. Certificates and letters already issued to them are not
+                    deleted, but they will no longer resolve to an intern.
+                </p>
+                <p style={{ marginTop: 'var(--space-3)', color: 'var(--text-muted)' }}>
+                    This cannot be undone.
+                </p>
+            </Modal>
         </div>
-      )}
-    </div>
-  );
+    );
 }
