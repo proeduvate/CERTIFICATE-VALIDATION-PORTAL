@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet } from 'react-router-dom';
 import cn from '../../lib/cn';
 import Icon from '../ui/Icon';
 import Button from '../ui/Button';
+import Logo from '../Logo';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { APP } from '../../config';
@@ -35,7 +36,7 @@ export default function PublicLayout() {
             <header className="public-header">
                 <div className="public-header__inner">
                     <Link to="/" className="public-header__logo" aria-label={`${APP.name} home`}>
-                        <img src="/proeduvate-logo-black.png" alt={APP.name} />
+                        <Logo height={42} />
                     </Link>
 
                     <nav
@@ -98,7 +99,7 @@ export default function PublicLayout() {
             <footer className="public-footer">
                 <div className="public-footer__inner">
                     <div className="public-footer__logo">
-                        <img src="/proeduvate-logo-black.png" alt={APP.name} />
+                        <Logo height={36} />
                         <p className="public-footer__tagline">
                             Verifiable internship credentials for students, institutions
                             and employers.

@@ -61,14 +61,10 @@
     z-index: 1;
 }
 
-.auth-aside__logo img {
-    height: 34px;
-    width: auto;
-    object-fit: contain;
-}
-
-:root[data-theme='dark'] .auth-aside__logo img {
-    filter: invert(1) brightness(1.8);
+/* Size and theme swap are handled by <Logo>. */
+.auth-aside__logo {
+    display: inline-flex;
+    align-items: center;
 }
 
 .auth-aside__copy h1 {

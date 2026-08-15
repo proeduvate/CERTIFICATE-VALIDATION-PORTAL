@@ -4,6 +4,7 @@ import Button from '../../components/ui/Button';
 import { Input } from '../../components/ui/Field';
 import { Alert } from '../../components/ui/Display';
 import Icon from '../../components/ui/Icon';
+import Logo from '../../components/Logo';
 import { useAuth } from '../../context/AuthContext';
 import { APP } from '../../config';
 import './auth.css';
@@ -100,7 +101,7 @@ export default function Login() {
             {/* ---------------- Brand panel ---------------- */}
             <aside className="auth-aside">
                 <Link to="/" className="auth-aside__logo">
-                    <img src="/proeduvate-logo-black.png" alt={APP.name} />
+                    <Logo height={44} />
                 </Link>
 
                 <div className="auth-aside__copy">

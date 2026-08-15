@@ -53,12 +53,7 @@
     text-decoration: none;
 }
 
-.sidebar__logo-mark {
-    width: 26px;
-    height: 26px;
-    object-fit: contain;
-    flex-shrink: 0;
-}
+/* Height comes from <Logo variant="mark">. */
 
 .sidebar__logo-text {
     font-size: var(--text-md);
@@ -376,15 +371,12 @@
     margin: 0 auto;
 }
 
-.public-header__logo img {
-    height: 30px;
-    width: auto;
-    object-fit: contain;
-}
-
-:root[data-theme='dark'] .public-header__logo img,
-:root[data-theme='dark'] .public-footer__logo img {
-    filter: invert(1) brightness(1.8);
+/* Size and the light/dark asset swap both live on <Logo>, so there is nothing
+   to recolour here. */
+.public-header__logo {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
 }
 
 .public-nav {

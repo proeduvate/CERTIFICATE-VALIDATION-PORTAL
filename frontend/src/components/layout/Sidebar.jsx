@@ -1,6 +1,7 @@
 import { NavLink, Link } from 'react-router-dom';
 import cn from '../../lib/cn';
 import Icon from '../ui/Icon';
+import Logo from '../Logo';
 import { APP } from '../../config';
 
 /**
@@ -41,11 +42,9 @@ export default function Sidebar({ collapsed, mobileOpen, onNavigate, onToggleCol
             >
                 <div className="sidebar__brand">
                     <Link to="/" className="sidebar__logo" aria-label={`${APP.name} home`}>
-                        <img
-                            src="/icon only Transparent.png"
-                            alt=""
-                            className="sidebar__logo-mark"
-                        />
+                        {/* Mark plus text rather than the full wordmark: the rail
+                            collapses to 68px, where the wordmark would not fit. */}
+                        <Logo variant="mark" height={30} className="sidebar__logo-mark" />
                         <span className="sidebar__logo-text">{APP.name}</span>
                     </Link>
 

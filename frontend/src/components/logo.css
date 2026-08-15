@@ -1,0 +1,39 @@
+/* ==========================================================================
+   Brand mark.
+
+   Two assets, swapped by theme. Never recoloured with filters — that would
+   also shift the blue of the mark.
+   ========================================================================== */
+
+.logo {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    line-height: 0;
+}
+
+.logo__img {
+    height: var(--logo-height, 38px);
+    width: auto;
+    object-fit: contain;
+}
+
+/* Light is the default; the dark asset is hidden until the theme asks for it. */
+.logo__img--dark {
+    display: none;
+}
+
+:root[data-theme='dark'] .logo__img--light {
+    display: none;
+}
+
+:root[data-theme='dark'] .logo__img--dark {
+    display: block;
+}
+
+.logo__mark {
+    height: var(--logo-height, 28px);
+    width: auto;
+    object-fit: contain;
+    flex-shrink: 0;
+}
