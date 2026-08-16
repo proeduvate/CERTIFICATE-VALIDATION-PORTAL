@@ -1,4 +1,4 @@
-import { api, downloadFile } from '../lib/apiClient';
+import { api, downloadFile, request } from '../lib/apiClient';
 
 /** Interns endpoints — backend/app/api/routes/intern.py */
 
@@ -65,8 +65,9 @@ export function exportInterns() {
  * Sends only what the form actually collects. The API accepts partial
  * create/update now, so there is no need to pad the request with all 38
  * columns — and padding it would be actively harmful: it would overwrite the
- * verification fields (set by the separate, code-gated sign-off) and the
- * attendance figures (owned by the attendance system) on every edit.
+ * verification fields (set by the separate, code-gated sign-off), the
+ * attendance figures (owned by the attendance system) and the document paths
+ * (written by the upload endpoints) on every edit.
  */
 export function toInternPayload(form = {}) {
     const text = (value) => {
@@ -98,11 +99,6 @@ export function toInternPayload(form = {}) {
         end_date: text(form.end_date),
         status: text(form.status),
         responsibilities: text(form.responsibilities),
-
-        offer_letter: text(form.offer_letter),
-        acknowledgement_letter: text(form.acknowledgement_letter),
-        terms_conditions: text(form.terms_conditions),
-        lor: text(form.lor),
     };
 }
 
@@ -120,4 +116,28 @@ export function verifyIntern(id, { code, verifiedBy, status = 'Verified', remark
         verification_status: status,
         remarks,
     });
+}
+
+/** The document slots an admin can upload against an intern. */
+export const DOCUMENT_KINDS = [
+    { kind: 'offer_letter', code: 'OL', label: 'Offer letter' },
+    { kind: 'acknowledgement_letter', code: 'AL', label: 'Acknowledgement letter' },
+    { kind: 'terms_conditions', code: 'TC', label: 'Terms and conditions' },
+    { kind: 'lor', code: 'LOR', label: 'Letter of recommendation', optional: true },
+    { kind: 'completion_letter', code: 'CL', label: 'Completion letter', optional: true },
+    { kind: 'resume', code: 'CV', label: 'Resume', optional: true },
+];
+
+export function uploadInternDocument(internId, kind, file) {
+    const body = new FormData();
+    body.append('file', file);
+
+    return request(`/interns/${internId}/documents/${kind}`, {
+        method: 'POST',
+        formData: body,
+    });
+}
+
+export function deleteInternDocument(internId, kind) {
+    return api.delete(`/interns/${internId}/documents/${kind}`);
 }

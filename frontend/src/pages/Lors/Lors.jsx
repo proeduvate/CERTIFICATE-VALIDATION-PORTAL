@@ -3,6 +3,7 @@ import Button, { IconButton } from '../../components/ui/Button';
 import { Input, Select } from '../../components/ui/Field';
 import Modal from '../../components/ui/Modal';
 import {
+    Badge,
     Card,
     EmptyState,
     ErrorState,
@@ -13,6 +14,7 @@ import {
 import { Pagination, SortHeader } from '../../components/ui/Navigation';
 import { useToast } from '../../components/ui/Toast';
 import LorFormModal from './LorFormModal';
+import { DocumentViewerModal } from '../../components/DocumentPreview';
 import { useAsync } from '../../hooks/useAsync';
 import useDebounce from '../../hooks/useDebounce';
 import { useAuth } from '../../context/AuthContext';
@@ -49,6 +51,7 @@ export default function Lors() {
     const [creating, setCreating] = useState(false);
     const [confirmDelete, setConfirmDelete] = useState(null);
     const [deleting, setDeleting] = useState(false);
+    const [previewing, setPreviewing] = useState(null);
 
     const records = useMemo(() => (Array.isArray(data) ? data : []), [data]);
 
@@ -294,11 +297,18 @@ export default function Lors() {
                                             </td>
                                             <td>
                                                 {lor.file_path ? (
-                                                    <span className="truncate">
-                                                        {lor.file_path.split('/').pop()}
-                                                    </span>
+                                                    <Button
+                                                        variant="secondary"
+                                                        size="sm"
+                                                        icon="eye"
+                                                        onClick={() => setPreviewing(lor)}
+                                                    >
+                                                        Preview
+                                                    </Button>
                                                 ) : (
-                                                    '—'
+                                                    <Badge variant="neutral" dot>
+                                                        Not uploaded
+                                                    </Badge>
                                                 )}
                                             </td>
                                             <td>
@@ -348,6 +358,7 @@ export default function Lors() {
             {(creating || editing) && (
                 <LorFormModal
                     lor={editing}
+                    onFileChanged={reload}
                     onClose={() => {
                         setCreating(false);
                         setEditing(null);
@@ -359,6 +370,18 @@ export default function Lors() {
                     }}
                 />
             )}
+
+            <DocumentViewerModal
+                open={previewing !== null}
+                onClose={() => setPreviewing(null)}
+                path={previewing?.file_path}
+                label="Letter of recommendation"
+                meta={
+                    previewing
+                        ? `Issued by ${previewing.issued_by ?? '—'}`
+                        : undefined
+                }
+            />
 
             <Modal
                 open={confirmDelete !== null}

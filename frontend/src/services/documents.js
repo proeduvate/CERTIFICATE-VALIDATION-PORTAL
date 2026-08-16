@@ -1,4 +1,4 @@
-import { api } from '../lib/apiClient';
+import { api, request } from '../lib/apiClient';
 
 /** Documents & LOR endpoints — routes/document.py, routes/lor.py */
 
@@ -42,4 +42,16 @@ export function updateLor(id, payload) {
 
 export function deleteLor(id) {
     return api.delete(`/lors/${id}`);
+}
+
+/** Attach the signed letter itself to an LOR record. */
+export function uploadLorDocument(lorId, file) {
+    const body = new FormData();
+    body.append('file', file);
+
+    return request(`/lors/${lorId}/upload`, { method: 'POST', formData: body });
+}
+
+export function deleteLorDocument(lorId) {
+    return api.delete(`/lors/${lorId}/upload`);
 }

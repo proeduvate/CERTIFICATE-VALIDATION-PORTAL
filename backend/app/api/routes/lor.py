@@ -1,4 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    HTTPException,
+    UploadFile,
+    status,
+)
 from sqlalchemy.orm import Session
 
 from app.core.security import get_current_user, require_admin
@@ -6,6 +13,7 @@ from app.db.session import get_db
 from app.models.lor import LOR
 from app.models.user import User
 from app.schemas.lor import LORCreate, LORResponse, LORUpdate
+from app.utils.uploads import delete_upload, save_upload
 
 router = APIRouter(prefix="/lors", tags=["LOR"])
 
@@ -86,3 +94,37 @@ def delete_lor(
     db.commit()
 
     return {"message": "Letter of recommendation deleted successfully"}
+
+
+@router.post("/{lor_id}/upload")
+def upload_lor_document(
+    lor_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Attach the signed letter itself, rather than a path typed by hand."""
+    lor = _get_or_404(db, lor_id)
+
+    stored = save_upload(file, folder="lors", stem=f"lor-{lor.intern_id}")
+
+    delete_upload(lor.file_path)
+    lor.file_path = stored
+    db.commit()
+
+    return {"message": "Letter uploaded", "url": f"/{stored}", "path": stored}
+
+
+@router.delete("/{lor_id}/upload")
+def delete_lor_document(
+    lor_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    lor = _get_or_404(db, lor_id)
+
+    delete_upload(lor.file_path)
+    lor.file_path = None
+    db.commit()
+
+    return {"message": "Letter removed"}

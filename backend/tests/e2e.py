@@ -1,8 +1,10 @@
 """End-to-end check of the integrated stack against a running API."""
 
 import json
+import os
 import urllib.error
 import urllib.request
+import uuid
 
 API = "http://localhost:8000"
 
@@ -29,6 +31,31 @@ def call(method, path, body=None, token=None, headers=None):
                 return response.status, json.loads(raw)
             except ValueError:
                 return response.status, raw
+    except urllib.error.HTTPError as error:
+        raw = error.read()
+        try:
+            return error.code, json.loads(raw)
+        except ValueError:
+            return error.code, raw
+
+
+def upload(path, filename, content, content_type, token):
+    """Minimal multipart POST — avoids a dependency just to send one file."""
+    boundary = uuid.uuid4().hex
+
+    body = (
+        f'--{boundary}\r\n'
+        f'Content-Disposition: form-data; name="file"; filename="{filename}"\r\n'
+        f'Content-Type: {content_type}\r\n\r\n'
+    ).encode() + content + f'\r\n--{boundary}--\r\n'.encode()
+
+    req = urllib.request.Request(f"{API}{path}", data=body, method="POST")
+    req.add_header("Content-Type", f"multipart/form-data; boundary={boundary}")
+    req.add_header("Authorization", f"Bearer {token}")
+
+    try:
+        with urllib.request.urlopen(req) as response:
+            return response.status, json.loads(response.read())
     except urllib.error.HTTPError as error:
         raw = error.read()
         try:
@@ -235,6 +262,56 @@ call("PUT", f"/interns/{INTERN_ID}", {"mentor": "New Mentor"}, token=TOKEN)
 check("an edit does not reset verification", "Verified",
       call("GET", "/verify/PEV-INT-000123")[1]["verification"]["status"])
 
+# --------------------------------------------------- document uploads
+section("Document uploads")
+
+# A syntactically valid, minimal PDF.
+PDF = (
+    b"%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n"
+    b"2 0 obj<</Type/Pages/Kids[]/Count 0>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF"
+)
+
+status, uploaded = upload(
+    f"/interns/{INTERN_ID}/documents/offer_letter",
+    "offer.pdf", PDF, "application/pdf", TOKEN)
+check("upload an offer letter", 200, status)
+check("stored under the upload directory", True,
+      uploaded["path"].startswith("uploads/documents/"))
+check("the client filename is not reused on disk", False,
+      os.path.basename(uploaded["path"]) == "offer.pdf")
+
+check("a disallowed type is refused", 415, upload(
+    f"/interns/{INTERN_ID}/documents/lor",
+    "x.exe", b"MZ", "application/x-msdownload", TOKEN)[0])
+check("an empty file is refused", 400, upload(
+    f"/interns/{INTERN_ID}/documents/lor",
+    "e.pdf", b"", "application/pdf", TOKEN)[0])
+check("an unknown document slot is refused", 400, upload(
+    f"/interns/{INTERN_ID}/documents/nonsense",
+    "a.pdf", PDF, "application/pdf", TOKEN)[0])
+
+public = call("GET", "/verify/PEV-INT-000123")[1]
+by_key = {d["key"]: d["url"] for d in public["documents"]}
+check("the upload appears on public verification", True, bool(by_key["OL"]))
+
+first_path = uploaded["path"]
+replaced = upload(
+    f"/interns/{INTERN_ID}/documents/offer_letter",
+    "offer2.pdf", PDF, "application/pdf", TOKEN)[1]
+check("replacing stores a new path", True, replaced["path"] != first_path)
+
+# An unrelated edit must not clear an uploaded document.
+call("PUT", f"/interns/{INTERN_ID}", {"mentor": "Someone Else"}, token=TOKEN)
+check("an edit does not wipe uploads", True, bool(
+    {d["key"]: d["url"]
+     for d in call("GET", "/verify/PEV-INT-000123")[1]["documents"]}["OL"]))
+
+check("removing a document succeeds", 200, call(
+    "DELETE", f"/interns/{INTERN_ID}/documents/offer_letter", token=TOKEN)[0])
+check("the removed document leaves verification", None,
+      {d["key"]: d["url"]
+       for d in call("GET", "/verify/PEV-INT-000123")[1]["documents"]}["OL"])
+
 # ------------------------------------------------------ lor & documents
 section("LOR & documents")
 
@@ -297,6 +374,9 @@ check("non-admin cannot verify even with the code", 403, call(
     "POST", f"/interns/{INTERN_ID}/verify",
     {"code": "proeduvate-verify-2026", "verified_by": "Sneaky"},
     token=ITOKEN)[0])
+check("non-admin cannot upload documents", 403, upload(
+    f"/interns/{INTERN_ID}/documents/offer_letter",
+    "a.pdf", PDF, "application/pdf", ITOKEN)[0])
 
 # ------------------------------------------------------------------ cors
 section("CORS")

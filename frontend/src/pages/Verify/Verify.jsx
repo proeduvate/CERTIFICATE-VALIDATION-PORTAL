@@ -15,9 +15,11 @@ import {
     MetaGrid,
 } from '../../components/ui/Display';
 import CertificatePreview from '../../components/CertificatePreview';
+import DocumentList from '../../components/DocumentList';
+import { DocumentViewerModal } from '../../components/DocumentPreview';
 import { useAsync } from '../../hooks/useAsync';
 import { verifyByInternId } from '../../services/verification';
-import { API_BASE_URL, APP } from '../../config';
+import { APP } from '../../config';
 import { formatDate, formatDateTime, orEmpty } from '../../lib/format';
 import './verify.css';
 
@@ -220,6 +222,7 @@ function ErrorOutcome({ error }) {
 
 function FoundState({ result }) {
     const { intern, internship, certificate, documents, verification } = result;
+    const [viewingCertificate, setViewingCertificate] = useState(false);
 
     const isVerified = (verification?.status ?? '').toLowerCase() === 'verified';
     const available = documents.filter((document) => Boolean(document.url));
@@ -268,13 +271,11 @@ function FoundState({ result }) {
 
                                 {certificate.url && (
                                     <Button
-                                        href={resolveUrl(certificate.url)}
-                                        target="_blank"
-                                        rel="noreferrer"
                                         variant="secondary"
-                                        icon="externalLink"
+                                        icon="eye"
                                         block
                                         className="verify-found__open"
+                                        onClick={() => setViewingCertificate(true)}
                                     >
                                         Open the issued certificate
                                     </Button>
@@ -366,11 +367,7 @@ function FoundState({ result }) {
                 />
 
                 <CardBody>
-                    <div className="verify-docs">
-                        {documents.map((document) => (
-                            <DocumentTile key={document.key} document={document} />
-                        ))}
-                    </div>
+                    <DocumentList items={documents} />
                 </CardBody>
             </Card>
 
@@ -404,43 +401,14 @@ function FoundState({ result }) {
                     </Alert>
                 </CardBody>
             </Card>
+
+            <DocumentViewerModal
+                open={viewingCertificate}
+                onClose={() => setViewingCertificate(false)}
+                path={certificate?.url}
+                label="Certificate"
+                meta={certificate?.certificate_number}
+            />
         </div>
-    );
-}
-
-function resolveUrl(url) {
-    if (!url) return null;
-    return /^https?:\/\//i.test(url)
-        ? url
-        : `${API_BASE_URL}/${String(url).replace(/^\/+/, '')}`;
-}
-
-function DocumentTile({ document }) {
-    if (!document.url) {
-        return (
-            <div className="verify-doc verify-doc--missing">
-                <span className="verify-doc__key">{document.key}</span>
-                <span className="verify-doc__text">
-                    <strong>{document.label}</strong>
-                    <small>Not provided</small>
-                </span>
-            </div>
-        );
-    }
-
-    return (
-        <a
-            className="verify-doc"
-            href={resolveUrl(document.url)}
-            target="_blank"
-            rel="noreferrer"
-        >
-            <span className="verify-doc__key">{document.key}</span>
-            <span className="verify-doc__text">
-                <strong>{document.label}</strong>
-                <small>View document</small>
-            </span>
-            <Icon name="externalLink" size={16} />
-        </a>
     );
 }

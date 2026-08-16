@@ -5,10 +5,14 @@ import { Input, Select, Textarea } from '../../components/ui/Field';
 import { Alert } from '../../components/ui/Display';
 import { Tabs } from '../../components/ui/Navigation';
 import { useToast } from '../../components/ui/Toast';
+import DocumentUploadField from '../../components/DocumentUploadField';
 import {
+    DOCUMENT_KINDS,
     createIntern,
+    deleteInternDocument,
     toInternPayload,
     updateIntern,
+    uploadInternDocument,
 } from '../../services/interns';
 import { INTERN_STATUS, INTERNSHIP_MODES } from '../../config';
 import { toDateInput } from '../../lib/format';
@@ -58,14 +62,15 @@ function initialForm(intern) {
         status: intern?.status ?? 'Active',
         responsibilities: intern?.responsibilities ?? '',
 
-        offer_letter: intern?.offer_letter ?? '',
-        acknowledgement_letter: intern?.acknowledgement_letter ?? '',
-        terms_conditions: intern?.terms_conditions ?? '',
-        lor: intern?.lor ?? '',
     };
 }
 
-export default function InternFormModal({ intern, onClose, onSaved }) {
+export default function InternFormModal({
+    intern,
+    onClose,
+    onSaved,
+    onDocumentsChanged,
+}) {
     const toast = useToast();
     const isEdit = Boolean(intern);
 
@@ -74,6 +79,14 @@ export default function InternFormModal({ intern, onClose, onSaved }) {
     const [errors, setErrors] = useState({});
     const [formError, setFormError] = useState('');
     const [saving, setSaving] = useState(false);
+
+    // Uploads apply immediately rather than on submit, so they are tracked
+    // apart from the form fields.
+    const [documents, setDocuments] = useState(() =>
+        Object.fromEntries(
+            DOCUMENT_KINDS.map(({ kind }) => [kind, intern?.[kind] ?? null]),
+        ),
+    );
 
     const set = (key) => (event) => {
         const { value } = event.target;
@@ -326,38 +339,56 @@ export default function InternFormModal({ intern, onClose, onSaved }) {
 
                     {section === 'documents' && (
                         <>
-                            <Alert variant="info" className="form-modal__alert">
-                                These are the documents public verification shows for
-                                this intern. Enter the stored path or a full URL; leave
-                                blank for anything not issued.
-                            </Alert>
+                            {isEdit ? (
+                                <Alert variant="info" className="form-modal__alert">
+                                    Uploads save immediately — they do not wait for
+                                    &ldquo;Save changes&rdquo;. OL, AL and TC appear on the
+                                    public verification page; the LOR appears only if one
+                                    was issued.
+                                </Alert>
+                            ) : (
+                                <Alert variant="warning" className="form-modal__alert">
+                                    Documents attach to an existing record, so create the
+                                    intern first and then reopen this dialog to upload
+                                    them.
+                                </Alert>
+                            )}
 
-                            <div className="form-grid">
-                                <Input
-                                    label="Offer letter (OL)"
-                                    value={form.offer_letter}
-                                    onChange={set('offer_letter')}
-                                    placeholder="uploads/documents/offer.pdf"
-                                />
-                                <Input
-                                    label="Acknowledgement letter (AL)"
-                                    value={form.acknowledgement_letter}
-                                    onChange={set('acknowledgement_letter')}
-                                    placeholder="uploads/documents/acknowledgement.pdf"
-                                />
-                                <Input
-                                    label="Terms and conditions (TC)"
-                                    value={form.terms_conditions}
-                                    onChange={set('terms_conditions')}
-                                    placeholder="uploads/documents/terms.pdf"
-                                />
-                                <Input
-                                    label="Letter of recommendation (LOR)"
-                                    value={form.lor}
-                                    onChange={set('lor')}
-                                    placeholder="Optional"
-                                    hint="Optional — only if one was issued."
-                                />
+                            <div className="doc-slots">
+                                {DOCUMENT_KINDS.map((slot) => (
+                                    <DocumentUploadField
+                                        key={slot.kind}
+                                        code={slot.code}
+                                        label={slot.label}
+                                        optional={slot.optional}
+                                        path={documents[slot.kind]}
+                                        disabled={!isEdit}
+                                        disabledReason="Available once the intern has been created."
+                                        onUpload={async (file) => {
+                                            const result = await uploadInternDocument(
+                                                intern.id,
+                                                slot.kind,
+                                                file,
+                                            );
+                                            setDocuments((current) => ({
+                                                ...current,
+                                                [slot.kind]: result.path,
+                                            }));
+                                            onDocumentsChanged?.();
+                                        }}
+                                        onRemove={async () => {
+                                            await deleteInternDocument(
+                                                intern.id,
+                                                slot.kind,
+                                            );
+                                            setDocuments((current) => ({
+                                                ...current,
+                                                [slot.kind]: null,
+                                            }));
+                                            onDocumentsChanged?.();
+                                        }}
+                                    />
+                                ))}
                             </div>
                         </>
                     )}

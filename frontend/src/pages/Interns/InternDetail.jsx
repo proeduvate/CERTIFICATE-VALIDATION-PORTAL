@@ -17,18 +17,17 @@ import {
 } from '../../components/ui/Display';
 import { Breadcrumbs, Tabs, TabPanel } from '../../components/ui/Navigation';
 import VerifyInternModal from './VerifyInternModal';
+import DocumentList from '../../components/DocumentList';
 import { useAuth } from '../../context/AuthContext';
 import { useAsync } from '../../hooks/useAsync';
-import { getIntern } from '../../services/interns';
+import { DOCUMENT_KINDS, getIntern } from '../../services/interns';
 import {
     EMPTY,
     attendanceBand,
-    fileNameFromPath,
     formatDate,
     formatPercent,
     orEmpty,
 } from '../../lib/format';
-import { API_BASE_URL } from '../../config';
 import './interns.css';
 
 const TABS = [
@@ -518,61 +517,16 @@ function ExternalValue({ url }) {
 }
 
 function InternDocuments({ docs }) {
-    // The four the public verification page exposes, plus the extras an admin
-    // can see. LOR is optional by design.
-    const entries = [
-        { key: 'OL', label: 'Offer letter', path: docs.offer_letter },
-        { key: 'AL', label: 'Acknowledgement letter', path: docs.acknowledgement_letter },
-        { key: 'TC', label: 'Terms and conditions', path: docs.terms_conditions },
-        { key: 'LOR', label: 'Letter of recommendation', path: docs.lor },
-        { key: 'CL', label: 'Completion letter', path: docs.completion_letter },
-        { key: 'CV', label: 'Resume', path: docs.resume },
-    ];
-
-    if (entries.every((entry) => !entry.path)) {
-        return (
-            <EmptyState
-                icon="folder"
-                title="No documents recorded"
-                message="Add the offer letter, acknowledgement letter and terms from the edit dialog. They appear on the public verification page."
-            />
-        );
-    }
+    const items = DOCUMENT_KINDS.map((slot) => ({
+        key: slot.code,
+        label: slot.label,
+        url: docs[slot.kind] ?? null,
+    }));
 
     return (
-        <div className="doc-list">
-            {entries.map((entry) =>
-                entry.path ? (
-                    <a
-                        key={entry.key}
-                        className="doc-item"
-                        href={
-                            /^https?:\/\//i.test(entry.path)
-                                ? entry.path
-                                : `${API_BASE_URL}/${String(entry.path).replace(/^\/+/, '')}`
-                        }
-                        target="_blank"
-                        rel="noreferrer"
-                    >
-                        <span className="doc-item__icon tint-brand">{entry.key}</span>
-                        <span className="doc-item__text">
-                            <strong>{entry.label}</strong>
-                            <small className="truncate">
-                                {fileNameFromPath(entry.path)}
-                            </small>
-                        </span>
-                        <Icon name="externalLink" size={16} />
-                    </a>
-                ) : (
-                    <div key={entry.key} className="doc-item doc-item--empty">
-                        <span className="doc-item__icon tint-grey">{entry.key}</span>
-                        <span className="doc-item__text">
-                            <strong>{entry.label}</strong>
-                            <small>Not provided</small>
-                        </span>
-                    </div>
-                ),
-            )}
-        </div>
+        <DocumentList
+            items={items}
+            emptyHint="Upload it from Edit intern → Documents"
+        />
     );
 }

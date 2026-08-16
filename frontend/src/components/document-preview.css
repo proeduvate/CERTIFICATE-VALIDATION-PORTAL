@@ -1,0 +1,275 @@
+/* ==========================================================================
+   Document preview, viewer and upload slot.
+
+   Shares the framing of the certificate artwork so a scanned letter and a
+   generated certificate read as parts of one system.
+   ========================================================================== */
+
+.doc-preview {
+    position: relative;
+    height: var(--doc-height, 420px);
+    background: var(--bg-sunken);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    display: flex;
+}
+
+.doc-preview object,
+.doc-preview img {
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: block;
+}
+
+.doc-preview img {
+    object-fit: contain;
+    background: var(--bg-sunken);
+}
+
+.doc-preview__fallback,
+.doc-preview--empty {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    padding: var(--space-6);
+    text-align: center;
+    color: var(--text-muted);
+}
+
+.doc-preview--empty {
+    height: auto;
+    min-height: 150px;
+    border-style: dashed;
+}
+
+.doc-preview--empty strong {
+    font-size: var(--text-base);
+    color: var(--text-secondary);
+}
+
+.doc-preview--empty p,
+.doc-preview__fallback p {
+    font-size: var(--text-sm);
+    max-width: 40ch;
+}
+
+.doc-preview__placeholder-icon {
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--bg-surface);
+    color: var(--text-faint);
+}
+
+/* --------------------------------------------------------------------------
+   Upload slot
+   -------------------------------------------------------------------------- */
+
+.doc-slot {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+}
+
+.doc-slot--filled {
+    border-color: color-mix(in srgb, var(--success) 26%, var(--border-subtle));
+}
+
+.doc-slot__head {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+.doc-slot__code {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-sunken);
+    color: var(--text-faint);
+    font-size: var(--text-2xs);
+    font-weight: var(--weight-bold);
+    letter-spacing: 0.04em;
+    flex-shrink: 0;
+}
+
+.doc-slot__code.is-filled {
+    background: var(--accent-soft);
+    color: var(--accent);
+}
+
+.doc-slot__title {
+    flex: 1;
+    min-width: 0;
+}
+
+.doc-slot__title strong {
+    display: block;
+    font-size: var(--text-base);
+    color: var(--text-primary);
+}
+
+.doc-slot__title small {
+    display: block;
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+}
+
+/* Thumbnail doubles as the button that opens the full viewer */
+.doc-slot__thumb {
+    position: relative;
+    display: block;
+    width: 100%;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    text-align: left;
+}
+
+.doc-slot__thumb .doc-preview {
+    pointer-events: none;
+}
+
+.doc-slot__thumb-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    background: rgba(15, 23, 42, 0.55);
+    color: #fff;
+    font-size: var(--text-sm);
+    font-weight: var(--weight-semibold);
+    opacity: 0;
+    transition: opacity var(--duration-fast) var(--ease-out);
+}
+
+.doc-slot__thumb:hover .doc-slot__thumb-overlay,
+.doc-slot__thumb:focus-visible .doc-slot__thumb-overlay {
+    opacity: 1;
+}
+
+.doc-slot__drop {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    border: 1px dashed var(--border-default);
+    border-radius: var(--radius-md);
+    transition: all var(--duration-fast) var(--ease-out);
+}
+
+.doc-slot__drop.is-dragging {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+}
+
+.doc-slot__hint {
+    flex: 1;
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+}
+
+.doc-slot__disabled {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    padding: var(--space-3);
+    background: var(--bg-sunken);
+    border-radius: var(--radius-md);
+}
+
+.doc-slots {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: var(--space-4);
+}
+
+/* --------------------------------------------------------------------------
+   Read-only document list (verification page, intern record)
+   -------------------------------------------------------------------------- */
+
+.doc-rows {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.doc-row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    background: var(--bg-sunken);
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+}
+
+.doc-row--available:hover {
+    background: var(--bg-surface);
+    border-color: var(--border-default);
+    box-shadow: var(--shadow-sm);
+}
+
+.doc-row--missing {
+    opacity: 0.65;
+    border-style: dashed;
+    border-color: var(--border-subtle);
+}
+
+.doc-row__code {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-sm);
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: var(--text-2xs);
+    font-weight: var(--weight-bold);
+    flex-shrink: 0;
+}
+
+.doc-row--missing .doc-row__code {
+    background: var(--bg-surface);
+    color: var(--text-faint);
+}
+
+.doc-row__text {
+    flex: 1;
+    min-width: 0;
+}
+
+.doc-row__text strong {
+    display: block;
+    font-size: var(--text-base);
+    color: var(--text-primary);
+}
+
+.doc-row__text small {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+}
+
+@media (max-width: 640px) {
+    .doc-slot__drop {
+        flex-wrap: wrap;
+    }
+
+    .doc-slot__hint {
+        flex-basis: 100%;
+        order: 3;
+    }
+}

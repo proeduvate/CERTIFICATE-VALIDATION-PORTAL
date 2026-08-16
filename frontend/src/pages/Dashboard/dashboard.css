@@ -116,3 +116,70 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* --------------------------------------------------------------------------
+   Chart rows
+   -------------------------------------------------------------------------- */
+
+.dash-charts {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+    gap: var(--space-5);
+    align-items: start;
+}
+
+.dash-certs {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.dash-cert {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md);
+    transition: background var(--duration-fast) var(--ease-out);
+}
+
+.dash-cert:hover {
+    background: var(--bg-hover);
+}
+
+.dash-cert__icon {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-sm);
+    flex-shrink: 0;
+}
+
+.dash-cert__text {
+    flex: 1;
+    min-width: 0;
+}
+
+.dash-cert__text strong {
+    display: block;
+    font-size: var(--text-base);
+    color: var(--text-primary);
+}
+
+.dash-cert__text small {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+}
+
+.dash-cert__date {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+@media (max-width: 1024px) {
+    .dash-charts {
+        grid-template-columns: 1fr;
+    }
+}

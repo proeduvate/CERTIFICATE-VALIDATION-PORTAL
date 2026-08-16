@@ -4,7 +4,13 @@ import Modal from '../../components/ui/Modal';
 import { Input, Select } from '../../components/ui/Field';
 import { Alert } from '../../components/ui/Display';
 import { useToast } from '../../components/ui/Toast';
-import { createLor, updateLor } from '../../services/documents';
+import DocumentUploadField from '../../components/DocumentUploadField';
+import {
+    createLor,
+    deleteLorDocument,
+    updateLor,
+    uploadLorDocument,
+} from '../../services/documents';
 import { useAsync } from '../../hooks/useAsync';
 import { listInterns } from '../../services/interns';
 import { toDateInput } from '../../lib/format';
@@ -12,7 +18,7 @@ import { toDateInput } from '../../lib/format';
 const LOR_STATUS = ['Issued', 'Pending', 'Rejected'];
 
 /** Create or update a letter of recommendation. */
-export default function LorFormModal({ lor, onClose, onSaved }) {
+export default function LorFormModal({ lor, onClose, onSaved, onFileChanged }) {
     const toast = useToast();
     const isEdit = Boolean(lor);
     const interns = useAsync((signal) => listInterns({ signal }), []);
@@ -22,11 +28,14 @@ export default function LorFormModal({ lor, onClose, onSaved }) {
         issue_date: toDateInput(lor?.issue_date) || new Date().toISOString().slice(0, 10),
         issued_by: lor?.issued_by ?? '',
         status: lor?.status ?? 'Issued',
-        file_path: lor?.file_path ?? '',
     });
     const [errors, setErrors] = useState({});
     const [formError, setFormError] = useState('');
     const [saving, setSaving] = useState(false);
+
+    // Uploads apply immediately, so the stored path is tracked apart from the
+    // form fields.
+    const [filePath, setFilePath] = useState(lor?.file_path ?? null);
 
     const options = Array.isArray(interns.data) ? interns.data : [];
 
@@ -55,7 +64,6 @@ export default function LorFormModal({ lor, onClose, onSaved }) {
                 issue_date: form.issue_date,
                 issued_by: form.issued_by.trim(),
                 status: form.status,
-                file_path: form.file_path.trim() || null,
             };
 
             if (isEdit) await updateLor(lor.id, payload);
@@ -159,13 +167,31 @@ export default function LorFormModal({ lor, onClose, onSaved }) {
                     options={LOR_STATUS}
                 />
 
-                <Input
-                    label="Document path"
-                    value={form.file_path}
-                    onChange={set('file_path')}
-                    placeholder="uploads/lors/letter.pdf"
-                    hint="Optional. Path to the stored document."
-                />
+                {isEdit ? (
+                    <div className="form-grid__full">
+                        <DocumentUploadField
+                            code="LOR"
+                            label="Signed letter"
+                            optional
+                            path={filePath}
+                            onUpload={async (file) => {
+                                const result = await uploadLorDocument(lor.id, file);
+                                setFilePath(result.path);
+                                onFileChanged?.();
+                            }}
+                            onRemove={async () => {
+                                await deleteLorDocument(lor.id);
+                                setFilePath(null);
+                                onFileChanged?.();
+                            }}
+                        />
+                    </div>
+                ) : (
+                    <Alert variant="info" className="form-grid__full">
+                        Create the letter first, then reopen this dialog to upload the
+                        signed document.
+                    </Alert>
+                )}
 
                 <button type="submit" className="visually-hidden">
                     Save

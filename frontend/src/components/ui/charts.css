@@ -1,0 +1,191 @@
+/* ==========================================================================
+   Charts — themed from the token layer, so they follow light/dark for free.
+   ========================================================================== */
+
+.chart {
+    position: relative;
+    width: 100%;
+}
+
+.chart__svg {
+    width: 100%;
+    height: auto;
+    overflow: visible;
+}
+
+.chart__grid {
+    stroke: var(--border-subtle);
+    stroke-width: 1;
+}
+
+.chart__axis {
+    fill: var(--text-faint);
+    font-size: 10px;
+    font-weight: var(--weight-medium);
+}
+
+.chart__line {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.chart__point {
+    fill: var(--bg-surface);
+    stroke: var(--accent);
+    stroke-width: 2.5;
+    transition: r var(--duration-fast) var(--ease-out);
+}
+
+.chart__tooltip {
+    position: absolute;
+    transform: translate(-50%, calc(-100% - 12px));
+    padding: var(--space-2) var(--space-3);
+    background: var(--bg-inverse);
+    color: var(--text-inverse);
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-md);
+    font-size: var(--text-xs);
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.chart__tooltip strong {
+    display: block;
+    font-weight: var(--weight-semibold);
+}
+
+.chart__tooltip span {
+    opacity: 0.85;
+}
+
+.chart--empty {
+    display: grid;
+    place-items: center;
+    min-height: 160px;
+    color: var(--text-muted);
+    font-size: var(--text-sm);
+    background: var(--bg-sunken);
+    border-radius: var(--radius-md);
+}
+
+/* --------------------------------------------------------------------------
+   Donut
+   -------------------------------------------------------------------------- */
+
+.donut {
+    display: flex;
+    align-items: center;
+    gap: var(--space-6);
+    flex-wrap: wrap;
+}
+
+.donut__ring {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.donut__ring svg {
+    width: 100%;
+    height: 100%;
+    /* Start the first slice at 12 o'clock rather than 3 o'clock. */
+    transform: rotate(-90deg);
+}
+
+.donut__track {
+    fill: none;
+    stroke: var(--bg-sunken);
+    stroke-width: 18;
+}
+
+.donut__slice {
+    fill: none;
+    stroke-width: 18;
+    transition:
+        stroke-width var(--duration-fast) var(--ease-out),
+        opacity var(--duration-fast) var(--ease-out);
+    cursor: pointer;
+}
+
+.donut__slice.is-hovered {
+    stroke-width: 22;
+}
+
+.donut__centre {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    text-align: center;
+}
+
+.donut__centre strong {
+    font-size: var(--text-2xl);
+    font-weight: var(--weight-extrabold);
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+}
+
+.donut__centre span {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    text-transform: capitalize;
+}
+
+.donut__legend {
+    flex: 1;
+    min-width: 160px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.donut__legend li {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm);
+    font-size: var(--text-sm);
+    cursor: default;
+    transition: background var(--duration-fast) var(--ease-out);
+}
+
+.donut__legend li.is-hovered {
+    background: var(--bg-hover);
+}
+
+.donut__dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    flex-shrink: 0;
+}
+
+.donut__name {
+    flex: 1;
+    color: var(--text-secondary);
+    text-transform: capitalize;
+}
+
+.donut__value {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+    color: var(--text-primary);
+    font-weight: var(--weight-semibold);
+}
+
+.donut__value small {
+    color: var(--text-muted);
+    font-weight: var(--weight-normal);
+    font-size: var(--text-xs);
+    min-width: 34px;
+    text-align: right;
+}

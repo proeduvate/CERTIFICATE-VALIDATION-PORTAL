@@ -1,5 +1,4 @@
 import os
-import uuid
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from fastapi.responses import FileResponse
@@ -19,17 +18,9 @@ from app.schemas.certificate import (
 )
 from app.utils.certificate_generator import generate_certificate_number
 from app.utils.pdf_generator import generate_certificate_pdf
+from app.utils.uploads import delete_upload, save_upload
 
 router = APIRouter(prefix="/certificates", tags=["Certificates"])
-
-ALLOWED_UPLOAD_TYPES = {
-    "application/pdf",
-    "image/png",
-    "image/jpeg",
-    "image/webp",
-}
-MAX_UPLOAD_BYTES = 10 * 1024 * 1024
-
 
 def _get_or_404(db: Session, certificate_id: int) -> Certificate:
     certificate = (
@@ -231,38 +222,20 @@ def upload_certificate(
 ):
     certificate = _get_or_404(db, certificate_id)
 
-    if file.content_type not in ALLOWED_UPLOAD_TYPES:
-        raise HTTPException(
-            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-            detail="Upload a PDF or an image (PNG, JPEG or WebP)",
-        )
+    stored = save_upload(
+        file,
+        folder="certificates",
+        stem=certificate.certificate_number,
+    )
 
-    contents = file.file.read()
-
-    if len(contents) > MAX_UPLOAD_BYTES:
-        raise HTTPException(
-            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail="File must be 10 MB or smaller",
-        )
-
-    upload_dir = os.path.join(settings.UPLOAD_DIR, "certificates")
-    os.makedirs(upload_dir, exist_ok=True)
-
-    # Never trust the client filename: it can contain path separators, and two
-    # uploads sharing a name would overwrite each other.
-    suffix = os.path.splitext(file.filename or "")[1][:10]
-    stored_name = f"{certificate.certificate_number}-{uuid.uuid4().hex[:8]}{suffix}"
-    file_path = os.path.join(upload_dir, stored_name)
-
-    with open(file_path, "wb") as buffer:
-        buffer.write(contents)
-
-    certificate.file_path = file_path.replace(os.sep, "/")
+    delete_upload(certificate.file_path)
+    certificate.file_path = stored
     db.commit()
 
     return {
         "message": "Certificate uploaded successfully",
         "file_path": certificate.file_path,
+        "url": f"/{certificate.file_path}",
     }
 
 

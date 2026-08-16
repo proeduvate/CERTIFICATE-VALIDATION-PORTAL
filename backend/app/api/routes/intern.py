@@ -1,7 +1,15 @@
 import os
 import tempfile
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    HTTPException,
+    Query,
+    UploadFile,
+    status,
+)
 from fastapi.responses import FileResponse
 from openpyxl import Workbook
 from sqlalchemy.orm import Session
@@ -11,6 +19,18 @@ from app.db.session import get_db
 from app.models.intern import Intern
 from app.models.user import User
 from app.schemas.intern import InternCreate, InternResponse, InternUpdate
+from app.utils.uploads import delete_upload, save_upload
+
+# The document slots an admin can upload against an intern. The first four are
+# what public verification exposes.
+DOCUMENT_KINDS = {
+    "offer_letter": "Offer letter",
+    "acknowledgement_letter": "Acknowledgement letter",
+    "terms_conditions": "Terms and conditions",
+    "lor": "Letter of recommendation",
+    "completion_letter": "Completion letter",
+    "resume": "Resume",
+}
 
 router = APIRouter(prefix="/interns", tags=["Intern"])
 
@@ -347,3 +367,73 @@ def delete_intern(
     db.commit()
 
     return {"message": "Intern deleted successfully"}
+
+
+# ---------------------------------------------------------------------------
+# Documents
+#
+# Paths used to be typed in by hand, which meant the admin had to put the file
+# somewhere reachable first. These accept the file itself.
+# ---------------------------------------------------------------------------
+
+
+@router.post("/{intern_id}/documents/{kind}")
+def upload_intern_document(
+    intern_id: int,
+    kind: str,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    if kind not in DOCUMENT_KINDS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"Unknown document type. Expected one of: "
+                f"{', '.join(sorted(DOCUMENT_KINDS))}"
+            ),
+        )
+
+    intern = _get_or_404(db, intern_id)
+
+    stored = save_upload(
+        file,
+        folder="documents",
+        stem=f"{intern.intern_id or intern.id}-{kind}",
+    )
+
+    # Replacing a document should not leave the old file behind.
+    delete_upload(getattr(intern, kind))
+
+    setattr(intern, kind, stored)
+    db.commit()
+
+    return {
+        "message": f"{DOCUMENT_KINDS[kind]} uploaded",
+        "kind": kind,
+        "label": DOCUMENT_KINDS[kind],
+        "url": f"/{stored}",
+        "path": stored,
+    }
+
+
+@router.delete("/{intern_id}/documents/{kind}")
+def delete_intern_document(
+    intern_id: int,
+    kind: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    if kind not in DOCUMENT_KINDS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Unknown document type",
+        )
+
+    intern = _get_or_404(db, intern_id)
+
+    delete_upload(getattr(intern, kind))
+    setattr(intern, kind, None)
+    db.commit()
+
+    return {"message": f"{DOCUMENT_KINDS[kind]} removed", "kind": kind}

@@ -16,6 +16,7 @@ import {
     StatCard,
     StatusBadge,
 } from '../../components/ui/Display';
+import { DonutChart, LineChart } from '../../components/ui/Charts';
 import { useAsync } from '../../hooks/useAsync';
 import { useAuth } from '../../context/AuthContext';
 import { getDashboardSummary } from '../../services/dashboard';
@@ -103,6 +104,44 @@ export default function DashboardHome() {
                 .slice(0, 6),
         [list],
     );
+
+    // The summary already computes these; the dashboard only shapes them.
+    const monthly = useMemo(() => {
+        const series = summary.data?.monthly_intern_count ?? [];
+
+        return series.map((point) => {
+            const [year, month] = String(point.month).split('-');
+            const date = new Date(Number(year), Number(month) - 1, 1);
+            return {
+                label: date.toLocaleDateString(undefined, {
+                    month: 'long',
+                    year: 'numeric',
+                }),
+                short: date.toLocaleDateString(undefined, { month: 'short' }),
+                value: point.count,
+            };
+        });
+    }, [summary.data]);
+
+    const modes = useMemo(() => {
+        const distribution = summary.data?.internship_mode_distribution ?? {};
+
+        return Object.entries(distribution)
+            .filter(([, count]) => count > 0)
+            .sort((a, b) => b[1] - a[1])
+            .map(([label, value]) => ({ label, value }));
+    }, [summary.data]);
+
+    const attendanceSplit = useMemo(() => {
+        const split = summary.data?.attendance_distribution ?? {};
+        return [
+            { label: 'Present', value: split.present ?? 0 },
+            { label: 'Absent', value: split.absent ?? 0 },
+            { label: 'Leave', value: split.leave ?? 0 },
+        ].filter((entry) => entry.value > 0);
+    }, [summary.data]);
+
+    const recentCertificates = summary.data?.latest_verifications ?? [];
 
     const maxDepartment = departments[0]?.count ?? 1;
     const loading = interns.loading || (isAdmin && summary.loading);
@@ -241,6 +280,46 @@ export default function DashboardHome() {
                         />
                     </div>
 
+                    {/* ---------------- Charts ---------------- */}
+                    <div className="dash-charts">
+                        <Card>
+                            <CardHeader
+                                title="Interns joining by month"
+                                icon="trendingUp"
+                                subtitle={
+                                    monthly.length
+                                        ? `${monthly.length} month${monthly.length === 1 ? '' : 's'} with intake`
+                                        : undefined
+                                }
+                            />
+                            <CardBody>
+                                {loading ? (
+                                    <Skeleton height="200px" />
+                                ) : (
+                                    <LineChart
+                                        data={monthly}
+                                        label="Interns joining by month"
+                                        valueSuffix=" interns"
+                                    />
+                                )}
+                            </CardBody>
+                        </Card>
+
+                        <Card>
+                            <CardHeader title="Internship mode" icon="pieChart" />
+                            <CardBody>
+                                {loading ? (
+                                    <Skeleton height="200px" />
+                                ) : (
+                                    <DonutChart
+                                        data={modes}
+                                        centreLabel="interns"
+                                    />
+                                )}
+                            </CardBody>
+                        </Card>
+                    </div>
+
                     <div className="dash-columns">
                         {/* ---------------- Departments ---------------- */}
                         <Card>
@@ -374,6 +453,78 @@ export default function DashboardHome() {
                                             : 'No data'}
                                     </Badge>
                                 </div>
+                            </CardBody>
+                        </Card>
+                    </div>
+
+                    <div className="dash-charts">
+                        <Card>
+                            <CardHeader
+                                title="Attendance across the programme"
+                                icon="pieChart"
+                                subtitle="Recorded days, all interns"
+                            />
+                            <CardBody>
+                                {loading ? (
+                                    <Skeleton height="200px" />
+                                ) : (
+                                    <DonutChart
+                                        data={attendanceSplit}
+                                        centreLabel="days"
+                                    />
+                                )}
+                            </CardBody>
+                        </Card>
+
+                        <Card>
+                            <CardHeader
+                                title="Recently issued certificates"
+                                icon="award"
+                                action={
+                                    <Button
+                                        to="/dashboard/certificates"
+                                        variant="ghost"
+                                        size="sm"
+                                        iconRight="arrowRight"
+                                    >
+                                        View all
+                                    </Button>
+                                }
+                            />
+                            <CardBody>
+                                {loading ? (
+                                    <Skeleton height="160px" />
+                                ) : recentCertificates.length === 0 ? (
+                                    <EmptyState
+                                        icon="award"
+                                        title="Nothing issued yet"
+                                        message="Certificates appear here as they are issued."
+                                    />
+                                ) : (
+                                    <div className="dash-certs">
+                                        {recentCertificates.map((cert) => (
+                                            <div
+                                                className="dash-cert"
+                                                key={cert.certificate_number}
+                                            >
+                                                <span className="dash-cert__icon tint-brand">
+                                                    <Icon name="award" size={16} />
+                                                </span>
+                                                <span className="dash-cert__text">
+                                                    <strong>
+                                                        {orEmpty(cert.intern_name)}
+                                                    </strong>
+                                                    <small className="mono">
+                                                        {cert.certificate_number}
+                                                    </small>
+                                                </span>
+                                                <span className="dash-cert__date">
+                                                    {formatDate(cert.issue_date)}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </CardBody>
                         </Card>
                     </div>

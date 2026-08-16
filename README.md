@@ -130,6 +130,21 @@ the edit form. An admin must also enter the shared `VERIFICATION_CODE`, so only
 the admins entrusted with it can sign a record off even though any admin can
 edit one. Editing a record never resets its verification.
 
+### Documents
+
+Admins upload the documents themselves — offer letter (OL), acknowledgement
+letter (AL), terms and conditions (TC) and, if issued, the letter of
+recommendation (LOR). Paths are never typed in.
+
+Files are stored under `backend/uploads/` and served from `/uploads`. The
+client filename is never used on disk: it can contain path separators, and two
+uploads sharing a name would overwrite each other, so names are generated and
+the extension comes from the declared content type. PDFs and images up to
+10 MB are accepted.
+
+Uploads apply immediately rather than on form submit, and replacing a document
+deletes the file it supersedes.
+
 ### Attendance
 
 Attendance is not entered through the admin forms. The Attendance page reads
