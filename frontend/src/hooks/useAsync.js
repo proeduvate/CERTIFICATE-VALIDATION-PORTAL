@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
+/** Shallow element-wise comparison of two dependency arrays. */
+function sameDeps(a, b) {
+    if (a.length !== b.length) return false;
+    return a.every((value, index) => Object.is(value, b[index]));
+}
+
 /**
  * Runs an async loader and exposes {data, error, loading, reload}.
  *
@@ -28,21 +34,37 @@ export function useAsync(loader, deps = [], options = {}) {
         loaderRef.current = loader;
     });
 
+    /*
+     * Enter the loading state during the render that changes the inputs, not
+     * in the effect afterwards.
+     *
+     * Effects run *after* paint, so for one render the hook would still be
+     * reporting the previous result: loading false, error null, and either
+     * stale data or — when the query was previously disabled — none at all.
+     * Callers reasonably read "not loading, no error" as "loaded", and one of
+     * them destructured the result, so a lookup that had only just started
+     * crashed the page.
+     *
+     * This is React's documented "adjust state when props change" pattern: the
+     * state is corrected before anything is shown, so no consumer ever sees
+     * the inconsistent combination.
+     */
+    const signature = [...deps, enabled];
+    const [lastSignature, setLastSignature] = useState(signature);
+
+    if (!sameDeps(signature, lastSignature)) {
+        setLastSignature(signature);
+
+        // Old data belongs to the previous inputs, so it is dropped rather
+        // than left on screen attached to the new ones.
+        setState({ data: initialData, error: null, loading: enabled });
+    }
+
     useEffect(() => {
-        if (!enabled) {
-            // eslint-disable-next-line react-hooks/set-state-in-effect -- see note below
-            setState((current) => ({ ...current, loading: false }));
-            return undefined;
-        }
+        if (!enabled) return undefined;
 
         const controller = new AbortController();
         let active = true;
-
-        // Entering the loading state has to happen synchronously here: the
-        // effect *is* the subscription to an external system, and deferring it
-        // would leave stale data on screen with no spinner while the new
-        // request is in flight.
-        setState((current) => ({ ...current, loading: true, error: null }));
 
         loaderRef
             .current(controller.signal)
@@ -61,7 +83,12 @@ export function useAsync(loader, deps = [], options = {}) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [...deps, enabled, reloadIndex]);
 
-    const reload = useCallback(() => setReloadIndex((n) => n + 1), []);
+    // A manual reload keeps the current data on screen and only re-requests —
+    // clearing it would flash the page for what is usually the same result.
+    const reload = useCallback(() => {
+        setState((current) => ({ ...current, loading: true, error: null }));
+        setReloadIndex((n) => n + 1);
+    }, []);
 
     const setData = useCallback(
         (data) => setState((current) => ({ ...current, data })),

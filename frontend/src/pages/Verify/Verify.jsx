@@ -43,7 +43,7 @@ export default function Verify() {
         ''
     ).trim();
 
-    const { data, error, loading } = useAsync(
+    const { data, error } = useAsync(
         (signal) => verifyByInternId(requested, { signal }),
         [requested],
         { enabled: Boolean(requested) },
@@ -58,15 +58,18 @@ export default function Verify() {
         setQuery(requested);
     }
 
+    // "Found" requires an actual payload. Deriving it from the absence of a
+    // loading flag and an error alone once let a lookup that had only just
+    // started render as a result, with nothing to render.
     const status = !requested
         ? 'idle'
-        : loading
-          ? 'loading'
-          : error
-            ? error.status === 404
-                ? 'not-found'
-                : 'error'
-            : 'found';
+        : error
+          ? error.status === 404
+              ? 'not-found'
+              : 'error'
+          : data
+            ? 'found'
+            : 'loading';
 
     const handleSubmit = (event) => {
         event.preventDefault();
