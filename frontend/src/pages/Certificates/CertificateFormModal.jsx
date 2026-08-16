@@ -5,8 +5,7 @@ import { Input } from '../../components/ui/Field';
 import { Alert } from '../../components/ui/Display';
 import { useToast } from '../../components/ui/Toast';
 import { createCertificate } from '../../services/certificates';
-import { useAsync } from '../../hooks/useAsync';
-import { listInterns } from '../../services/interns';
+import InternPicker from '../../components/InternPicker';
 
 /**
  * Issue a certificate against an intern record.
@@ -17,8 +16,6 @@ import { listInterns } from '../../services/interns';
  */
 export default function CertificateFormModal({ onClose, onSaved }) {
     const toast = useToast();
-    const interns = useAsync((signal) => listInterns({ signal }), []);
-
     const [form, setForm] = useState({
         intern_id: '',
         issue_date: new Date().toISOString().slice(0, 10),
@@ -26,8 +23,6 @@ export default function CertificateFormModal({ onClose, onSaved }) {
     const [errors, setErrors] = useState({});
     const [formError, setFormError] = useState('');
     const [saving, setSaving] = useState(false);
-
-    const options = Array.isArray(interns.data) ? interns.data : [];
 
     const handleSubmit = async (event) => {
         event.preventDefault();
@@ -93,42 +88,17 @@ export default function CertificateFormModal({ onClose, onSaved }) {
                     </Alert>
                 )}
 
-                <div className="field form-grid__full">
-                    <label className="field__label" htmlFor="cert-intern">
-                        Intern
-                        <span className="field__required" aria-hidden="true">
-                            *
-                        </span>
-                    </label>
-
-                    <select
-                        id="cert-intern"
-                        className="select"
+                <div className="form-grid__full">
+                    <InternPicker
                         value={form.intern_id}
-                        onChange={(event) => {
-                            setForm((f) => ({ ...f, intern_id: event.target.value }));
+                        onChange={(value) => {
+                            setForm((f) => ({ ...f, intern_id: value }));
                             setErrors((e) => ({ ...e, intern_id: undefined }));
                         }}
-                        aria-invalid={errors.intern_id ? 'true' : undefined}
-                        disabled={interns.loading}
-                    >
-                        <option value="">
-                            {interns.loading ? 'Loading interns…' : 'Select an intern'}
-                        </option>
-
-                        {options.map((intern) => (
-                            <option key={intern.id} value={intern.id}>
-                                {intern.name}
-                                {intern.intern_id ? ` · ${intern.intern_id}` : ''}
-                            </option>
-                        ))}
-                    </select>
-
-                    {errors.intern_id && (
-                        <span className="field__error" role="alert">
-                            {errors.intern_id}
-                        </span>
-                    )}
+                        error={errors.intern_id}
+                        required
+                        hint="Search by name, intern ID, email or department."
+                    />
                 </div>
 
                 <Input
@@ -151,12 +121,6 @@ export default function CertificateFormModal({ onClose, onSaved }) {
                     hint="Assigned automatically by the server."
                 />
 
-                {options.length === 0 && !interns.loading && (
-                    <Alert variant="warning" className="form-grid__full">
-                        There are no intern records yet. Create an intern before issuing a
-                        certificate.
-                    </Alert>
-                )}
 
                 <button type="submit" className="visually-hidden">
                     Issue

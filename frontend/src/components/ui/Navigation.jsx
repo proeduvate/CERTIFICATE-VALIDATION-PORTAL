@@ -109,7 +109,11 @@ export function TabPanel({ id, children, className }) {
             id={`panel-${id}`}
             aria-labelledby={`tab-${id}`}
             tabIndex={0}
-            className={className}
+            // `key` forces a remount when the tab changes so the panel's
+            // entrance animation replays rather than the content swapping
+            // silently underneath the same element.
+            key={id}
+            className={cn('tab-panel', className)}
         >
             {children}
         </div>

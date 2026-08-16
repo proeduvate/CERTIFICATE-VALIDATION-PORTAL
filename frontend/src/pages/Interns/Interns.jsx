@@ -18,12 +18,14 @@ import InternFormModal from './InternFormModal';
 import { useAsync } from '../../hooks/useAsync';
 import useDebounce from '../../hooks/useDebounce';
 import { useAuth } from '../../context/AuthContext';
-import { deleteIntern, exportInterns, listInterns } from '../../services/interns';
 import {
-    INTERN_STATUS,
-    PAGE_SIZES,
-    VERIFICATION_STATUS,
-} from '../../config';
+    completeIntern,
+    deleteIntern,
+    exportInterns,
+    listInterns,
+    reopenIntern,
+} from '../../services/interns';
+import { PAGE_SIZES, VERIFICATION_STATUS } from '../../config';
 import { formatDate, formatNumber, orEmpty } from '../../lib/format';
 import './interns.css';
 
@@ -50,7 +52,10 @@ export default function Interns() {
     // Filters live in the URL so a filtered view can be shared and survives
     // a refresh — the topbar search and dashboard tiles both link into it.
     const search = searchParams.get('q') ?? '';
-    const status = searchParams.get('status') ?? 'All';
+    // Completed interns are kept out of the working list by default —
+    // they are history, and mixing them in makes the active cohort hard to
+    // read. The segmented control below switches view.
+    const status = searchParams.get('status') ?? 'Active';
     const department = searchParams.get('department') ?? 'All';
     const mode = searchParams.get('mode') ?? 'All';
     const verification = searchParams.get('verification') ?? 'All';
@@ -65,6 +70,7 @@ export default function Interns() {
     const [confirmDelete, setConfirmDelete] = useState(null);
     const [deleting, setDeleting] = useState(false);
     const [exporting, setExporting] = useState(false);
+    const [changingStatus, setChangingStatus] = useState(null);
 
     const showForm = searchParams.get('new') === '1' || editing !== null;
 
@@ -97,8 +103,14 @@ export default function Interns() {
     const setFilter = (key, value) => {
         setSearchParams((params) => {
             const next = new URLSearchParams(params);
-            if (value && value !== 'All') next.set(key, value);
+
+            // Status defaults to Active, so "All" is a real choice that has to
+            // be written rather than an absent parameter.
+            const isDefault = key === 'status' ? value === 'Active' : value === 'All';
+
+            if (value && !isDefault) next.set(key, value);
             else next.delete(key);
+
             next.delete('page');
             return next;
         });
@@ -194,7 +206,7 @@ export default function Interns() {
     );
 
     const activeFilters =
-        (status !== 'All') +
+        (status !== 'Active') +
         (department !== 'All') +
         (mode !== 'All') +
         (verification !== 'All') +
@@ -218,6 +230,29 @@ export default function Interns() {
             toast.error('Export failed', err?.message);
         } finally {
             setExporting(false);
+        }
+    };
+
+    const toggleCompleted = async (intern) => {
+        const completed = intern.status === 'Completed';
+        setChangingStatus(intern.id);
+
+        try {
+            if (completed) {
+                await reopenIntern(intern.id);
+                toast.success(`${intern.name} moved back to active`);
+            } else {
+                await completeIntern(intern.id);
+                toast.success(
+                    `${intern.name} marked completed`,
+                    'They no longer appear in the active list.',
+                );
+            }
+            reload();
+        } catch (err) {
+            toast.error('Could not update status', err?.message);
+        } finally {
+            setChangingStatus(null);
         }
     };
 
@@ -302,6 +337,27 @@ export default function Interns() {
             </div>
 
             {/* ---------------- Filters ---------------- */}
+            <div className="interns-views">
+                <div className="segmented" role="group" aria-label="Which interns to show">
+                    {[
+                        { value: 'Active', label: 'Active', count: stats.active },
+                        { value: 'Completed', label: 'Completed', count: stats.completed },
+                        { value: 'All', label: 'Everyone', count: stats.total },
+                    ].map((view) => (
+                        <button
+                            key={view.value}
+                            type="button"
+                            className="segmented__item"
+                            aria-pressed={status === view.value}
+                            onClick={() => setFilter('status', view.value)}
+                        >
+                            {view.label}
+                            <span className="segmented__count">{view.count}</span>
+                        </button>
+                    ))}
+                </div>
+            </div>
+
             <div className="toolbar">
                 <Input
                     icon="search"
@@ -314,15 +370,6 @@ export default function Interns() {
                 />
 
                 <div className="toolbar__filters">
-                    <Select
-                        value={status}
-                        onChange={(event) => setFilter('status', event.target.value)}
-                        aria-label="Filter by status"
-                        options={['All', ...INTERN_STATUS].map((value) => ({
-                            value,
-                            label: value === 'All' ? 'All statuses' : value,
-                        }))}
-                    />
 
                     <Select
                         value={department}
@@ -509,6 +556,27 @@ export default function Interns() {
 
                                                     {isAdmin && (
                                                         <>
+                                                            <IconButton
+                                                                icon={
+                                                                    intern.status ===
+                                                                    'Completed'
+                                                                        ? 'refresh'
+                                                                        : 'checkCircle'
+                                                                }
+                                                                label={
+                                                                    intern.status ===
+                                                                    'Completed'
+                                                                        ? `Move ${intern.name} back to active`
+                                                                        : `Mark ${intern.name} completed`
+                                                                }
+                                                                disabled={
+                                                                    changingStatus ===
+                                                                    intern.id
+                                                                }
+                                                                onClick={() =>
+                                                                    toggleCompleted(intern)
+                                                                }
+                                                            />
                                                             <IconButton
                                                                 icon="edit"
                                                                 label={`Edit ${intern.name}`}

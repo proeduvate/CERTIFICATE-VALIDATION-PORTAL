@@ -262,6 +262,40 @@ call("PUT", f"/interns/{INTERN_ID}", {"mentor": "New Mentor"}, token=TOKEN)
 check("an edit does not reset verification", "Verified",
       call("GET", "/verify/PEV-INT-000123")[1]["verification"]["status"])
 
+# ------------------------------------------- picker + lifecycle
+section("Intern picker & lifecycle")
+
+status, options = call("GET", "/interns/options?q=Aarav", token=TOKEN)
+check("picker search finds by name", 200, status)
+check("picker returns the match", "Aarav Menon", options["results"][0]["name"])
+check("picker reports the full total", True, "total" in options)
+check("picker search finds by intern ID", 1, len(
+    call("GET", "/interns/options?q=PEV-INT-000123", token=TOKEN)[1]["results"]))
+check("picker search finds by department", True, len(
+    call("GET", "/interns/options?q=Computer", token=TOKEN)[1]["results"]) >= 1)
+check("picker returns nothing for a miss", 0, len(
+    call("GET", "/interns/options?q=zzzznomatch", token=TOKEN)[1]["results"]))
+check("picker respects the limit", 1, len(
+    call("GET", "/interns/options?limit=1", token=TOKEN)[1]["results"]))
+check("picker payload stays narrow", set(), set(
+    options["results"][0]) - {"id", "name", "intern_id", "department", "status"})
+
+check("mark completed", 200, call(
+    "POST", f"/interns/{INTERN_ID}/complete", token=TOKEN)[0])
+check("status is now Completed", "Completed",
+      call("GET", f"/interns/{INTERN_ID}", token=TOKEN)[1]
+      ["internship_information"]["status"])
+check("completing twice is refused", 400, call(
+    "POST", f"/interns/{INTERN_ID}/complete", token=TOKEN)[0])
+check("completed interns are excluded when asked", 0, len([
+    r for r in call(
+        "GET", "/interns/options?include_completed=false", token=TOKEN)[1]["results"]
+    if r["id"] == INTERN_ID]))
+check("completed interns are included by default", 1, len([
+    r for r in call("GET", "/interns/options", token=TOKEN)[1]["results"]
+    if r["id"] == INTERN_ID]))
+check("reopen restores Active", "Active", call(
+    "POST", f"/interns/{INTERN_ID}/reopen", token=TOKEN)[1]["status"])
 # --------------------------------------------------- document uploads
 section("Document uploads")
 
@@ -374,6 +408,10 @@ check("non-admin cannot verify even with the code", 403, call(
     "POST", f"/interns/{INTERN_ID}/verify",
     {"code": "proeduvate-verify-2026", "verified_by": "Sneaky"},
     token=ITOKEN)[0])
+check("non-admin cannot complete an internship", 403, call(
+    "POST", f"/interns/{INTERN_ID}/complete", token=ITOKEN)[0])
+check("non-admin cannot reopen an internship", 403, call(
+    "POST", f"/interns/{INTERN_ID}/reopen", token=ITOKEN)[0])
 check("non-admin cannot upload documents", 403, upload(
     f"/interns/{INTERN_ID}/documents/offer_letter",
     "a.pdf", PDF, "application/pdf", ITOKEN)[0])

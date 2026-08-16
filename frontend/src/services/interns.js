@@ -141,3 +141,24 @@ export function uploadInternDocument(internId, kind, file) {
 export function deleteInternDocument(internId, kind) {
     return api.delete(`/interns/${internId}/documents/${kind}`);
 }
+
+/** Type-ahead source for the intern pickers. */
+export function searchInternOptions(
+    { q = '', limit = 20, includeCompleted = true } = {},
+    options,
+) {
+    return api.get('/interns/options', {
+        ...options,
+        query: { q, limit, include_completed: includeCompleted },
+    });
+}
+
+/** Mark an internship finished (stamps the end date if one is not set). */
+export function completeIntern(id) {
+    return api.post(`/interns/${id}/complete`);
+}
+
+/** Undo a completion. */
+export function reopenIntern(id) {
+    return api.post(`/interns/${id}/reopen`);
+}

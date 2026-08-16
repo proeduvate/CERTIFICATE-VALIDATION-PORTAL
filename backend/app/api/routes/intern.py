@@ -1,5 +1,6 @@
 import os
 import tempfile
+from datetime import date
 
 from fastapi import (
     APIRouter,
@@ -159,6 +160,57 @@ def get_mentor(
     current_user: User = Depends(get_current_user),
 ):
     return db.query(Intern).filter(Intern.mentor == mentor).all()
+
+
+@router.get("/options")
+def get_intern_options(
+    q: str = Query("", max_length=100),
+    limit: int = Query(20, ge=1, le=100),
+    include_completed: bool = Query(True),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Type-ahead source for the intern pickers.
+
+    The pickers used to load every intern and filter in the browser, which
+    stops being usable well before a thousand records. This searches in the
+    database and returns only the columns a picker needs.
+    """
+    query = db.query(Intern)
+
+    if not include_completed:
+        query = query.filter(
+            (Intern.status.is_(None)) | (Intern.status != "Completed")
+        )
+
+    term = q.strip()
+    if term:
+        pattern = f"%{term}%"
+        query = query.filter(
+            Intern.name.ilike(pattern)
+            | Intern.intern_id.ilike(pattern)
+            | Intern.email.ilike(pattern)
+            | Intern.department.ilike(pattern),
+        )
+
+    total = query.count()
+    rows = query.order_by(Intern.name.asc()).limit(limit).all()
+
+    return {
+        "total": total,
+        "returned": len(rows),
+        "results": [
+            {
+                "id": intern.id,
+                "name": intern.name,
+                "intern_id": intern.intern_id,
+                "department": intern.department,
+                "status": intern.status,
+            }
+            for intern in rows
+        ],
+    }
 
 
 @router.get("/pagination")
@@ -437,3 +489,60 @@ def delete_intern_document(
     db.commit()
 
     return {"message": f"{DOCUMENT_KINDS[kind]} removed", "kind": kind}
+
+
+# ---------------------------------------------------------------------------
+# Lifecycle
+# ---------------------------------------------------------------------------
+
+
+@router.post("/{intern_id}/complete")
+def complete_internship(
+    intern_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """
+    Mark an internship finished.
+
+    Its own endpoint rather than a status edit so that completing someone is a
+    deliberate act with one obvious meaning, and so the end date is stamped
+    without the admin having to remember to set it.
+    """
+    intern = _get_or_404(db, intern_id)
+
+    if intern.status == "Completed":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This internship is already marked completed",
+        )
+
+    intern.status = "Completed"
+
+    if not intern.end_date:
+        intern.end_date = date.today()
+
+    db.commit()
+    db.refresh(intern)
+
+    return {
+        "message": f"{intern.name}'s internship marked completed",
+        "status": intern.status,
+        "end_date": intern.end_date,
+    }
+
+
+@router.post("/{intern_id}/reopen")
+def reopen_internship(
+    intern_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Undo a completion — marking someone complete by mistake is recoverable."""
+    intern = _get_or_404(db, intern_id)
+
+    intern.status = "Active"
+    db.commit()
+    db.refresh(intern)
+
+    return {"message": f"{intern.name} moved back to active", "status": intern.status}

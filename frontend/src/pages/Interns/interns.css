@@ -287,3 +287,27 @@
         font-size: var(--text-3xl);
     }
 }
+
+/* Segmented view switch above the directory */
+.interns-views {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    flex-wrap: wrap;
+}
+
+.segmented__count {
+    margin-left: var(--space-2);
+    padding: 0 var(--space-2);
+    border-radius: var(--radius-pill);
+    background: var(--bg-surface);
+    color: var(--text-muted);
+    font-size: var(--text-2xs);
+    font-weight: var(--weight-bold);
+}
+
+.segmented__item[aria-pressed='true'] .segmented__count {
+    background: var(--accent-soft);
+    color: var(--accent);
+}

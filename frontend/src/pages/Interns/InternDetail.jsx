@@ -19,8 +19,14 @@ import { Breadcrumbs, Tabs, TabPanel } from '../../components/ui/Navigation';
 import VerifyInternModal from './VerifyInternModal';
 import DocumentList from '../../components/DocumentList';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../components/ui/Toast';
 import { useAsync } from '../../hooks/useAsync';
-import { DOCUMENT_KINDS, getIntern } from '../../services/interns';
+import {
+    DOCUMENT_KINDS,
+    completeIntern,
+    getIntern,
+    reopenIntern,
+} from '../../services/interns';
 import {
     EMPTY,
     attendanceBand,
@@ -55,6 +61,8 @@ export default function InternDetail() {
     const { isAdmin } = useAuth();
     const [tab, setTab] = useState('identity');
     const [verifying, setVerifying] = useState(false);
+    const [changingStatus, setChangingStatus] = useState(false);
+    const toast = useToast();
 
     const { data, error, loading, reload } = useAsync(
         (signal) => getIntern(id, { signal }),
@@ -89,6 +97,7 @@ export default function InternDetail() {
 
     const isVerified =
         (verification.verification_status ?? '').toLowerCase() === 'verified';
+    const isCompleted = internship.status === 'Completed';
 
     const band = attendanceBand(attendance.attendance_percentage);
 
@@ -149,6 +158,36 @@ export default function InternDetail() {
                     <Button variant="secondary" icon="refresh" onClick={reload}>
                         Refresh
                     </Button>
+
+                    {isAdmin && (
+                        <Button
+                            variant="secondary"
+                            icon={isCompleted ? 'refresh' : 'checkCircle'}
+                            loading={changingStatus}
+                            onClick={async () => {
+                                setChangingStatus(true);
+                                try {
+                                    if (isCompleted) {
+                                        await reopenIntern(id);
+                                        toast.success('Moved back to active');
+                                    } else {
+                                        await completeIntern(id);
+                                        toast.success(
+                                            'Internship marked completed',
+                                            'They no longer appear in the active list.',
+                                        );
+                                    }
+                                    reload();
+                                } catch (err) {
+                                    toast.error('Could not update status', err?.message);
+                                } finally {
+                                    setChangingStatus(false);
+                                }
+                            }}
+                        >
+                            {isCompleted ? 'Reopen' : 'Mark completed'}
+                        </Button>
+                    )}
 
                     {/* Verification is its own action, not a field in the edit
                         form — it needs the shared code as well as an admin

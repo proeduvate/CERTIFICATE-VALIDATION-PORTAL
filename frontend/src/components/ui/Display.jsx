@@ -1,4 +1,5 @@
 import cn from '../../lib/cn';
+import useCountUp from '../../hooks/useCountUp';
 import { avatarColor, initials, statusVariant } from '../../lib/format';
 import Icon from './Icon';
 
@@ -80,6 +81,36 @@ export function CardFooter({ className, children }) {
    Stat card
    -------------------------------------------------------------------------- */
 
+/**
+ * Counts a figure up to its value.
+ *
+ * Call sites pass an already-formatted string ("1,248", "95.2%", "—"), so the
+ * numeric part is extracted, animated, and re-rendered with whatever prefix
+ * and suffix surrounded it. Anything without a number — the em dash shown
+ * while loading — is passed through untouched.
+ */
+function AnimatedValue({ value }) {
+    const text = String(value ?? '');
+    const match = text.match(/^(\D*?)([\d,]+(?:\.\d+)?)(.*)$/);
+
+    const target = match ? Number(match[2].replace(/,/g, '')) : NaN;
+    const animated = useCountUp(Number.isFinite(target) ? target : 0);
+
+    if (!match || !Number.isFinite(target)) return text;
+
+    const [, prefix, raw, suffix] = match;
+    const decimals = raw.includes('.') ? raw.split('.')[1].length : 0;
+    const grouped = raw.includes(',');
+
+    const shown = animated.toLocaleString(undefined, {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals,
+        useGrouping: grouped,
+    });
+
+    return `${prefix}${shown}${suffix}`;
+}
+
 export function StatCard({
     label,
     value,
@@ -108,7 +139,9 @@ export function StatCard({
                     {loading ? (
                         <Skeleton width="72px" height="26px" style={{ marginTop: 4 }} />
                     ) : (
-                        <strong className="stat-card__value">{value}</strong>
+                        <strong className="stat-card__value">
+                            <AnimatedValue value={value} />
+                        </strong>
                     )}
                 </div>
             </div>

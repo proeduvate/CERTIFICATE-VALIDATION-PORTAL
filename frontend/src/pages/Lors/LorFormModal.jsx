@@ -11,8 +11,7 @@ import {
     updateLor,
     uploadLorDocument,
 } from '../../services/documents';
-import { useAsync } from '../../hooks/useAsync';
-import { listInterns } from '../../services/interns';
+import InternPicker from '../../components/InternPicker';
 import { toDateInput } from '../../lib/format';
 
 const LOR_STATUS = ['Issued', 'Pending', 'Rejected'];
@@ -21,7 +20,6 @@ const LOR_STATUS = ['Issued', 'Pending', 'Rejected'];
 export default function LorFormModal({ lor, onClose, onSaved, onFileChanged }) {
     const toast = useToast();
     const isEdit = Boolean(lor);
-    const interns = useAsync((signal) => listInterns({ signal }), []);
 
     const [form, setForm] = useState({
         intern_id: lor?.intern_id ?? '',
@@ -36,8 +34,6 @@ export default function LorFormModal({ lor, onClose, onSaved, onFileChanged }) {
     // Uploads apply immediately, so the stored path is tracked apart from the
     // form fields.
     const [filePath, setFilePath] = useState(lor?.file_path ?? null);
-
-    const options = Array.isArray(interns.data) ? interns.data : [];
 
     const set = (key) => (event) => {
         setForm((current) => ({ ...current, [key]: event.target.value }));
@@ -107,39 +103,17 @@ export default function LorFormModal({ lor, onClose, onSaved, onFileChanged }) {
                     </Alert>
                 )}
 
-                <div className="field form-grid__full">
-                    <label className="field__label" htmlFor="lor-intern">
-                        Intern
-                        <span className="field__required" aria-hidden="true">
-                            *
-                        </span>
-                    </label>
-
-                    <select
-                        id="lor-intern"
-                        className="select"
+                <div className="form-grid__full">
+                    <InternPicker
                         value={form.intern_id}
-                        onChange={set('intern_id')}
-                        aria-invalid={errors.intern_id ? 'true' : undefined}
-                        disabled={interns.loading}
-                    >
-                        <option value="">
-                            {interns.loading ? 'Loading interns…' : 'Select an intern'}
-                        </option>
-
-                        {options.map((intern) => (
-                            <option key={intern.id} value={intern.id}>
-                                {intern.name}
-                                {intern.intern_id ? ` · ${intern.intern_id}` : ''}
-                            </option>
-                        ))}
-                    </select>
-
-                    {errors.intern_id && (
-                        <span className="field__error" role="alert">
-                            {errors.intern_id}
-                        </span>
-                    )}
+                        onChange={(value) => {
+                            setForm((f) => ({ ...f, intern_id: value }));
+                            setErrors((e) => ({ ...e, intern_id: undefined }));
+                        }}
+                        error={errors.intern_id}
+                        required
+                        hint="Search by name, intern ID, email or department."
+                    />
                 </div>
 
                 <Input
