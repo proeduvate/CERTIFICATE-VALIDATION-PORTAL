@@ -193,13 +193,10 @@ check("issue certificate", 201, status)
 NUMBER = cert["certificate_number"]
 check("server assigned the reference", True, bool(NUMBER))
 
-status, public = call("GET", f"/certificates/verify/{NUMBER}")
-check("PUBLIC verify works with no token", 200, status)
-check("public verify returns the intern name", "Aarav Menon",
-      public["intern_name"])
-check("public verify withholds email", False, "email" in public)
-check("public verify withholds attendance", False,
-      "present_days" in public)
+# The intern is not signed off yet, so this route withholds the record. The
+# published case is asserted after sign-off, further down.
+check("certificate route withholds an unverified record", 404,
+      call("GET", f"/certificates/verify/{NUMBER}")[0])
 check("unknown reference 404s", 404, call(
     "GET", "/certificates/verify/CERT-0000-0000")[0])
 check("'verify' is not parsed as an id", 404, call(
@@ -214,30 +211,29 @@ check("list row carries the printed intern ID", "PEV-INT-000123",
       listing[0]["intern_code"])
 
 # ------------------------------------------- verification by intern id
-section("Public verification by intern ID")
+section("Public lookup withholds unverified records")
 
+# Nothing is published before an administrator signs the record off.
 status, public = call("GET", "/verify/PEV-INT-000123")
-check("verify by intern ID with no token", 200, status)
-check("returns the intern name", "Aarav Menon", public["intern"]["name"])
-check("returns the internship role", "Full Stack Developer Intern",
-      public["internship"]["internship_role"])
-check("returns the certificate", True, public["certificate"] is not None)
-check("exposes OL / AL / TC / LOR", ["OL", "AL", "TC", "LOR"],
-      [d["key"] for d in public["documents"]])
+check("an unverified record still answers", 200, status)
+check("but is flagged unverified", False, public["verified"])
+check("and reports its status", "Pending", public["status"])
+check("no intern block", None, public["intern"])
+check("no internship block", None, public["internship"])
+check("no certificate", None, public["certificate"])
+check("no documents", [], public["documents"])
 
-by_key = {d["key"]: d["url"] for d in public["documents"]}
-check("OL resolves", "/uploads/documents/ol.pdf", by_key["OL"])
-check("AL resolves", "/uploads/documents/al.pdf", by_key["AL"])
-check("TC resolves", "/uploads/documents/tc.pdf", by_key["TC"])
-check("LOR is null when none was issued", None, by_key["LOR"])
-check("withholds email", False, "email" in public["intern"])
-check("withholds attendance", False,
-      any("days" in key for key in public["intern"]))
-check("lookup is case-insensitive", 200,
-      call("GET", "/verify/pev-int-000123")[0])
-check("unknown intern ID 404s", 404, call("GET", "/verify/NOPE-000")[0])
-check("starts unverified", "Pending", public["verification"]["status"])
+leaked = json.dumps(public)
+check("the name does not appear anywhere", False, "Aarav Menon" in leaked)
+check("no stored file paths appear", False, "uploads/" in leaked)
 
+# The certificate number is a second public door onto the same record.
+check("the certificate route withholds it too", 404,
+      call("GET", f"/certificates/verify/{NUMBER}")[0])
+
+check("unknown intern ID still 404s", 404, call("GET", "/verify/NOPE-000")[0])
+
+# ------------------------------------------------ code-gated sign-off
 # ------------------------------------------------ code-gated sign-off
 section("Code-gated verification")
 
@@ -245,7 +241,7 @@ check("wrong code is refused", 403, call(
     "POST", f"/interns/{INTERN_ID}/verify",
     {"code": "not-the-code", "verified_by": "Someone"}, token=TOKEN)[0])
 check("still unverified after a failed attempt", "Pending",
-      call("GET", "/verify/PEV-INT-000123")[1]["verification"]["status"])
+      call("GET", "/verify/PEV-INT-000123")[1]["status"])
 check("correct code is accepted", 200, call(
     "POST", f"/interns/{INTERN_ID}/verify",
     {"code": "proeduvate-verify-2026", "verified_by": "Dhanush C",
@@ -256,6 +252,33 @@ check("now reads Verified publicly", "Verified",
       public["verification"]["status"])
 check("records who signed it off", "Dhanush C",
       public["verification"]["verified_by"])
+
+# Only now do the details become public.
+check("the record is flagged verified", True, public["verified"])
+check("the intern name is published", "Aarav Menon", public["intern"]["name"])
+check("the internship is published", "Full Stack Developer Intern",
+      public["internship"]["internship_role"])
+check("the document slots are published", ["OL", "AL", "TC", "LOR"],
+      [d["key"] for d in public["documents"]])
+check("email is still withheld", False, "email" in public["intern"])
+check("attendance is still withheld", False,
+      any("days" in key for key in public["intern"]))
+check("the certificate route works once verified", 200,
+      call("GET", f"/certificates/verify/{NUMBER}")[0])
+check("lookup is case-insensitive", 200,
+      call("GET", "/verify/pev-int-000123")[0])
+
+# Withdrawing the sign-off must hide it again.
+call("POST", f"/interns/{INTERN_ID}/verify",
+     {"code": "proeduvate-verify-2026", "verified_by": "Dhanush C",
+      "verification_status": "Rejected"}, token=TOKEN)
+rejected = call("GET", "/verify/PEV-INT-000123")[1]
+check("a rejected record is hidden again", False, rejected["verified"])
+check("and leaks nothing", False, "Aarav Menon" in json.dumps(rejected))
+
+# Restore for the checks that follow.
+call("POST", f"/interns/{INTERN_ID}/verify",
+     {"code": "proeduvate-verify-2026", "verified_by": "Dhanush C"}, token=TOKEN)
 
 # Editing must not silently undo a sign-off.
 call("PUT", f"/interns/{INTERN_ID}", {"mentor": "New Mentor"}, token=TOKEN)

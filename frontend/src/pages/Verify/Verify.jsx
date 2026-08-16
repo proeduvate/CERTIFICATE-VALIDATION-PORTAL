@@ -61,15 +61,20 @@ export default function Verify() {
     // "Found" requires an actual payload. Deriving it from the absence of a
     // loading flag and an error alone once let a lookup that had only just
     // started render as a result, with nothing to render.
+    // "Found" requires an actual payload. Deriving it from the absence of a
+    // loading flag and an error alone once let a lookup that had only just
+    // started render as a result, with nothing to render.
     const status = !requested
         ? 'idle'
         : error
           ? error.status === 404
               ? 'not-found'
               : 'error'
-          : data
-            ? 'found'
-            : 'loading';
+          : !data
+            ? 'loading'
+            : data.verified
+              ? 'found'
+              : 'unverified';
 
     const handleSubmit = (event) => {
         event.preventDefault();
@@ -121,6 +126,7 @@ export default function Verify() {
                 {status === 'idle' && <IdleState />}
                 {status === 'loading' && <LoadingBlock label={`Checking ${requested}…`} />}
                 {status === 'not-found' && <NotFoundState reference={requested} />}
+                {status === 'unverified' && <UnverifiedState result={data} />}
                 {status === 'error' && <ErrorOutcome error={error} />}
                 {status === 'found' && <FoundState result={data} />}
             </section>
@@ -187,6 +193,46 @@ function NotFoundState({ reference }) {
                     {APP.name} holds no matching record. Contact{' '}
                     <a href={`mailto:${APP.supportEmail}`}>{APP.supportEmail}</a> if you
                     believe the credential is genuine.
+                </Alert>
+            </CardBody>
+        </Card>
+    );
+}
+
+/**
+ * The reference resolves, but no administrator has signed the record off.
+ *
+ * Nothing about the intern or the internship is shown — the server does not
+ * send it. Saying so plainly matters: an unverified record is not a forged
+ * one, and treating it as "not found" would tell the visitor something untrue
+ * about a placement that may well be genuine.
+ */
+function UnverifiedState({ result }) {
+    return (
+        <Card className="verify-outcome">
+            <CardBody>
+                <span className="verify-outcome__icon verify-outcome__icon--pending">
+                    <Icon name="clock" size={28} />
+                </span>
+
+                <h2 className="verify-outcome__title">Not yet verified</h2>
+
+                <p className="verify-outcome__body">
+                    {APP.name} holds a record for intern ID{' '}
+                    <strong className="mono">{result.intern_id}</strong>, but it has not
+                    been checked and signed off yet. Until it is, the details are not
+                    published.
+                </p>
+
+                <Badge variant="warning" dot>
+                    {result.status}
+                </Badge>
+
+                <Alert variant="info" className="verify-outcome__alert">
+                    This is not a sign the credential is false — only that {APP.name} has
+                    not confirmed it. If you need this checked, contact{' '}
+                    <a href={`mailto:${APP.supportEmail}`}>{APP.supportEmail}</a> quoting
+                    the intern ID above.
                 </Alert>
             </CardBody>
         </Card>

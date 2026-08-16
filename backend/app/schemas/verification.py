@@ -45,11 +45,28 @@ class PublicVerification(BaseModel):
 
 
 class VerificationResult(BaseModel):
-    intern: PublicIntern
-    internship: PublicInternship
+    """
+    Public lookup result.
+
+    `verified` is the discriminator. A record that has not been signed off
+    carries nothing but the reference that was looked up and its status —
+    every other field stays empty.
+
+    Publishing a record before an administrator has checked it would be the
+    portal asserting something it has not confirmed, which is exactly what
+    this service exists to prevent. The withholding is done here rather than
+    in the interface so the data never leaves the server.
+    """
+
+    verified: bool
+    intern_id: str
+    status: str
+
+    intern: PublicIntern | None = None
+    internship: PublicInternship | None = None
     certificate: PublicCertificate | None = None
-    documents: list[PublicDocument]
-    verification: PublicVerification
+    documents: list[PublicDocument] = Field(default_factory=list)
+    verification: PublicVerification | None = None
 
 
 class VerifyInternRequest(BaseModel):

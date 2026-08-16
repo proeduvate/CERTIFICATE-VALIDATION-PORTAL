@@ -65,17 +65,32 @@ def verify_certificate(certificate_number: str, db: Session = Depends(get_db)):
 
     intern = certificate.intern
 
+    # The same rule as /verify/{intern_id}: nothing is published until an
+    # administrator has signed the record off. Without this, an unverified
+    # intern's details were still reachable through the certificate number,
+    # which is a second door onto the data the other route now withholds.
+    verified = (
+        intern is not None
+        and (intern.verification_status or "").lower() == "verified"
+    )
+
+    if not verified:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No verified certificate matches that reference",
+        )
+
     return PublicCertificateResponse(
         certificate_number=certificate.certificate_number,
         issue_date=certificate.issue_date,
-        intern_name=intern.name if intern else None,
-        internship_role=intern.internship_role if intern else None,
-        organization=intern.organization if intern else None,
-        department=intern.department if intern else None,
-        college=intern.college if intern else None,
-        start_date=intern.start_date if intern else None,
-        end_date=intern.end_date if intern else None,
-        duration=intern.duration if intern else None,
+        intern_name=intern.name,
+        internship_role=intern.internship_role,
+        organization=intern.organization,
+        department=intern.department,
+        college=intern.college,
+        start_date=intern.start_date,
+        end_date=intern.end_date,
+        duration=intern.duration,
         file_path=certificate.file_path,
     )
 

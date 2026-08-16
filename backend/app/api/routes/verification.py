@@ -61,6 +61,21 @@ def verify_by_intern_id(intern_id: str, db: Session = Depends(get_db)):
             detail="No intern record matches that ID",
         )
 
+    verification_status = intern.verification_status or "Pending"
+
+    # Nothing is published until an administrator has signed the record off.
+    # Returning the details beforehand would have the portal vouching for a
+    # placement nobody has checked — the opposite of what it is for. The
+    # existence of the reference is still acknowledged, because "we hold this
+    # record but have not verified it" is a true and useful answer, and the ID
+    # is printed on the document the visitor is already holding.
+    if verification_status.lower() != "verified":
+        return {
+            "verified": False,
+            "intern_id": intern.intern_id or reference,
+            "status": verification_status,
+        }
+
     # One certificate per intern; take the most recent if several exist.
     certificate = (
         db.query(Certificate)
@@ -98,6 +113,9 @@ def verify_by_intern_id(intern_id: str, db: Session = Depends(get_db)):
     ]
 
     return {
+        "verified": True,
+        "intern_id": intern.intern_id or reference,
+        "status": verification_status,
         "intern": {
             "name": intern.name,
             "intern_id": intern.intern_id,
@@ -128,7 +146,7 @@ def verify_by_intern_id(intern_id: str, db: Session = Depends(get_db)):
         ),
         "documents": documents,
         "verification": {
-            "status": intern.verification_status or "Pending",
+            "status": verification_status,
             "verified_by": intern.verified_by,
             "verification_date": intern.verification_date,
         },
