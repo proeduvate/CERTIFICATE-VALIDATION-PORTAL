@@ -372,10 +372,38 @@ check("the removed document leaves verification", None,
 # ------------------------------------------------------ lor & documents
 section("LOR & documents")
 
-check("create LOR", 201, call("POST", "/lors/", {
-    "intern_id": INTERN_ID, "issue_date": "2026-07-11",
-    "issued_by": "Preethi R", "status": "Issued"}, token=TOKEN)[0])
+# Letters are uploaded through the intern's own document slots, so the LOR
+# listing is derived and read-only.
+check("no LOR record can be created", 405, call("POST", "/lors/", {
+    "intern_id": INTERN_ID}, token=TOKEN)[0])
 check("list LORs", 200, call("GET", "/lors/", token=TOKEN)[0])
+check("an intern without a letter is absent", 0, len(
+    call("GET", "/lors/", token=TOKEN)[1]))
+
+upload(f"/interns/{INTERN_ID}/documents/lor",
+       "lor.pdf", PDF, "application/pdf", TOKEN)
+
+lors = call("GET", "/lors/", token=TOKEN)[1]
+check("uploading against the intern lists the letter", 1, len(lors))
+check("the row is keyed on the intern", INTERN_ID, lors[0]["intern_id"])
+check("and carries the intern name", "Aarav Menon", lors[0]["intern_name"])
+check("and the stored letter", True,
+      (lors[0]["file_path"] or "").startswith("uploads/documents/"))
+check("the listing is searchable", 1, len(
+    call("GET", "/lors/?q=Aarav", token=TOKEN)[1]))
+check("and filters out non-matches", 0, len(
+    call("GET", "/lors/?q=zzzznomatch", token=TOKEN)[1]))
+
+# The letter shown publicly is the one uploaded against the intern.
+published = {d["key"]: d["url"]
+             for d in call("GET", "/verify/PEV-INT-000123")[1]["documents"]}
+check("the uploaded letter is the one published", lors[0]["file_path"],
+      (published["LOR"] or "").lstrip("/"))
+
+check("removing it drops the row", 200, call(
+    "DELETE", f"/interns/{INTERN_ID}/documents/lor", token=TOKEN)[0])
+check("the listing is empty again", 0, len(
+    call("GET", "/lors/", token=TOKEN)[1]))
 check("intern with no documents returns empty, not 404", 200, call(
     "GET", f"/documents/intern/{INTERN_ID}", token=TOKEN)[0])
 check("create document", 201, call("POST", "/documents/", {
@@ -393,7 +421,7 @@ status, summary = call("GET", "/dashboard/summary", token=TOKEN)
 check("summary", 200, status)
 check("certificates_issued is real (was hardcoded 0)", 1,
       summary["certificates_issued"])
-check("lors_issued is real", 1, summary["lors_issued"])
+check("lors_issued counts intern records", 0, summary["lors_issued"])
 check("total_interns", 1, summary["total_interns"])
 check("mode distribution computed (was zeros)", True,
       bool(summary["internship_mode_distribution"]))

@@ -8,7 +8,6 @@ from app.core.security import require_admin
 from app.db.session import get_db
 from app.models.certificate import Certificate
 from app.models.intern import Intern
-from app.models.lor import LOR
 from app.models.user import User
 from app.schemas.verification import (
     VerificationResult,
@@ -84,15 +83,6 @@ def verify_by_intern_id(intern_id: str, db: Session = Depends(get_db)):
         .first()
     )
 
-    # A letter row supersedes the plain path on the intern record.
-    lor_row = (
-        db.query(LOR)
-        .filter(LOR.intern_id == intern.id)
-        .order_by(LOR.id.desc())
-        .first()
-    )
-    lor_path = (lor_row.file_path if lor_row else None) or intern.lor
-
     documents = [
         {"key": "OL", "label": "Offer letter", "url": _document_url(intern.offer_letter)},
         {
@@ -108,7 +98,7 @@ def verify_by_intern_id(intern_id: str, db: Session = Depends(get_db)):
         {
             "key": "LOR",
             "label": "Letter of recommendation",
-            "url": _document_url(lor_path),
+            "url": _document_url(intern.lor),
         },
     ]
 

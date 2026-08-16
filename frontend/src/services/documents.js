@@ -1,4 +1,4 @@
-import { api, request } from '../lib/apiClient';
+import { api } from '../lib/apiClient';
 
 /** Documents & LOR endpoints — routes/document.py, routes/lor.py */
 
@@ -23,35 +23,12 @@ export function updateDocument(id, payload) {
     return api.put(`/documents/${id}`, payload);
 }
 
+/**
+ * Letters of recommendation, one row per intern that has one.
+ *
+ * Read-only and derived from the intern record: the letter is uploaded
+ * through the intern's document slots, so there is nothing to create here.
+ */
 export function listLors(options) {
     return api.get('/lors/', options);
-}
-
-/** Returns `{lor_image_url, metadata:{status,issued_by,issue_date}, download_url}`. */
-export function getLor(id, options) {
-    return api.get(`/lors/${id}`, options);
-}
-
-export function createLor(payload) {
-    return api.post('/lors/', payload);
-}
-
-export function updateLor(id, payload) {
-    return api.put(`/lors/${id}`, payload);
-}
-
-export function deleteLor(id) {
-    return api.delete(`/lors/${id}`);
-}
-
-/** Attach the signed letter itself to an LOR record. */
-export function uploadLorDocument(lorId, file) {
-    const body = new FormData();
-    body.append('file', file);
-
-    return request(`/lors/${lorId}/upload`, { method: 'POST', formData: body });
-}
-
-export function deleteLorDocument(lorId) {
-    return api.delete(`/lors/${lorId}/upload`);
 }

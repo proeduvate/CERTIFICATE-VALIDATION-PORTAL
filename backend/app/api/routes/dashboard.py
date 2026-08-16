@@ -7,7 +7,6 @@ from app.core.security import require_admin
 from app.db.session import get_db
 from app.models.certificate import Certificate
 from app.models.intern import Intern
-from app.models.lor import LOR
 from app.models.user import User
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
@@ -74,7 +73,10 @@ def dashboard_summary(
             1 for i in interns if (i.verification_status or "") == "Pending"
         ),
         "certificates_issued": db.query(Certificate).count(),
-        "lors_issued": db.query(LOR).count(),
+        # Counted from the intern records, which now own the letter.
+        "lors_issued": sum(
+            1 for intern in interns if (intern.lor or "").strip()
+        ),
         "average_attendance": (
             round(sum(tracked) / len(tracked), 1) if tracked else 0
         ),

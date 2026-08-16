@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Button, { IconButton } from '../../components/ui/Button';
-import { Input, Select } from '../../components/ui/Field';
-import Modal from '../../components/ui/Modal';
+import { Input } from '../../components/ui/Field';
 import {
-    Badge,
+    Avatar,
     Card,
     EmptyState,
     ErrorState,
@@ -12,28 +12,24 @@ import {
     StatusBadge,
 } from '../../components/ui/Display';
 import { Pagination, SortHeader } from '../../components/ui/Navigation';
-import { useToast } from '../../components/ui/Toast';
-import LorFormModal from './LorFormModal';
 import { DocumentViewerModal } from '../../components/DocumentPreview';
 import { useAsync } from '../../hooks/useAsync';
 import useDebounce from '../../hooks/useDebounce';
-import { useAuth } from '../../context/AuthContext';
-import { deleteLor, listLors } from '../../services/documents';
+import { listLors } from '../../services/documents';
 import { formatDate, formatNumber, orEmpty } from '../../lib/format';
 import { PAGE_SIZES } from '../../config';
-
-const LOR_STATUS = ['Issued', 'Pending', 'Rejected'];
 
 /**
  * Letters of recommendation.
  *
- * The sidebar advertised an "LOR" section that rendered nothing — clicking it
- * silently left you on the dashboard. `/lors/` was fully implemented on the
- * backend and entirely unused. This is that page.
+ * A read-only view, one row per intern that has a letter. There is no "create"
+ * here: the letter is uploaded through the intern's own document slots
+ * alongside the offer letter and terms, so the intern record owns it. Creating
+ * letters here as well would give the same document two writable homes that
+ * could disagree.
  */
 export default function Lors() {
-    const toast = useToast();
-    const { isAdmin } = useAuth();
+    const navigate = useNavigate();
 
     const { data, error, loading, reload } = useAsync(
         (signal) => listLors({ signal }),
@@ -42,31 +38,23 @@ export default function Lors() {
 
     const [search, setSearch] = useState('');
     const debounced = useDebounce(search, 250);
-    const [status, setStatus] = useState('All');
-    const [sort, setSort] = useState({ column: 'issue_date', direction: 'desc' });
+    const [sort, setSort] = useState({ column: 'intern_name', direction: 'asc' });
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
-
-    const [editing, setEditing] = useState(null);
-    const [creating, setCreating] = useState(false);
-    const [confirmDelete, setConfirmDelete] = useState(null);
-    const [deleting, setDeleting] = useState(false);
     const [previewing, setPreviewing] = useState(null);
 
     const records = useMemo(() => (Array.isArray(data) ? data : []), [data]);
 
     const filtered = useMemo(() => {
         const term = debounced.trim().toLowerCase();
+        if (!term) return records;
 
-        return records.filter((lor) => {
-            if (status !== 'All' && lor.status !== status) return false;
-            if (!term) return true;
-
-            return [lor.issued_by, lor.intern_id, lor.status]
+        return records.filter((row) =>
+            [row.intern_name, row.intern_code, row.department, row.mentor]
                 .filter(Boolean)
-                .some((field) => String(field).toLowerCase().includes(term));
-        });
-    }, [records, debounced, status]);
+                .some((field) => String(field).toLowerCase().includes(term)),
+        );
+    }, [records, debounced]);
 
     const sorted = useMemo(() => {
         const factor = sort.direction === 'asc' ? 1 : -1;
@@ -78,7 +66,7 @@ export default function Lors() {
             if (left == null) return 1;
             if (right == null) return -1;
 
-            if (sort.column === 'issue_date') {
+            if (sort.column === 'end_date') {
                 return (new Date(left) - new Date(right)) * factor;
             }
 
@@ -94,24 +82,11 @@ export default function Lors() {
         [sorted, page, pageSize],
     );
 
-    const issued = records.filter((lor) => lor.status === 'Issued').length;
-    const pending = records.filter((lor) => lor.status === 'Pending').length;
-    const withFile = records.filter((lor) => Boolean(lor.file_path)).length;
+    const verified = records.filter(
+        (row) => (row.verification_status ?? '').toLowerCase() === 'verified',
+    ).length;
 
-    const handleDelete = async () => {
-        setDeleting(true);
-
-        try {
-            await deleteLor(confirmDelete.id);
-            toast.success('Letter deleted');
-            setConfirmDelete(null);
-            reload();
-        } catch (err) {
-            toast.error('Could not delete', err?.message);
-        } finally {
-            setDeleting(false);
-        }
-    };
+    const completed = records.filter((row) => row.status === 'Completed').length;
 
     return (
         <div className="page">
@@ -121,7 +96,7 @@ export default function Lors() {
                     <p className="page__subtitle">
                         {loading
                             ? 'Loading letters…'
-                            : `${formatNumber(filtered.length)} of ${formatNumber(records.length)} letters`}
+                            : `${formatNumber(filtered.length)} intern${filtered.length === 1 ? '' : 's'} with a letter on file`}
                     </p>
                 </div>
 
@@ -129,45 +104,40 @@ export default function Lors() {
                     <Button variant="secondary" icon="refresh" onClick={reload}>
                         Refresh
                     </Button>
-
-                    {isAdmin && (
-                        <Button
-                            variant="primary"
-                            icon="plus"
-                            onClick={() => setCreating(true)}
-                        >
-                            Create letter
-                        </Button>
-                    )}
+                    <Button to="/dashboard/interns" variant="primary" icon="users">
+                        Manage interns
+                    </Button>
                 </div>
             </header>
 
             <div className="stat-grid">
                 <StatCard
-                    label="Total"
+                    label="Letters on file"
                     value={formatNumber(records.length)}
                     icon="scroll"
                     tint="brand"
                     loading={loading}
                 />
                 <StatCard
-                    label="Issued"
-                    value={formatNumber(issued)}
-                    icon="checkCircle"
+                    label="On verified records"
+                    value={formatNumber(verified)}
+                    icon="shieldCheck"
                     tint="green"
                     loading={loading}
+                    meta="Published publicly"
                 />
                 <StatCard
-                    label="Pending"
-                    value={formatNumber(pending)}
+                    label="Awaiting verification"
+                    value={formatNumber(records.length - verified)}
                     icon="clock"
                     tint="amber"
                     loading={loading}
+                    meta="Not shown publicly"
                 />
                 <StatCard
-                    label="With document"
-                    value={formatNumber(withFile)}
-                    icon="fileCheck"
+                    label="Completed internships"
+                    value={formatNumber(completed)}
+                    icon="checkCircle"
                     tint="brand"
                     loading={loading}
                 />
@@ -177,7 +147,7 @@ export default function Lors() {
                 <Input
                     icon="search"
                     type="search"
-                    placeholder="Search by issuer or intern id…"
+                    placeholder="Search by intern name, ID, department or mentor…"
                     value={search}
                     onChange={(event) => {
                         setSearch(event.target.value);
@@ -186,21 +156,6 @@ export default function Lors() {
                     fieldClassName="toolbar__search"
                     aria-label="Search letters"
                 />
-
-                <div className="toolbar__filters">
-                    <Select
-                        value={status}
-                        onChange={(event) => {
-                            setStatus(event.target.value);
-                            setPage(1);
-                        }}
-                        aria-label="Filter by status"
-                        options={['All', ...LOR_STATUS].map((value) => ({
-                            value,
-                            label: value === 'All' ? 'All statuses' : value,
-                        }))}
-                    />
-                </div>
             </div>
 
             <Card>
@@ -211,35 +166,30 @@ export default function Lors() {
                 ) : records.length === 0 ? (
                     <EmptyState
                         icon="scroll"
-                        title="No letters yet"
-                        message="Letters of recommendation issued to interns will be listed here."
+                        title="No letters uploaded yet"
+                        message="Letters appear here once one is uploaded against an intern, from Interns → Edit → Documents."
                         action={
-                            isAdmin && (
-                                <Button
-                                    variant="primary"
-                                    icon="plus"
-                                    onClick={() => setCreating(true)}
-                                >
-                                    Create the first letter
-                                </Button>
-                            )
+                            <Button
+                                to="/dashboard/interns"
+                                variant="primary"
+                                icon="users"
+                            >
+                                Go to interns
+                            </Button>
                         }
                     />
                 ) : filtered.length === 0 ? (
                     <EmptyState
                         icon="search"
                         title="No matches"
-                        message="No letter matches the current search and filter."
+                        message={`No intern with a letter matches “${debounced}”.`}
                         action={
                             <Button
                                 variant="secondary"
                                 icon="x"
-                                onClick={() => {
-                                    setSearch('');
-                                    setStatus('All');
-                                }}
+                                onClick={() => setSearch('')}
                             >
-                                Clear filters
+                                Clear search
                             </Button>
                         }
                     />
@@ -250,88 +200,102 @@ export default function Lors() {
                                 <thead>
                                     <tr>
                                         <SortHeader
-                                            column="intern_id"
+                                            column="intern_name"
                                             sort={sort}
                                             onSort={setSort}
                                         >
                                             Intern
                                         </SortHeader>
                                         <SortHeader
-                                            column="issued_by"
+                                            column="department"
                                             sort={sort}
                                             onSort={setSort}
                                         >
-                                            Issued by
+                                            Department
                                         </SortHeader>
                                         <SortHeader
-                                            column="issue_date"
+                                            column="mentor"
                                             sort={sort}
                                             onSort={setSort}
                                         >
-                                            Issue date
+                                            Mentor
                                         </SortHeader>
                                         <SortHeader
-                                            column="status"
+                                            column="end_date"
                                             sort={sort}
                                             onSort={setSort}
                                         >
-                                            Status
+                                            Ended
                                         </SortHeader>
-                                        <th scope="col">Document</th>
+                                        <SortHeader
+                                            column="verification_status"
+                                            sort={sort}
+                                            onSort={setSort}
+                                        >
+                                            Verification
+                                        </SortHeader>
                                         <th scope="col" style={{ textAlign: 'right' }}>
-                                            Actions
+                                            Letter
                                         </th>
                                     </tr>
                                 </thead>
 
                                 <tbody>
-                                    {paged.map((lor) => (
-                                        <tr key={lor.id}>
-                                            <td className="mono table__primary">
-                                                {orEmpty(lor.intern_id)}
-                                            </td>
-                                            <td>{orEmpty(lor.issued_by)}</td>
-                                            <td>{formatDate(lor.issue_date)}</td>
+                                    {paged.map((row) => (
+                                        <tr key={row.intern_id}>
                                             <td>
-                                                <StatusBadge status={lor.status} />
+                                                <button
+                                                    type="button"
+                                                    className="cell-person cell-person--link"
+                                                    onClick={() =>
+                                                        navigate(
+                                                            `/dashboard/interns/${row.intern_id}`,
+                                                        )
+                                                    }
+                                                >
+                                                    <Avatar
+                                                        name={row.intern_name}
+                                                        size="sm"
+                                                    />
+                                                    <div>
+                                                        <span className="table__primary">
+                                                            {orEmpty(row.intern_name)}
+                                                        </span>
+                                                        <small className="mono">
+                                                            {orEmpty(row.intern_code)}
+                                                        </small>
+                                                    </div>
+                                                </button>
                                             </td>
+
+                                            <td>{orEmpty(row.department)}</td>
+                                            <td>{orEmpty(row.mentor)}</td>
+                                            <td>{formatDate(row.end_date)}</td>
                                             <td>
-                                                {lor.file_path ? (
+                                                <StatusBadge
+                                                    status={row.verification_status}
+                                                />
+                                            </td>
+
+                                            <td>
+                                                <div className="table__actions">
                                                     <Button
                                                         variant="secondary"
                                                         size="sm"
                                                         icon="eye"
-                                                        onClick={() => setPreviewing(lor)}
+                                                        onClick={() => setPreviewing(row)}
                                                     >
                                                         Preview
                                                     </Button>
-                                                ) : (
-                                                    <Badge variant="neutral" dot>
-                                                        Not uploaded
-                                                    </Badge>
-                                                )}
-                                            </td>
-                                            <td>
-                                                <div className="table__actions">
-                                                    {isAdmin && (
-                                                        <>
-                                                            <IconButton
-                                                                icon="edit"
-                                                                label="Edit letter"
-                                                                onClick={() =>
-                                                                    setEditing(lor)
-                                                                }
-                                                            />
-                                                            <IconButton
-                                                                icon="trash"
-                                                                tone="danger"
-                                                                label="Delete letter"
-                                                                onClick={() =>
-                                                                    setConfirmDelete(lor)
-                                                                }
-                                                            />
-                                                        </>
-                                                    )}
+                                                    <IconButton
+                                                        icon="user"
+                                                        label={`Open ${row.intern_name}'s record`}
+                                                        onClick={() =>
+                                                            navigate(
+                                                                `/dashboard/interns/${row.intern_id}`,
+                                                            )
+                                                        }
+                                                    />
                                                 </div>
                                             </td>
                                         </tr>
@@ -355,22 +319,6 @@ export default function Lors() {
                 )}
             </Card>
 
-            {(creating || editing) && (
-                <LorFormModal
-                    lor={editing}
-                    onFileChanged={reload}
-                    onClose={() => {
-                        setCreating(false);
-                        setEditing(null);
-                    }}
-                    onSaved={() => {
-                        setCreating(false);
-                        setEditing(null);
-                        reload();
-                    }}
-                />
-            )}
-
             <DocumentViewerModal
                 open={previewing !== null}
                 onClose={() => setPreviewing(null)}
@@ -378,38 +326,10 @@ export default function Lors() {
                 label="Letter of recommendation"
                 meta={
                     previewing
-                        ? `Issued by ${previewing.issued_by ?? '—'}`
+                        ? `${previewing.intern_name ?? ''}${previewing.intern_code ? ` · ${previewing.intern_code}` : ''}`
                         : undefined
                 }
             />
-
-            <Modal
-                open={confirmDelete !== null}
-                onClose={() => setConfirmDelete(null)}
-                title="Delete this letter?"
-                size="sm"
-                footer={
-                    <>
-                        <Button variant="ghost" onClick={() => setConfirmDelete(null)}>
-                            Cancel
-                        </Button>
-                        <Button
-                            variant="danger"
-                            icon="trash"
-                            loading={deleting}
-                            onClick={handleDelete}
-                        >
-                            Delete letter
-                        </Button>
-                    </>
-                }
-            >
-                <p>
-                    The letter issued to intern{' '}
-                    <strong className="mono">{confirmDelete?.intern_id}</strong> will be
-                    removed permanently. This cannot be undone.
-                </p>
-            </Modal>
         </div>
     );
 }

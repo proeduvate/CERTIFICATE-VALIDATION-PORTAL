@@ -3,29 +3,23 @@ from datetime import date
 from pydantic import BaseModel
 
 
-class LORBase(BaseModel):
+class LorListItem(BaseModel):
+    """
+    One intern's letter of recommendation.
+
+    Keyed on the intern rather than on a letter record: the letter is uploaded
+    through the intern's document slots, so there is no separate entity to
+    identify.
+    """
+
     intern_id: int
-    issue_date: date | None = None
-    issued_by: str | None = None
-    status: str | None = "Issued"
-    file_path: str | None = None
-
-
-class LORCreate(LORBase):
-    pass
-
-
-class LORUpdate(BaseModel):
-    """All-optional so a partial edit does not blank the other columns."""
-
-    intern_id: int | None = None
-    issue_date: date | None = None
-    issued_by: str | None = None
+    intern_name: str | None = None
+    intern_code: str | None = None
+    department: str | None = None
+    college: str | None = None
+    internship_role: str | None = None
+    mentor: str | None = None
+    end_date: date | None = None
     status: str | None = None
+    verification_status: str | None = None
     file_path: str | None = None
-
-
-class LORResponse(LORBase):
-    id: int
-
-    model_config = {"from_attributes": True}
