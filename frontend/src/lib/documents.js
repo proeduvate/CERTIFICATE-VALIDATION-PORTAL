@@ -1,11 +1,14 @@
-import { API_BASE_URL } from '../config';
+import { API_BASE_URL, SERVER_BASE_URL } from '../config';
 
-/** Turns a stored path into something the browser can load. */
+/** Turns a stored path or API route into something the browser can load. */
 export function resolveDocumentUrl(path) {
     if (!path) return null;
-    return /^https?:\/\//i.test(path)
-        ? path
-        : `${API_BASE_URL}/${String(path).replace(/^\/+/, '')}`;
+    if (/^https?:\/\//i.test(path)) return path;
+    const cleanPath = String(path).replace(/^\/+/, '');
+    if (cleanPath.startsWith('api/v1/')) {
+        return `${SERVER_BASE_URL}/${cleanPath}`;
+    }
+    return `${API_BASE_URL}/${cleanPath}`;
 }
 
 export function isPdf(path) {
