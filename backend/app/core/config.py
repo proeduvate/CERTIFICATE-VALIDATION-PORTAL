@@ -18,6 +18,8 @@ class Settings(BaseSettings):
         "postgresql+psycopg://postgres@localhost:5432/proeduvate_portal"
     )
 
+    API_V1_STR: str = "/api/v1"
+
     SECRET_KEY: str = "dev-only-change-me"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60

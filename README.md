@@ -55,7 +55,7 @@ Register at <http://localhost:5173/login> → "Forgot your password?" has the
 sign-up path, or POST directly:
 
 ```bash
-curl -X POST http://localhost:8000/auth/register \
+curl -X POST http://localhost:8000/api/v1/auth/register \
   -H 'Content-Type: application/json' \
   -d '{"full_name":"Your Name","email":"you@example.com","password":"ChangeMe123!"}'
 ```
@@ -117,7 +117,7 @@ registers the first user and expects that account to be the admin.
 
 ### Verification
 
-Public verification (`GET /verify/{intern_id}`) needs no account. It is keyed on
+Public verification (`GET /api/v1/verify/{intern_id}`) needs no account. It is keyed on
 the **intern ID** printed on the certificate and returns the intern's public
 identity, the internship, the certificate issued for it, and the supporting
 documents — offer letter (OL), acknowledgement letter (AL), terms and

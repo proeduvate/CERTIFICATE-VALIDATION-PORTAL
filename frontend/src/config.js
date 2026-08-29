@@ -12,10 +12,18 @@ export const APP = {
     supportEmail: 'support@proeduvate.in',
 };
 
-/** Base URL of the FastAPI service (see backend/app/main.py). */
-export const API_BASE_URL = (
+const RAW_API_BASE_URL = (
     import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 ).replace(/\/+$/, '');
+
+/** Base URL of the FastAPI service with /api/v1 prefix (see backend/app/main.py). */
+export const API_BASE_URL = RAW_API_BASE_URL.endsWith('/api/v1')
+    ? RAW_API_BASE_URL
+    : `${RAW_API_BASE_URL}/api/v1`;
+
+/** Base URL of the server host (without /api/v1) for static uploads/mounts. */
+export const SERVER_BASE_URL = RAW_API_BASE_URL.replace(/\/api\/v1$/, '');
+
 
 /** localStorage keys — kept in one place so nothing drifts. */
 export const STORAGE_KEYS = {

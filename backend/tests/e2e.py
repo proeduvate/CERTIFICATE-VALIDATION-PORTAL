@@ -6,7 +6,7 @@ import urllib.error
 import urllib.request
 import uuid
 
-API = "http://localhost:8000"
+API = "http://localhost:8000/api/v1"
 
 passed = 0
 failed = 0

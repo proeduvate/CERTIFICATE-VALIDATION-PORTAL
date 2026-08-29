@@ -1,6 +1,6 @@
 import os
 
-from fastapi import FastAPI
+from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
@@ -41,17 +41,26 @@ app.mount(
     StaticFiles(directory=settings.UPLOAD_DIR),
     name="uploads",
 )
+app.mount(
+    f"{settings.API_V1_STR}/{settings.UPLOAD_DIR}",
+    StaticFiles(directory=settings.UPLOAD_DIR),
+    name="uploads_v1",
+)
 
-app.include_router(auth_router)
-app.include_router(intern_router)
-app.include_router(dashboard_router)
-app.include_router(certificate_router)
-app.include_router(lor_router)
-app.include_router(document_router)
-app.include_router(verification_router)
+api_v1_router = APIRouter(prefix=settings.API_V1_STR)
+api_v1_router.include_router(auth_router)
+api_v1_router.include_router(intern_router)
+api_v1_router.include_router(dashboard_router)
+api_v1_router.include_router(certificate_router)
+api_v1_router.include_router(lor_router)
+api_v1_router.include_router(document_router)
+api_v1_router.include_router(verification_router)
+
+app.include_router(api_v1_router)
 
 
 @app.get("/", tags=["Health"])
+@app.get(f"{settings.API_V1_STR}", tags=["Health"])
 def home():
     return {
         "message": "ProEduvate Certificate Validation API",
@@ -61,5 +70,7 @@ def home():
 
 
 @app.get("/health", tags=["Health"])
+@app.get(f"{settings.API_V1_STR}/health", tags=["Health"])
 def health():
     return {"status": "ok"}
+
