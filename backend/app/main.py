@@ -1,8 +1,10 @@
 import os
 
-from fastapi import APIRouter, FastAPI
+from fastapi import APIRouter, FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app.core.config import settings
 from app.api.routes.auth import router as auth_router
@@ -21,6 +23,32 @@ app = FastAPI(
         "Backend for the intern management and certificate validation portal."
     ),
 )
+
+
+@app.exception_handler(IntegrityError)
+async def integrity_error_handler(request: Request, exc: IntegrityError):
+    orig_msg = str(exc.orig) if hasattr(exc, "orig") and exc.orig else str(exc)
+    orig_msg_lower = orig_msg.lower()
+
+    if "foreign key constraint" in orig_msg_lower:
+        detail = "Cannot perform operation: This record is referenced by other records (e.g. certificates or documents)."
+    elif "unique constraint" in orig_msg_lower or "already exists" in orig_msg_lower:
+        detail = "A record with this unique information (such as email or intern ID) already exists."
+    else:
+        detail = f"Database constraint error: {orig_msg}"
+
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        content={"detail": detail},
+    )
+
+
+@app.exception_handler(SQLAlchemyError)
+async def sqlalchemy_error_handler(request: Request, exc: SQLAlchemyError):
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        content={"detail": f"Database operation failed: {str(exc)}"},
+    )
 
 # The browser blocks every cross-origin request without this. The API and the
 # Vite dev server run on different ports, so without CORS the frontend could

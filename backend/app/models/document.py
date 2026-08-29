@@ -11,7 +11,7 @@ class Document(Base):
 
     intern_id = Column(
         Integer,
-        ForeignKey("interns.id"),
+        ForeignKey("interns.id", ondelete="CASCADE"),
         nullable=False,
     )
 
@@ -20,4 +20,4 @@ class Document(Base):
     transfer_certificate = Column(String(255))
     other_document = Column(String(255))
 
-    intern = relationship("Intern")
+    intern = relationship("Intern", back_populates="documents")

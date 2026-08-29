@@ -1,4 +1,5 @@
 from sqlalchemy import Column, Integer, String, Date, Float, LargeBinary
+from sqlalchemy.orm import relationship
 from app.db.base_class import Base
 
 
@@ -88,3 +89,23 @@ class Intern(Base):
     verified_by = Column(String(100))
     verification_date = Column(Date)
     remarks = Column(String(500))
+
+    # Relationships
+    certificates = relationship(
+        "Certificate",
+        back_populates="intern",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+    documents = relationship(
+        "Document",
+        back_populates="intern",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+    lors = relationship(
+        "LOR",
+        back_populates="intern",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )

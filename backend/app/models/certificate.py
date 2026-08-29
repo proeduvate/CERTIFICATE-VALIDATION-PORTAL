@@ -11,7 +11,7 @@ class Certificate(Base):
 
     intern_id = Column(
         Integer,
-        ForeignKey("interns.id"),
+        ForeignKey("interns.id", ondelete="CASCADE"),
         nullable=False
     )
 
@@ -30,4 +30,4 @@ class Certificate(Base):
 
     qr_code = Column(String(255))
 
-    intern = relationship("Intern")
+    intern = relationship("Intern", back_populates="certificates")

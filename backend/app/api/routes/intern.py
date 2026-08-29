@@ -19,7 +19,10 @@ from sqlalchemy.orm import Session
 
 from app.core.security import get_current_user, require_admin
 from app.db.session import get_db
+from app.models.certificate import Certificate
+from app.models.document import Document
 from app.models.intern import Intern
+from app.models.lor import LOR
 from app.models.user import User
 from app.schemas.intern import InternCreate, InternResponse, InternUpdate
 from app.utils.uploads import delete_upload, save_upload
@@ -417,8 +420,20 @@ def delete_intern(
 ):
     intern = _get_or_404(db, intern_id)
 
-    db.delete(intern)
-    db.commit()
+    try:
+        # Delete related records explicitly to guarantee deletion regardless of DB foreign key configuration
+        db.query(Certificate).filter(Certificate.intern_id == intern.id).delete(synchronize_session=False)
+        db.query(Document).filter(Document.intern_id == intern.id).delete(synchronize_session=False)
+        db.query(LOR).filter(LOR.intern_id == intern.id).delete(synchronize_session=False)
+
+        db.delete(intern)
+        db.commit()
+    except Exception as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Failed to delete intern: {str(exc)}",
+        )
 
     return {"message": "Intern deleted successfully"}
 
