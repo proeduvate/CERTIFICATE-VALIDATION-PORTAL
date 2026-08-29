@@ -21,3 +21,4 @@ email-validator
 openpyxl
 reportlab
 qrcode[pil]
+psycopg2
