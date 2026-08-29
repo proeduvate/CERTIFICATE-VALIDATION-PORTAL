@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Date, Float
+from sqlalchemy import Column, Integer, String, Date, Float, LargeBinary
 from app.db.base_class import Base
 
 
@@ -55,13 +55,33 @@ class Intern(Base):
     # acknowledgement letter (AL), terms and conditions (TC), and the letter of
     # recommendation (LOR), which is optional.
     offer_letter = Column(String(255))
+    offer_letter_data = Column(LargeBinary, nullable=True)
+    offer_letter_mime = Column(String(100), nullable=True)
+
     acknowledgement_letter = Column(String(255))
+    acknowledgement_letter_data = Column(LargeBinary, nullable=True)
+    acknowledgement_letter_mime = Column(String(100), nullable=True)
+
     terms_conditions = Column(String(255))
+    terms_conditions_data = Column(LargeBinary, nullable=True)
+    terms_conditions_mime = Column(String(100), nullable=True)
+
     lor = Column(String(255))
+    lor_data = Column(LargeBinary, nullable=True)
+    lor_mime = Column(String(100), nullable=True)
 
     completion_letter = Column(String(255))
+    completion_letter_data = Column(LargeBinary, nullable=True)
+    completion_letter_mime = Column(String(100), nullable=True)
+
     certificate = Column(String(255))
+    certificate_data = Column(LargeBinary, nullable=True)
+    certificate_mime = Column(String(100), nullable=True)
+
     resume = Column(String(255))
+    resume_data = Column(LargeBinary, nullable=True)
+    resume_mime = Column(String(100), nullable=True)
+
 
     # verification tab
     verification_status = Column(String(50))

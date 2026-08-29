@@ -18,12 +18,21 @@ router = APIRouter(tags=["Verification"])
 
 
 def _document_url(path: str | None) -> str | None:
-    """Uploaded paths are served from the static /uploads mount."""
     if not path:
         return None
     if path.startswith(("http://", "https://", "/")):
         return path
     return f"/{path.lstrip('/')}"
+
+
+def _intern_doc_url(intern: Intern, kind: str) -> str | None:
+    if getattr(intern, f"{kind}_data", None) is not None or getattr(intern, kind, None):
+        val = getattr(intern, kind, None)
+        if val and val.startswith("/"):
+            return val
+        return f"/api/v1/interns/{intern.id}/documents/{kind}/download"
+    return None
+
 
 
 # ---------------------------------------------------------------------------
@@ -84,21 +93,21 @@ def verify_by_intern_id(intern_id: str, db: Session = Depends(get_db)):
     )
 
     documents = [
-        {"key": "OL", "label": "Offer letter", "url": _document_url(intern.offer_letter)},
+        {"key": "OL", "label": "Offer letter", "url": _intern_doc_url(intern, "offer_letter")},
         {
             "key": "AL",
             "label": "Acknowledgement letter",
-            "url": _document_url(intern.acknowledgement_letter),
+            "url": _intern_doc_url(intern, "acknowledgement_letter"),
         },
         {
             "key": "TC",
             "label": "Terms and conditions",
-            "url": _document_url(intern.terms_conditions),
+            "url": _intern_doc_url(intern, "terms_conditions"),
         },
         {
             "key": "LOR",
             "label": "Letter of recommendation",
-            "url": _document_url(intern.lor),
+            "url": _intern_doc_url(intern, "lor"),
         },
     ]
 

@@ -34,18 +34,8 @@ app.add_middleware(
     expose_headers=["Content-Disposition"],
 )
 
-# Serve uploaded certificates/documents so the frontend can link to them.
-os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
-app.mount(
-    f"/{settings.UPLOAD_DIR}",
-    StaticFiles(directory=settings.UPLOAD_DIR),
-    name="uploads",
-)
-app.mount(
-    f"{settings.API_V1_STR}/{settings.UPLOAD_DIR}",
-    StaticFiles(directory=settings.UPLOAD_DIR),
-    name="uploads_v1",
-)
+
+
 
 api_v1_router = APIRouter(prefix=settings.API_V1_STR)
 api_v1_router.include_router(auth_router)

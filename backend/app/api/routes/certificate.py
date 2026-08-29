@@ -1,6 +1,6 @@
 import os
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile, status
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
@@ -237,20 +237,22 @@ def upload_certificate(
 ):
     certificate = _get_or_404(db, certificate_id)
 
-    stored = save_upload(
+    contents, content_type, name = save_upload(
         file,
         folder="certificates",
         stem=certificate.certificate_number,
     )
 
-    delete_upload(certificate.file_path)
-    certificate.file_path = stored
+    certificate.file_data = contents
+    certificate.file_mime_type = content_type
+    certificate.file_name = name
+    certificate.file_path = f"/api/v1/certificates/{certificate.id}/download"
     db.commit()
 
     return {
         "message": "Certificate uploaded successfully",
         "file_path": certificate.file_path,
-        "url": f"/{certificate.file_path}",
+        "url": certificate.file_path,
     }
 
 
@@ -262,29 +264,32 @@ def download_certificate(
 ):
     certificate = _get_or_404(db, certificate_id)
 
-    # Prefer the uploaded document; fall back to a generated PDF.
-    if certificate.file_path and os.path.exists(certificate.file_path):
-        return FileResponse(
-            path=certificate.file_path,
-            filename=os.path.basename(certificate.file_path),
+    # Prefer stored binary data; fall back to an in-memory generated PDF.
+    if certificate.file_data:
+        filename = certificate.file_name or f"{certificate.certificate_number}.pdf"
+        mime_type = certificate.file_mime_type or "application/pdf"
+        return Response(
+            content=bytes(certificate.file_data),
+            media_type=mime_type,
+            headers={"Content-Disposition": f'inline; filename="{filename}"'},
         )
 
-    generated_dir = os.path.join(settings.UPLOAD_DIR, "generated")
-    os.makedirs(generated_dir, exist_ok=True)
-
-    filename = f"{certificate.certificate_number}.pdf"
-    path = os.path.join(generated_dir, filename)
-
-    generate_certificate_pdf(
+    pdf_bytes = generate_certificate_pdf(
         intern_name=(
             certificate.intern.name if certificate.intern else "Certificate holder"
         ),
         certificate_number=certificate.certificate_number,
-        filename=path,
     )
 
-    return FileResponse(
-        path=path,
+    certificate.file_data = pdf_bytes
+    certificate.file_mime_type = "application/pdf"
+    certificate.file_name = f"{certificate.certificate_number}.pdf"
+    certificate.file_path = f"/api/v1/certificates/{certificate.id}/download"
+    db.commit()
+
+    return Response(
+        content=pdf_bytes,
         media_type="application/pdf",
-        filename=filename,
+        headers={"Content-Disposition": f'inline; filename="{certificate.certificate_number}.pdf"'},
     )
+

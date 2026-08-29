@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Date, ForeignKey
+from sqlalchemy import Column, Integer, String, Date, ForeignKey, LargeBinary
 from sqlalchemy.orm import relationship
 
 from app.db.base_class import Base
@@ -24,6 +24,9 @@ class Certificate(Base):
     issue_date = Column(Date)
 
     file_path = Column(String(255))
+    file_data = Column(LargeBinary, nullable=True)
+    file_mime_type = Column(String(100), nullable=True)
+    file_name = Column(String(255), nullable=True)
 
     qr_code = Column(String(255))
 

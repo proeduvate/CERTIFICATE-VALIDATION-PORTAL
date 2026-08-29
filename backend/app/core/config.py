@@ -49,6 +49,24 @@ class Settings(BaseSettings):
             if origin.strip()
         ]
 
+    @property
+    def upload_dir(self) -> str:
+        import os
+        import tempfile
+
+        target = self.UPLOAD_DIR
+        try:
+            os.makedirs(target, exist_ok=True)
+            return target
+        except OSError:
+            tmp_target = os.path.join(tempfile.gettempdir(), self.UPLOAD_DIR)
+            try:
+                os.makedirs(tmp_target, exist_ok=True)
+            except OSError:
+                pass
+            return tmp_target
+
+
     class Config:
         env_file = ".env"
 

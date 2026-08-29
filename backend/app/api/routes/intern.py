@@ -1,5 +1,6 @@
 import os
 import tempfile
+import uuid
 from datetime import date
 
 from fastapi import (
@@ -9,6 +10,7 @@ from fastapi import (
     HTTPException,
     Query,
     UploadFile,
+    Response,
     status,
 )
 from fastapi.responses import FileResponse
@@ -448,25 +450,56 @@ def upload_intern_document(
 
     intern = _get_or_404(db, intern_id)
 
-    stored = save_upload(
+    contents, content_type, name = save_upload(
         file,
         folder="documents",
         stem=f"{intern.intern_id or intern.id}-{kind}",
     )
 
-    # Replacing a document should not leave the old file behind.
-    delete_upload(getattr(intern, kind))
+    url_path = f"/api/v1/interns/{intern.id}/documents/{kind}/download?v={uuid.uuid4().hex[:8]}"
 
-    setattr(intern, kind, stored)
+    setattr(intern, f"{kind}_data", contents)
+    setattr(intern, f"{kind}_mime", content_type)
+    setattr(intern, kind, url_path)
     db.commit()
 
     return {
         "message": f"{DOCUMENT_KINDS[kind]} uploaded",
         "kind": kind,
         "label": DOCUMENT_KINDS[kind],
-        "url": f"/{stored}",
-        "path": stored,
+        "url": url_path,
+        "path": url_path,
     }
+
+
+@router.get("/{intern_id}/documents/{kind}/download")
+def download_intern_document(
+    intern_id: int,
+    kind: str,
+    db: Session = Depends(get_db),
+):
+    if kind not in DOCUMENT_KINDS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Unknown document type",
+        )
+
+    intern = _get_or_404(db, intern_id)
+    file_data = getattr(intern, f"{kind}_data", None)
+    mime_type = getattr(intern, f"{kind}_mime", None) or "application/pdf"
+
+    if not file_data:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No {DOCUMENT_KINDS[kind]} uploaded for this intern",
+        )
+
+    filename = f"{intern.intern_id or intern.id}-{kind}.pdf"
+    return Response(
+        content=bytes(file_data),
+        media_type=mime_type,
+        headers={"Content-Disposition": f'inline; filename="{filename}"'},
+    )
 
 
 @router.delete("/{intern_id}/documents/{kind}")
@@ -484,11 +517,13 @@ def delete_intern_document(
 
     intern = _get_or_404(db, intern_id)
 
-    delete_upload(getattr(intern, kind))
+    setattr(intern, f"{kind}_data", None)
+    setattr(intern, f"{kind}_mime", None)
     setattr(intern, kind, None)
     db.commit()
 
     return {"message": f"{DOCUMENT_KINDS[kind]} removed", "kind": kind}
+
 
 
 # ---------------------------------------------------------------------------

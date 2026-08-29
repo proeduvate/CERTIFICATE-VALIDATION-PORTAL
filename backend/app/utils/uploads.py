@@ -1,9 +1,6 @@
-import os
 import uuid
 
 from fastapi import HTTPException, UploadFile, status
-
-from app.core.config import settings
 
 # Documents are letters and certificates: PDFs, or scans/photos of them.
 ALLOWED_CONTENT_TYPES = {
@@ -16,15 +13,11 @@ ALLOWED_CONTENT_TYPES = {
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 
 
-def save_upload(file: UploadFile, folder: str, stem: str) -> str:
+def read_and_validate_upload(file: UploadFile, stem: str) -> tuple[bytes, str, str]:
     """
-    Persist an uploaded file and return the stored path.
+    Validate an uploaded file and return (contents, content_type, filename).
 
-    The client filename is never used on disk. It can contain path separators
-    ("../" escapes the upload directory) and two uploads sharing a name would
-    silently overwrite each other, so the name is generated from `stem` plus a
-    random suffix, and the extension comes from the declared content type
-    rather than from the filename.
+    File contents are returned in memory for storing directly in the database.
     """
     if file.content_type not in ALLOWED_CONTENT_TYPES:
         raise HTTPException(
@@ -46,35 +39,22 @@ def save_upload(file: UploadFile, folder: str, stem: str) -> str:
             detail="File must be 10 MB or smaller",
         )
 
-    directory = os.path.join(settings.UPLOAD_DIR, folder)
-    os.makedirs(directory, exist_ok=True)
-
     safe_stem = "".join(
         char if char.isalnum() or char in "-_" else "-" for char in stem
     ).strip("-") or "document"
 
     extension = ALLOWED_CONTENT_TYPES[file.content_type]
     name = f"{safe_stem}-{uuid.uuid4().hex[:8]}{extension}"
-    path = os.path.join(directory, name)
 
-    with open(path, "wb") as handle:
-        handle.write(contents)
+    return contents, file.content_type, name
 
-    # Forward slashes so the path works as a URL against the /uploads mount.
-    return path.replace(os.sep, "/")
+
+def save_upload(file: UploadFile, folder: str, stem: str) -> tuple[bytes, str, str]:
+    """Backwards compatible helper returning (contents, content_type, name)."""
+    return read_and_validate_upload(file, stem)
 
 
 def delete_upload(path: str | None) -> None:
-    """Remove a stored file, ignoring one that has already gone."""
-    if not path:
-        return
+    """No-op when files are stored in database."""
+    pass
 
-    # Only ever delete inside the upload directory.
-    normalised = os.path.normpath(path)
-    if not normalised.startswith(os.path.normpath(settings.UPLOAD_DIR)):
-        return
-
-    try:
-        os.remove(normalised)
-    except OSError:
-        pass
