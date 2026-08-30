@@ -131,3 +131,15 @@ def home():
 def health():
     return {"status": "ok"}
 
+
+@app.on_event("startup")
+def ensure_db_schema():
+    try:
+        from sqlalchemy import text
+        from app.db.session import engine
+        with engine.connect() as conn:
+            conn.execute(text("ALTER TABLE certificates ADD COLUMN IF NOT EXISTS image_data BYTEA;"))
+            conn.commit()
+    except Exception as e:
+        logger.warning("Startup schema check notice: %s", e)
+
