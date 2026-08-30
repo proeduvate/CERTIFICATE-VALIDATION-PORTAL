@@ -31,15 +31,23 @@ import './verify.css';
  * issued for it, and the supporting documents.
  */
 export default function Verify() {
-    const { internId: paramId } = useParams();
+    const params = useParams();
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
 
-    // Accept /verify/:internId plus the older ?id= / ?number= query forms.
+    // Extract full intern ID after /verify/ from pathname (handles slashes e.g. PRO/INT/DEC25/AI/001)
+    let pathId = '';
+    const pathMatch = window.location.pathname.match(/\/verify\/(.+)$/i);
+    if (pathMatch && pathMatch[1]) {
+        pathId = decodeURIComponent(pathMatch[1]);
+    }
+
     const requested = (
-        paramId ??
-        searchParams.get('id') ??
-        searchParams.get('number') ??
+        params['*'] ||
+        params.internId ||
+        pathId ||
+        searchParams.get('id') ||
+        searchParams.get('number') ||
         ''
     ).trim();
 
