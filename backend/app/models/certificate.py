@@ -27,6 +27,7 @@ class Certificate(Base):
     file_data = Column(LargeBinary, nullable=True)
     file_mime_type = Column(String(100), nullable=True)
     file_name = Column(String(255), nullable=True)
+    image_data = Column(LargeBinary, nullable=True)
 
     qr_code = Column(String(255))
 

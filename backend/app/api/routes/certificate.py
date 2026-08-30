@@ -1,4 +1,10 @@
+import base64
+import io
 import os
+from pydantic import BaseModel
+from reportlab.lib.pagesizes import A4, landscape
+from reportlab.pdfgen import canvas
+from reportlab.lib.utils import ImageReader
 
 from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile, status
 from fastapi.responses import FileResponse
@@ -306,8 +312,14 @@ def _serve_certificate_pdf(certificate: Certificate, db: Session) -> Response:
 
 
 def _serve_certificate_image(certificate: Certificate, db: Session):
+    if certificate.image_data:
+        return Response(
+            content=bytes(certificate.image_data),
+            media_type="image/png",
+            headers={"Content-Disposition": f'inline; filename="{certificate.certificate_number}.png"'},
+        )
+
     intern = certificate.intern
-    
     s_date = intern.start_date.strftime("%B %d, %Y") if intern and intern.start_date else None
     e_date = intern.end_date.strftime("%B %d, %Y") if intern and intern.end_date else None
     i_date = (
@@ -334,6 +346,62 @@ def _serve_certificate_image(certificate: Certificate, db: Session):
         media_type="image/png",
         headers={"Content-Disposition": f'inline; filename="{certificate.certificate_number}.png"'},
     )
+
+
+class CanvasUploadRequest(BaseModel):
+    image_data_url: str
+
+
+@router.post("/number/{certificate_number}/upload-canvas")
+def upload_certificate_canvas_by_number(
+    certificate_number: str,
+    payload: CanvasUploadRequest,
+    db: Session = Depends(get_db),
+):
+    certificate = (
+        db.query(Certificate)
+        .filter(Certificate.certificate_number == certificate_number.strip())
+        .first()
+    )
+
+    if not certificate:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Certificate not found",
+        )
+
+    raw_url = payload.image_data_url
+    if "," in raw_url:
+        raw_url = raw_url.split(",", 1)[1]
+
+    try:
+        png_bytes = base64.b64decode(raw_url)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid base64 image data: {e}",
+        )
+
+    # Convert captured PNG image bytes to 1-page A4 landscape PDF
+    img_buf = io.BytesIO(png_bytes)
+    pdf_buf = io.BytesIO()
+    pdf_canvas = canvas.Canvas(pdf_buf, pagesize=landscape(A4))
+    pdf_w, pdf_h = landscape(A4)
+    pdf_canvas.drawImage(ImageReader(img_buf), 0, 0, width=pdf_w, height=pdf_h)
+    pdf_canvas.save()
+
+    pdf_bytes = pdf_buf.getvalue()
+    pdf_buf.close()
+    img_buf.close()
+
+    certificate.image_data = png_bytes
+    certificate.file_data = pdf_bytes
+    certificate.file_mime_type = "application/pdf"
+    certificate.file_name = f"{certificate.certificate_number}.pdf"
+    certificate.file_path = f"/api/v1/certificates/{certificate.id}/download"
+    db.commit()
+
+    return {"message": "Captured canvas image and PDF successfully saved to DB record!"}
 
 
 @router.get("/{certificate_id}/download")

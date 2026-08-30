@@ -5,6 +5,7 @@ import jsPDF from 'jspdf';
 import Icon from './ui/Icon';
 import Button from './ui/Button';
 import { API_BASE_URL } from '../config';
+import { api } from '../lib/apiClient';
 import './certificate-official.css';
 
 export function formatCertificateId(certNumber, issueDate, internId) {
@@ -75,8 +76,8 @@ export function getValStyle(val) {
 
 /**
  * Official Internship Certificate Template.
- * Displays issued certificates as fixed high-resolution responsive images to guarantee
- * 100% alignment stability on all mobile and desktop viewports.
+ * Automatically captures the exact preview component as a high-resolution PNG image,
+ * saves it to the database record, and converts that exact image to PDF for download.
  */
 export default function OfficialCertificate({
     internName = 'DHANUSH CHAKRAVARTHY R',
@@ -93,12 +94,11 @@ export default function OfficialCertificate({
     compact = false,
     showControls = false,
     downloadUrl = null,
-    asImage = false,
 }) {
     const [qrDataUrl, setQrDataUrl] = useState('');
     const [downloading, setDownloading] = useState(false);
-    const [imgFailed, setImgFailed] = useState(false);
     const certRef = useRef(null);
+    const uploadedRef = useRef(false);
 
     const formattedCertId = formatCertificateId(certificateNumber, issueDate, internIdCode);
     const formattedIssueDate = formatIssueDate(issueDate);
@@ -119,10 +119,6 @@ export default function OfficialCertificate({
         verificationUrl ||
         `${window.location.origin}/verify/${encodeURIComponent(internIdCode || formattedCertId)}`;
 
-    const serverImageUrl = certificateNumber
-        ? `${API_BASE_URL}/certificates/number/${encodeURIComponent(certificateNumber)}/image`
-        : null;
-
     useEffect(() => {
         QRCode.toDataURL(targetUrl, {
             width: 180,
@@ -133,16 +129,43 @@ export default function OfficialCertificate({
             .catch((err) => console.error('Failed to render QR Code', err));
     }, [targetUrl]);
 
+    // Automatically capture exact preview card as high-res PNG and save to DB record
+    useEffect(() => {
+        if (!certificateNumber || uploadedRef.current || !qrDataUrl) return;
+
+        const timer = setTimeout(async () => {
+            if (!certRef.current || uploadedRef.current) return;
+            try {
+                uploadedRef.current = true;
+                const pngDataUrl = await toPng(certRef.current, {
+                    pixelRatio: 3,
+                    cacheBust: true,
+                });
+
+                await api.post(`/certificates/number/${encodeURIComponent(certificateNumber)}/upload-canvas`, {
+                    image_data_url: pngDataUrl,
+                });
+            } catch (err) {
+                console.warn('Canvas image auto-save to DB skipped:', err);
+            }
+        }, 1200);
+
+        return () => clearTimeout(timer);
+    }, [certificateNumber, qrDataUrl]);
+
     const handlePrint = () => {
         window.print();
     };
 
+    /**
+     * Converts the exact on-screen preview component directly into a PDF download.
+     */
     const handleDownloadPDF = async () => {
         if (downloading) return;
         setDownloading(true);
 
         try {
-            if (certRef.current && imgFailed) {
+            if (certRef.current) {
                 const pngDataUrl = await toPng(certRef.current, {
                     pixelRatio: 3,
                     cacheBust: true,
@@ -185,8 +208,6 @@ export default function OfficialCertificate({
         }
     };
 
-    const useFixedImage = asImage && serverImageUrl && !imgFailed;
-
     return (
         <div className={`official-cert-wrapper${compact ? ' official-cert-wrapper--compact' : ''}`}>
             {showControls && (
@@ -205,132 +226,121 @@ export default function OfficialCertificate({
                 </div>
             )}
 
-            {useFixedImage ? (
-                <div className="official-cert-card">
-                    <img
-                        src={serverImageUrl}
-                        alt={`Official Internship Certificate - ${internName}`}
-                        className="official-cert__fixed-img"
-                        onError={() => setImgFailed(true)}
-                    />
-                </div>
-            ) : (
-                <div className="official-cert-card" ref={certRef}>
-                    <img
-                        src="/certificate-template-bg.png"
-                        alt=""
-                        className="official-cert__bg"
+            <div className="official-cert-card" ref={certRef}>
+                <img
+                    src="/certificate-template-bg.png"
+                    alt=""
+                    className="official-cert__bg"
+                    aria-hidden="true"
+                />
+
+                {/* Top-Left Dynamic Circular Stamp */}
+                <div className="official-cert__stamp-container">
+                    <svg
+                        className="official-cert__stamp-svg"
+                        viewBox="0 0 160 160"
+                        width="150"
+                        height="150"
                         aria-hidden="true"
-                    />
+                    >
+                        <defs>
+                            <path id="stamp-top-path" d="M 21.5,80 A 58.5,58.5 0 1,1 138.5,80" fill="none" />
+                            <path id="stamp-bottom-path" d="M 138.5,80 A 58.5,58.5 0 0,1 21.5,80" fill="none" />
+                        </defs>
+                        <circle cx="80" cy="80" r="76" fill="none" stroke="#7c3aed" strokeWidth="2.5" />
+                        <circle cx="80" cy="80" r="69" fill="none" stroke="#7c3aed" strokeWidth="1.5" />
+                        <circle cx="80" cy="80" r="48" fill="none" stroke="#7c3aed" strokeWidth="1.5" />
+                        <circle cx="80" cy="80" r="43" fill="none" stroke="#7c3aed" strokeWidth="2" />
 
-                    {/* Top-Left Dynamic Circular Stamp */}
-                    <div className="official-cert__stamp-container">
-                        <svg
-                            className="official-cert__stamp-svg"
-                            viewBox="0 0 160 160"
-                            width="150"
-                            height="150"
-                            aria-hidden="true"
-                        >
-                            <defs>
-                                <path id="stamp-top-path" d="M 21.5,80 A 58.5,58.5 0 1,1 138.5,80" fill="none" />
-                                <path id="stamp-bottom-path" d="M 138.5,80 A 58.5,58.5 0 0,1 21.5,80" fill="none" />
-                            </defs>
-                            <circle cx="80" cy="80" r="76" fill="none" stroke="#7c3aed" strokeWidth="2.5" />
-                            <circle cx="80" cy="80" r="69" fill="none" stroke="#7c3aed" strokeWidth="1.5" />
-                            <circle cx="80" cy="80" r="48" fill="none" stroke="#7c3aed" strokeWidth="1.5" />
-                            <circle cx="80" cy="80" r="43" fill="none" stroke="#7c3aed" strokeWidth="2" />
+                        <text fill="#7c3aed" fontSize="8.5" fontWeight="bold" fontFamily="'Montserrat', sans-serif">
+                            <textPath href="#stamp-top-path" startOffset="50%" textAnchor="middle">
+                                {(internName || 'DHANUSH CHAKRAVARTHY R').toUpperCase()}
+                            </textPath>
+                        </text>
+                        <text fill="#7c3aed" fontSize="8" fontWeight="bold" fontFamily="'Montserrat', sans-serif">
+                            <textPath href="#stamp-bottom-path" startOffset="50%" textAnchor="middle">
+                                {(internIdCode || formattedCertId || 'PRO/INT/001').toUpperCase()}
+                            </textPath>
+                        </text>
 
-                            <text fill="#7c3aed" fontSize="8.5" fontWeight="bold" fontFamily="'Montserrat', sans-serif">
-                                <textPath href="#stamp-top-path" startOffset="50%" textAnchor="middle">
-                                    {(internName || 'DHANUSH CHAKRAVARTHY R').toUpperCase()}
-                                </textPath>
-                            </text>
-                            <text fill="#7c3aed" fontSize="8" fontWeight="bold" fontFamily="'Montserrat', sans-serif">
-                                <textPath href="#stamp-bottom-path" startOffset="50%" textAnchor="middle">
-                                    {(internIdCode || formattedCertId || 'PRO/INT/001').toUpperCase()}
-                                </textPath>
-                            </text>
+                        <rect x="36" y="66" width="88" height="28" fill="#ffffff" stroke="#7c3aed" strokeWidth="2" rx="3" />
+                        <text x="80" y="85" fill="#7c3aed" fontSize="11" fontWeight="bold" fontFamily="'Montserrat', sans-serif" textAnchor="middle" letterSpacing="0.5">
+                            PROEDUVATE
+                        </text>
+                    </svg>
+                </div>
 
-                            <rect x="36" y="66" width="88" height="28" fill="#ffffff" stroke="#7c3aed" strokeWidth="2" rx="3" />
-                            <text x="80" y="85" fill="#7c3aed" fontSize="11" fontWeight="bold" fontFamily="'Montserrat', sans-serif" textAnchor="middle" letterSpacing="0.5">
-                                PROEDUVATE
-                            </text>
-                        </svg>
-                    </div>
+                {/* Recipient Name */}
+                <div className="official-cert__recipient">
+                    <h2 className="official-cert__name">{(internName || 'DHANUSH CHAKRAVARTHY R').toUpperCase()}</h2>
+                </div>
 
-                    {/* Recipient Name */}
-                    <div className="official-cert__recipient">
-                        <h2 className="official-cert__name">{(internName || 'DHANUSH CHAKRAVARTHY R').toUpperCase()}</h2>
-                    </div>
+                {/* Body Paragraph */}
+                <div className="official-cert__body">
+                    <p>
+                        was associated with <strong>ProEduvate</strong> as a{' '}
+                        <strong>{domainDisplay} Intern</strong> from{' '}
+                        <strong>{formattedStartDate}</strong>, to{' '}
+                        <strong>{formattedEndDate}</strong>.
+                    </p>
+                    <p>
+                        During this period, practical exposure to{' '}
+                        <strong>{domainDisplay} concepts</strong> was gained, exhibiting a
+                        genuine interest in learning and a professional attitude in all
+                        activities assigned during the internship.
+                    </p>
+                    <p>
+                        Demonstrated enthusiastic participation in the tasks and projects
+                        assigned during the internship tenure.
+                    </p>
+                </div>
 
-                    {/* Body Paragraph */}
-                    <div className="official-cert__body">
-                        <p>
-                            was associated with <strong>ProEduvate</strong> as a{' '}
-                            <strong>{domainDisplay} Intern</strong> from{' '}
-                            <strong>{formattedStartDate}</strong>, to{' '}
-                            <strong>{formattedEndDate}</strong>.
-                        </p>
-                        <p>
-                            During this period, practical exposure to{' '}
-                            <strong>{domainDisplay} concepts</strong> was gained, exhibiting a
-                            genuine interest in learning and a professional attitude in all
-                            activities assigned during the internship.
-                        </p>
-                        <p>
-                            Demonstrated enthusiastic participation in the tasks and projects
-                            assigned during the internship tenure.
-                        </p>
-                    </div>
-
-                    {/* Details Box */}
-                    <div className="official-cert__details-box">
-                        <div className="official-cert__details-table">
-                            <div className="official-cert__details-row">
-                                <span className="label">INTERN NAME</span>
-                                <span className="colon">:</span>
-                                <span className="val" style={getValStyle(detailsName)}>{detailsName}</span>
-                            </div>
-                            <div className="official-cert__details-row">
-                                <span className="label">INTERNSHIP DOMAIN</span>
-                                <span className="colon">:</span>
-                                <span className="val" style={getValStyle(formattedDomain)}>{formattedDomain}</span>
-                            </div>
-                            <div className="official-cert__details-row">
-                                <span className="label">DURATION OF PARTICIPATION</span>
-                                <span className="colon">:</span>
-                                <span className="val" style={getValStyle(formattedDuration)}>{formattedDuration}</span>
-                            </div>
-                            <div className="official-cert__details-row">
-                                <span className="label">MODE</span>
-                                <span className="colon">:</span>
-                                <span className="val" style={getValStyle(formattedMode)}>{formattedMode}</span>
-                            </div>
-                            <div className="official-cert__details-row">
-                                <span className="label">CERTIFICATE ID</span>
-                                <span className="colon">:</span>
-                                <span className="val highlight" style={getValStyle(formattedCertId)}>{formattedCertId}</span>
-                            </div>
+                {/* Details Box */}
+                <div className="official-cert__details-box">
+                    <div className="official-cert__details-table">
+                        <div className="official-cert__details-row">
+                            <span className="label">INTERN NAME</span>
+                            <span className="colon">:</span>
+                            <span className="val" style={getValStyle(detailsName)}>{detailsName}</span>
+                        </div>
+                        <div className="official-cert__details-row">
+                            <span className="label">INTERNSHIP DOMAIN</span>
+                            <span className="colon">:</span>
+                            <span className="val" style={getValStyle(formattedDomain)}>{formattedDomain}</span>
+                        </div>
+                        <div className="official-cert__details-row">
+                            <span className="label">DURATION OF PARTICIPATION</span>
+                            <span className="colon">:</span>
+                            <span className="val" style={getValStyle(formattedDuration)}>{formattedDuration}</span>
+                        </div>
+                        <div className="official-cert__details-row">
+                            <span className="label">MODE</span>
+                            <span className="colon">:</span>
+                            <span className="val" style={getValStyle(formattedMode)}>{formattedMode}</span>
+                        </div>
+                        <div className="official-cert__details-row">
+                            <span className="label">CERTIFICATE ID</span>
+                            <span className="colon">:</span>
+                            <span className="val highlight" style={getValStyle(formattedCertId)}>{formattedCertId}</span>
                         </div>
                     </div>
-
-                    {/* QR Code */}
-                    <div className="official-cert__qr-slot">
-                        {qrDataUrl ? (
-                            <img src={qrDataUrl} alt="Scan & Verify QR Code" className="official-cert__qr-img" />
-                        ) : (
-                            <div className="official-cert__qr-placeholder" />
-                        )}
-                        <span className="official-cert__qr-label">SCAN &amp; VERIFY</span>
-                    </div>
-
-                    {/* Date of Issue */}
-                    <div className="official-cert__issue-date">
-                        <span>{formattedIssueDate}</span>
-                    </div>
                 </div>
-            )}
+
+                {/* QR Code */}
+                <div className="official-cert__qr-slot">
+                    {qrDataUrl ? (
+                        <img src={qrDataUrl} alt="Scan & Verify QR Code" className="official-cert__qr-img" />
+                    ) : (
+                        <div className="official-cert__qr-placeholder" />
+                    )}
+                    <span className="official-cert__qr-label">SCAN &amp; VERIFY</span>
+                </div>
+
+                {/* Date of Issue */}
+                <div className="official-cert__issue-date">
+                    <span>{formattedIssueDate}</span>
+                </div>
+            </div>
         </div>
     );
 }

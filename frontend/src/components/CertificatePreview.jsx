@@ -4,7 +4,7 @@ import './certificate-preview.css';
 
 /**
  * Certificate preview.
- * When the record carries a custom uploaded image/PDF scan, shows that file.
+ * When the record carries a custom uploaded image scan (png/jpg/webp), displays that image.
  * Otherwise, renders ProEduvate's official predefined certificate template.
  */
 export default function CertificatePreview({
@@ -22,7 +22,14 @@ export default function CertificatePreview({
     compact = false,
     showControls = false,
 }) {
-    if (filePath) {
+    // Only treat filePath as a custom uploaded image scan if it is an actual image file (png/jpg/jpeg/webp)
+    const isCustomImage =
+        filePath &&
+        typeof filePath === 'string' &&
+        /\.(png|jpg|jpeg|webp)$/i.test(filePath) &&
+        !filePath.includes('/download');
+
+    if (isCustomImage) {
         const src = /^https?:\/\//i.test(filePath)
             ? filePath
             : `${API_BASE_URL}/${String(filePath).replace(/^\/+/, '')}`;
@@ -51,7 +58,7 @@ export default function CertificatePreview({
             showControls={showControls}
             downloadUrl={
                 certificateNumber
-                    ? `${API_BASE_URL}/certificates/number/${certificateNumber}/download`
+                    ? `${API_BASE_URL}/certificates/number/${encodeURIComponent(certificateNumber)}/download`
                     : null
             }
         />
