@@ -311,11 +311,16 @@ function FoundState({ result }) {
                                 <CertificatePreview
                                     recipientName={intern.name}
                                     role={internship.internship_role}
+                                    domain={internship.domain}
+                                    duration={internship.duration}
+                                    mode={internship.mode}
+                                    internIdCode={intern.intern_id}
                                     certificateNumber={certificate.certificate_number}
-                                    issueDate={formatDate(certificate.issue_date)}
-                                    startDate={formatDate(internship.start_date)}
-                                    endDate={formatDate(internship.end_date)}
+                                    issueDate={verification?.verification_date || certificate.issue_date}
+                                    startDate={internship.start_date}
+                                    endDate={internship.end_date}
                                     filePath={certificate.url}
+                                    showControls
                                 />
 
                                 {certificate.url && (

@@ -20,18 +20,11 @@ import CertificatePreview from '../../components/CertificatePreview';
 import { useAsync } from '../../hooks/useAsync';
 import { useAuth } from '../../context/AuthContext';
 import { getCertificate, uploadCertificateFile } from '../../services/certificates';
+import { getIntern } from '../../services/interns';
 import { formatDate, orEmpty } from '../../lib/format';
 import { APP } from '../../config';
 import './certificates.css';
 
-/**
- * A single issued certificate.
- *
- * Replaces the mock detail page, which read from a three-entry object literal,
- * rendered five sub-tabs that all showed the same content regardless of
- * selection, and offered a "Copy shareable link" button pointing at a
- * proeduvate.com URL that was never generated from the record.
- */
 export default function CertificateDetail() {
     const { id } = useParams();
     const toast = useToast();
@@ -41,6 +34,11 @@ export default function CertificateDetail() {
     const { data, error, loading, reload } = useAsync(
         (signal) => getCertificate(id, { signal }),
         [id],
+    );
+
+    const { data: internData } = useAsync(
+        (signal) => (data?.intern_id ? getIntern(data.intern_id, { signal }) : Promise.resolve(null)),
+        [data?.intern_id],
     );
 
     const [uploading, setUploading] = useState(false);
@@ -68,8 +66,11 @@ export default function CertificateDetail() {
         );
     }
 
+    const identity = internData?.identity_details || {};
+    const info = internData?.internship_information || {};
+
     const verifyUrl = data?.certificate_number
-        ? `${window.location.origin}/verify/${encodeURIComponent(data.certificate_number)}`
+        ? `${window.location.origin}/verify/${encodeURIComponent(identity.intern_id || data.certificate_number)}`
         : null;
 
     const copyLink = async () => {
@@ -123,7 +124,7 @@ export default function CertificateDetail() {
                     </h1>
                     <p className="page__subtitle">
                         Issued {formatDate(data?.issue_date)} · intern record{' '}
-                        <span className="mono">{orEmpty(data?.intern_id)}</span>
+                        <span className="mono">{orEmpty(identity.intern_id || data?.intern_id)}</span>
                     </p>
                 </div>
 
@@ -149,7 +150,7 @@ export default function CertificateDetail() {
                                 loading={uploading}
                                 onClick={() => fileInput.current?.click()}
                             >
-                                {data?.file_path ? 'Replace document' : 'Upload document'}
+                                {data?.file_path ? 'Replace custom scan' : 'Upload custom scan'}
                             </Button>
                         </>
                     )}
@@ -159,16 +160,16 @@ export default function CertificateDetail() {
             <div className="cert-detail-grid">
                 <Card>
                     <CardHeader
-                        title="Document"
+                        title="Official Internship Certificate"
                         icon="award"
                         action={
                             data?.file_path ? (
                                 <Badge variant="success" dot>
-                                    Uploaded
+                                    Custom scan attached
                                 </Badge>
                             ) : (
-                                <Badge variant="warning" dot>
-                                    Placeholder
+                                <Badge variant="primary" dot>
+                                    Official Template
                                 </Badge>
                             )
                         }
@@ -176,15 +177,23 @@ export default function CertificateDetail() {
 
                     <CardBody>
                         <CertificatePreview
+                            recipientName={identity.name || data?.intern_name}
+                            domain={info.domain || info.internship_role}
+                            role={info.internship_role}
+                            startDate={info.start_date}
+                            endDate={info.end_date}
+                            duration={info.duration}
+                            mode={info.mode}
+                            internIdCode={identity.intern_id || data?.intern_code}
                             certificateNumber={data?.certificate_number}
-                            issueDate={formatDate(data?.issue_date)}
+                            issueDate={data?.issue_date}
                             filePath={data?.file_path}
+                            showControls
                         />
 
                         {!data?.file_path && (
                             <Alert variant="info" className="cert-detail__note">
-                                No document has been uploaded for this certificate, so the
-                                rendering above is a placeholder generated from the record.
+                                ProEduvate&apos;s official predefined certificate template is rendered dynamically from the intern&apos;s verified record.
                             </Alert>
                         )}
                     </CardBody>
@@ -197,7 +206,11 @@ export default function CertificateDetail() {
                             <KeyValueList
                                 items={[
                                     {
-                                        key: 'Certificate number',
+                                        key: 'Intern name',
+                                        value: identity.name || data?.intern_name || '—',
+                                    },
+                                    {
+                                        key: 'Certificate ID',
                                         value: (
                                             <span className="mono">
                                                 {orEmpty(data?.certificate_number)}
@@ -209,14 +222,14 @@ export default function CertificateDetail() {
                                         value: formatDate(data?.issue_date),
                                     },
                                     {
-                                        key: 'Intern record',
-                                        value: data?.intern_id ? (
+                                        key: 'Intern ID',
+                                        value: identity.intern_id ? (
                                             <a
                                                 href={`/dashboard/interns/${data.intern_id}`}
                                                 className="external-value"
                                             >
                                                 <span className="mono">
-                                                    {data.intern_id}
+                                                    {identity.intern_id}
                                                 </span>
                                                 <Icon name="arrowRight" size={13} />
                                             </a>
@@ -283,11 +296,11 @@ export default function CertificateDetail() {
                                     { key: 'Record id', value: orEmpty(data?.id) },
                                     {
                                         key: 'Document',
-                                        value: data?.file_path ? 'Attached' : 'None',
+                                        value: data?.file_path ? 'Custom Upload' : 'Predefined Template',
                                     },
                                     {
                                         key: 'QR code',
-                                        value: orEmpty(data?.qr_code, 'Not generated'),
+                                        value: 'Dynamic Verification QR',
                                     },
                                 ]}
                             />

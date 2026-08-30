@@ -1,18 +1,16 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import { Input } from '../../components/ui/Field';
 import { Alert } from '../../components/ui/Display';
 import { useToast } from '../../components/ui/Toast';
 import { createCertificate } from '../../services/certificates';
+import { getIntern } from '../../services/interns';
 import InternPicker from '../../components/InternPicker';
+import OfficialCertificate, { formatCertificateId } from '../../components/OfficialCertificate';
 
 /**
- * Issue a certificate against an intern record.
- *
- * The certificate number is generated server-side (`generate_certificate_number`
- * overwrites whatever is posted), so the field is shown read-only rather than
- * inviting input that will be discarded.
+ * Issue an internship certificate using ProEduvate's predefined official template.
  */
 export default function CertificateFormModal({ onClose, onSaved }) {
     const toast = useToast();
@@ -20,9 +18,42 @@ export default function CertificateFormModal({ onClose, onSaved }) {
         intern_id: '',
         issue_date: new Date().toISOString().slice(0, 10),
     });
+    const [selectedIntern, setSelectedIntern] = useState(null);
+    const [loadingIntern, setLoadingIntern] = useState(false);
     const [errors, setErrors] = useState({});
     const [formError, setFormError] = useState('');
     const [saving, setSaving] = useState(false);
+
+    useEffect(() => {
+        if (!form.intern_id) {
+            setSelectedIntern(null);
+            return;
+        }
+
+        let isCancelled = false;
+        setLoadingIntern(true);
+
+        getIntern(form.intern_id)
+            .then((data) => {
+                if (!isCancelled) {
+                    setSelectedIntern(data);
+                }
+            })
+            .catch(() => {
+                if (!isCancelled) {
+                    setSelectedIntern(null);
+                }
+            })
+            .finally(() => {
+                if (!isCancelled) {
+                    setLoadingIntern(false);
+                }
+            });
+
+        return () => {
+            isCancelled = true;
+        };
+    }, [form.intern_id]);
 
     const handleSubmit = async (event) => {
         event.preventDefault();
@@ -47,8 +78,8 @@ export default function CertificateFormModal({ onClose, onSaved }) {
             });
 
             toast.success(
-                'Certificate issued',
-                `Reference ${created?.certificate_number ?? ''} has been created.`,
+                'Official Certificate Issued',
+                `Reference ${created?.certificate_number ?? ''} has been generated and issued.`,
             );
             onSaved();
         } catch (error) {
@@ -58,12 +89,22 @@ export default function CertificateFormModal({ onClose, onSaved }) {
         }
     };
 
+    const identity = selectedIntern?.identity_details || {};
+    const info = selectedIntern?.internship_information || {};
+
+    const computedCertId = formatCertificateId(
+        null,
+        form.issue_date,
+        identity.intern_id || form.intern_id,
+    );
+
     return (
         <Modal
             open
             onClose={onClose}
-            title="Issue a certificate"
-            description="Creates the issuing record. The document itself can be uploaded afterwards."
+            size="lg"
+            title="Issue Official Internship Certificate"
+            description="Generates ProEduvate's predefined official certificate template populated with dynamic intern details."
             closeOnBackdrop={false}
             footer={
                 <>
@@ -75,8 +116,9 @@ export default function CertificateFormModal({ onClose, onSaved }) {
                         icon="award"
                         loading={saving}
                         onClick={handleSubmit}
+                        disabled={!form.intern_id || loadingIntern}
                     >
-                        Issue certificate
+                        Issue Official Certificate
                     </Button>
                 </>
             }
@@ -114,13 +156,43 @@ export default function CertificateFormModal({ onClose, onSaved }) {
                 />
 
                 <Input
-                    label="Certificate number"
-                    value="Generated on save"
+                    label="Certificate ID"
+                    value={computedCertId}
                     readOnly
                     disabled
-                    hint="Assigned automatically by the server."
+                    hint="Auto-generated format: PRO-INT-26-XXX"
                 />
 
+                {form.intern_id && (
+                    <div className="form-grid__full" style={{ marginTop: '1rem' }}>
+                        <h4 style={{ marginBottom: '0.75rem', fontWeight: 600, color: 'var(--text-main, #0f172a)' }}>
+                            Official Certificate Template Preview
+                        </h4>
+                        {loadingIntern ? (
+                            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted, #64748b)' }}>
+                                Loading intern details...
+                            </div>
+                        ) : selectedIntern ? (
+                            <OfficialCertificate
+                                internName={identity.name}
+                                domain={info.domain || info.internship_role}
+                                role={info.internship_role}
+                                startDate={info.start_date}
+                                endDate={info.end_date}
+                                duration={info.duration}
+                                mode={info.mode}
+                                internIdCode={identity.intern_id}
+                                certificateNumber={computedCertId}
+                                issueDate={form.issue_date}
+                                compact
+                            />
+                        ) : (
+                            <Alert variant="warning">
+                                Could not load intern details for preview.
+                            </Alert>
+                        )}
+                    </div>
+                )}
 
                 <button type="submit" className="visually-hidden">
                     Issue
