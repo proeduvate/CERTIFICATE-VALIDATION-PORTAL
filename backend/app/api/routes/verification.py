@@ -161,7 +161,7 @@ def verify_by_intern_id(intern_id: str, db: Session = Depends(get_db)):
                 "certificate_number": certificate.certificate_number,
                 "issue_date": certificate.issue_date,
                 "url": _document_url(certificate.file_path),
-                "is_frozen": certificate.is_frozen,
+                "is_frozen": bool(certificate.is_frozen or (certificate.image_data is not None)),
             }
             if certificate
             else None

@@ -246,6 +246,8 @@ export default function OfficialCertificate({
         }
     };
 
+    const isEffectiveFrozen = Boolean(isFrozen || initialIsFrozen);
+
     return (
         <div className={`official-cert-wrapper${compact ? ' official-cert-wrapper--compact' : ''}`}>
             {showControls && (
@@ -285,10 +287,10 @@ export default function OfficialCertificate({
                 </div>
             )}
 
-            {isFrozen && serverImageUrl ? (
+            {isEffectiveFrozen && serverImageUrl ? (
                 <div className="official-cert-card">
                     <img
-                        src={`${serverImageUrl}?t=${Date.now()}`}
+                        src={serverImageUrl}
                         alt={`Frozen Official Internship Certificate - ${internName}`}
                         className="official-cert__fixed-img"
                     />
