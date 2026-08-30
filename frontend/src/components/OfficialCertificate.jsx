@@ -198,7 +198,7 @@ export default function OfficialCertificate({
         setDownloading(true);
 
         try {
-            if (isFrozen && serverImageUrl) {
+            if (isEffectiveFrozen) {
                 const finalUrl =
                     downloadUrl ||
                     `${API_BASE_URL}/certificates/number/${encodeURIComponent(certificateNumber)}/download`;

@@ -263,8 +263,18 @@ def upload_certificate(
 
 
 def _serve_certificate_pdf(certificate: Certificate, db: Session) -> Response:
-    # Prefer stored binary data (custom scan); fall back to in-memory generated official PDF.
-    if certificate.file_data:
+    # Serve frozen DB stored PDF if frozen
+    if certificate.is_frozen and certificate.file_data:
+        filename = certificate.file_name or f"{certificate.certificate_number}.pdf"
+        mime_type = certificate.file_mime_type or "application/pdf"
+        return Response(
+            content=bytes(certificate.file_data),
+            media_type=mime_type,
+            headers={"Content-Disposition": f'inline; filename="{filename}"'},
+        )
+
+    # Custom file scan attached
+    if certificate.file_data and certificate.file_path and not certificate.file_path.endswith('/download'):
         filename = certificate.file_name or f"{certificate.certificate_number}.pdf"
         mime_type = certificate.file_mime_type or "application/pdf"
         return Response(
@@ -297,13 +307,6 @@ def _serve_certificate_pdf(certificate: Certificate, db: Session) -> Response:
         verification_url=f"https://www.proeduvate.in/verify/{intern.intern_id if intern and intern.intern_id else certificate.certificate_number}",
     )
 
-    certificate.file_data = pdf_bytes
-    certificate.file_mime_type = "application/pdf"
-    certificate.file_name = f"{certificate.certificate_number}.pdf"
-    certificate.file_path = f"/api/v1/certificates/{certificate.id}/download"
-    if db is not None:
-        db.commit()
-
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
@@ -312,7 +315,7 @@ def _serve_certificate_pdf(certificate: Certificate, db: Session) -> Response:
 
 
 def _serve_certificate_image(certificate: Certificate, db: Session):
-    if certificate.image_data:
+    if certificate.is_frozen and certificate.image_data:
         return Response(
             content=bytes(certificate.image_data),
             media_type="image/png",
