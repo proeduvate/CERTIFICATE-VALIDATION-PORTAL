@@ -273,11 +273,26 @@
 
 @media (max-width: 640px) {
     .verify-result {
-        padding: var(--space-6) var(--space-4);
+        padding: var(--space-5) var(--space-3);
     }
 
     .verify-hero {
-        padding: var(--space-10) var(--space-4) var(--space-8);
+        padding: var(--space-8) var(--space-4) var(--space-6);
+    }
+
+    .verify-verdict {
+        flex-direction: column;
+        align-items: stretch;
+        gap: var(--space-3);
+        padding: var(--space-4);
+    }
+
+    .verify-verdict__ref {
+        width: 100%;
+    }
+
+    .verify-docs {
+        grid-template-columns: 1fr;
     }
 }
 

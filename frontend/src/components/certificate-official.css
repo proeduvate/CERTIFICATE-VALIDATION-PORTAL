@@ -17,6 +17,19 @@
     max-width: 1000px;
 }
 
+@media (max-width: 640px) {
+    .official-cert-controls {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+    }
+
+    .official-cert-controls button {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
 .official-cert-card {
     position: relative;
     width: 100%;
