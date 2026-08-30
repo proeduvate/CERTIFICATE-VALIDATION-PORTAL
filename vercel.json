@@ -1,57 +1,29 @@
 {
-  "services": {
-    "frontend": {
-      "root": "frontend",
-      "framework": "vite"
-    },
-    "backend": {
-      "root": "backend",
-      "framework": "fastapi",
-      "entrypoint": "app.main:app"
-    }
-  },
+  "version": 2,
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": {
-        "type": "service",
-        "service": "backend"
-      }
+      "destination": "/backend/app/main.py"
     },
     {
       "source": "/health",
-      "destination": {
-        "type": "service",
-        "service": "backend"
-      }
+      "destination": "/backend/app/main.py"
     },
     {
       "source": "/docs",
-      "destination": {
-        "type": "service",
-        "service": "backend"
-      }
+      "destination": "/backend/app/main.py"
     },
     {
       "source": "/openapi.json",
-      "destination": {
-        "type": "service",
-        "service": "backend"
-      }
+      "destination": "/backend/app/main.py"
     },
     {
       "source": "/redoc",
-      "destination": {
-        "type": "service",
-        "service": "backend"
-      }
+      "destination": "/backend/app/main.py"
     },
     {
       "source": "/(.*)",
-      "destination": {
-        "type": "service",
-        "service": "frontend"
-      }
+      "destination": "/index.html"
     }
   ]
 }
