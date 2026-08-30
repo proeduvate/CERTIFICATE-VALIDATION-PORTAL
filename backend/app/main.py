@@ -1,10 +1,12 @@
-import os
+import logging
 
 from fastapi import APIRouter, FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy.exc import DataError, IntegrityError, SQLAlchemyError
+
+logger = logging.getLogger(__name__)
 
 from app.core.config import settings
 from app.api.routes.auth import router as auth_router
@@ -25,17 +27,44 @@ app = FastAPI(
 )
 
 
-@app.exception_handler(IntegrityError)
-async def integrity_error_handler(request: Request, exc: IntegrityError):
+@app.exception_handler(DataError)
+async def data_error_handler(request: Request, exc: DataError):
+    logger.error("Database DataError: %s", exc)
     orig_msg = str(exc.orig) if hasattr(exc, "orig") and exc.orig else str(exc)
     orig_msg_lower = orig_msg.lower()
 
-    if "foreign key constraint" in orig_msg_lower:
-        detail = "Cannot perform operation: This record is referenced by other records (e.g. certificates or documents)."
-    elif "unique constraint" in orig_msg_lower or "already exists" in orig_msg_lower:
-        detail = "A record with this unique information (such as email or intern ID) already exists."
+    if "value too long" in orig_msg_lower or "stringdata_right_truncation" in orig_msg_lower or "stringdatarighttruncation" in orig_msg_lower:
+        detail = "Data entry too long: One of the fields exceeds the maximum character length permitted by the database. Please shorten your input (such as Intern ID or Name) and try again."
+    elif "invalid input syntax" in orig_msg_lower or "out of range" in orig_msg_lower:
+        detail = "Invalid input format: One of the values (such as a date or number) is not in a valid format or is out of range."
     else:
-        detail = f"Database constraint error: {orig_msg}"
+        detail = "Database error: The submitted data contains invalid or overly long values."
+
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        content={"detail": detail},
+    )
+
+
+@app.exception_handler(IntegrityError)
+async def integrity_error_handler(request: Request, exc: IntegrityError):
+    logger.error("Database IntegrityError: %s", exc)
+    orig_msg = str(exc.orig) if hasattr(exc, "orig") and exc.orig else str(exc)
+    orig_msg_lower = orig_msg.lower()
+
+    if "foreign key constraint" in orig_msg_lower or "foreignkeyviolation" in orig_msg_lower:
+        detail = "Cannot perform operation: This record is referenced by or relies on other records (e.g. certificates or documents)."
+    elif "unique constraint" in orig_msg_lower or "already exists" in orig_msg_lower or "uniqueviolation" in orig_msg_lower:
+        if "email" in orig_msg_lower:
+            detail = "An intern with this email address already exists."
+        elif "intern_id" in orig_msg_lower:
+            detail = "An intern with this Intern ID already exists."
+        elif "certificate_number" in orig_msg_lower:
+            detail = "A certificate with this number already exists."
+        else:
+            detail = "A record with this unique information (such as email or intern ID) already exists."
+    else:
+        detail = "Database constraint violation. Please verify that required unique information is not duplicated."
 
     return JSONResponse(
         status_code=status.HTTP_400_BAD_REQUEST,
@@ -45,9 +74,10 @@ async def integrity_error_handler(request: Request, exc: IntegrityError):
 
 @app.exception_handler(SQLAlchemyError)
 async def sqlalchemy_error_handler(request: Request, exc: SQLAlchemyError):
+    logger.error("Database SQLAlchemyError: %s", exc)
     return JSONResponse(
         status_code=status.HTTP_400_BAD_REQUEST,
-        content={"detail": f"Database operation failed: {str(exc)}"},
+        content={"detail": "Database operation failed. Please check your inputs and try again."},
     )
 
 # The browser blocks every cross-origin request without this. The API and the

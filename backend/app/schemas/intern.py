@@ -19,31 +19,31 @@ class InternBase(BaseModel):
     college: str = Field(min_length=1, max_length=100)
 
     # Identity
-    intern_id: str | None = None
-    internship_role: str | None = None
-    referral_person: str | None = None
+    intern_id: str | None = Field(default=None, max_length=100)
+    internship_role: str | None = Field(default=None, max_length=100)
+    referral_person: str | None = Field(default=None, max_length=100)
     dob: date | None = None
-    linkedin: str | None = None
-    github: str | None = None
-    year: str | None = None
-    whatsapp_group: str | None = None
-    location: str | None = None
+    linkedin: str | None = Field(default=None, max_length=255)
+    github: str | None = Field(default=None, max_length=255)
+    year: str | None = Field(default=None, max_length=100)
+    whatsapp_group: str | None = Field(default=None, max_length=100)
+    location: str | None = Field(default=None, max_length=100)
 
     # Internship
-    mode: str | None = None
-    domain: str | None = None
-    mentor: str | None = None
-    organization: str | None = "ProEduvate"
+    mode: str | None = Field(default=None, max_length=100)
+    domain: str | None = Field(default=None, max_length=100)
+    mentor: str | None = Field(default=None, max_length=100)
+    organization: str | None = Field(default="ProEduvate", max_length=100)
     start_date: date | None = None
     end_date: date | None = None
-    duration: str | None = None
-    status: str | None = "Active"
+    duration: str | None = Field(default=None, max_length=100)
+    status: str | None = Field(default="Active", max_length=100)
 
     # Work
-    work_year: str | None = None
-    work_domain: str | None = None
-    responsibilities: str | None = None
-    work_information: str | None = None
+    work_year: str | None = Field(default=None, max_length=100)
+    work_domain: str | None = Field(default=None, max_length=100)
+    responsibilities: str | None = Field(default=None, max_length=500)
+    work_information: str | None = Field(default=None, max_length=1000)
 
     # Attendance
     present_days: int | None = Field(default=0, ge=0)
@@ -54,19 +54,19 @@ class InternBase(BaseModel):
     attendance_percentage: float | None = Field(default=0, ge=0, le=100)
 
     # Documents. OL / AL / TC / LOR are the set public verification exposes.
-    offer_letter: str | None = None
-    acknowledgement_letter: str | None = None
-    terms_conditions: str | None = None
-    lor: str | None = None
-    completion_letter: str | None = None
-    certificate: str | None = None
-    resume: str | None = None
+    offer_letter: str | None = Field(default=None, max_length=255)
+    acknowledgement_letter: str | None = Field(default=None, max_length=255)
+    terms_conditions: str | None = Field(default=None, max_length=255)
+    lor: str | None = Field(default=None, max_length=255)
+    completion_letter: str | None = Field(default=None, max_length=255)
+    certificate: str | None = Field(default=None, max_length=255)
+    resume: str | None = Field(default=None, max_length=255)
 
     # Verification
-    verification_status: str | None = "Pending"
-    verified_by: str | None = None
+    verification_status: str | None = Field(default="Pending", max_length=100)
+    verified_by: str | None = Field(default=None, max_length=100)
     verification_date: date | None = None
-    remarks: str | None = None
+    remarks: str | None = Field(default=None, max_length=500)
 
 
 class InternCreate(InternBase):
@@ -78,46 +78,46 @@ class InternUpdate(BaseModel):
 
     name: str | None = Field(default=None, min_length=1, max_length=100)
     email: EmailStr | None = None
-    department: str | None = None
-    college: str | None = None
-    intern_id: str | None = None
-    internship_role: str | None = None
-    referral_person: str | None = None
+    department: str | None = Field(default=None, max_length=100)
+    college: str | None = Field(default=None, max_length=100)
+    intern_id: str | None = Field(default=None, max_length=100)
+    internship_role: str | None = Field(default=None, max_length=100)
+    referral_person: str | None = Field(default=None, max_length=100)
     dob: date | None = None
-    linkedin: str | None = None
-    github: str | None = None
-    year: str | None = None
-    whatsapp_group: str | None = None
-    location: str | None = None
-    mode: str | None = None
-    domain: str | None = None
-    mentor: str | None = None
-    organization: str | None = None
+    linkedin: str | None = Field(default=None, max_length=255)
+    github: str | None = Field(default=None, max_length=255)
+    year: str | None = Field(default=None, max_length=100)
+    whatsapp_group: str | None = Field(default=None, max_length=100)
+    location: str | None = Field(default=None, max_length=100)
+    mode: str | None = Field(default=None, max_length=100)
+    domain: str | None = Field(default=None, max_length=100)
+    mentor: str | None = Field(default=None, max_length=100)
+    organization: str | None = Field(default=None, max_length=100)
     start_date: date | None = None
     end_date: date | None = None
-    duration: str | None = None
-    status: str | None = None
-    work_year: str | None = None
-    work_domain: str | None = None
-    responsibilities: str | None = None
-    work_information: str | None = None
+    duration: str | None = Field(default=None, max_length=100)
+    status: str | None = Field(default=None, max_length=100)
+    work_year: str | None = Field(default=None, max_length=100)
+    work_domain: str | None = Field(default=None, max_length=100)
+    responsibilities: str | None = Field(default=None, max_length=500)
+    work_information: str | None = Field(default=None, max_length=1000)
     present_days: int | None = Field(default=None, ge=0)
     absent_days: int | None = Field(default=None, ge=0)
     leave_days: int | None = Field(default=None, ge=0)
     working_days: int | None = Field(default=None, ge=0)
     holidays: int | None = Field(default=None, ge=0)
     attendance_percentage: float | None = Field(default=None, ge=0, le=100)
-    offer_letter: str | None = None
-    acknowledgement_letter: str | None = None
-    terms_conditions: str | None = None
-    lor: str | None = None
-    completion_letter: str | None = None
-    certificate: str | None = None
-    resume: str | None = None
-    verification_status: str | None = None
-    verified_by: str | None = None
+    offer_letter: str | None = Field(default=None, max_length=255)
+    acknowledgement_letter: str | None = Field(default=None, max_length=255)
+    terms_conditions: str | None = Field(default=None, max_length=255)
+    lor: str | None = Field(default=None, max_length=255)
+    completion_letter: str | None = Field(default=None, max_length=255)
+    certificate: str | None = Field(default=None, max_length=255)
+    resume: str | None = Field(default=None, max_length=255)
+    verification_status: str | None = Field(default=None, max_length=100)
+    verified_by: str | None = Field(default=None, max_length=100)
     verification_date: date | None = None
-    remarks: str | None = None
+    remarks: str | None = Field(default=None, max_length=500)
 
 
 class InternResponse(InternBase):

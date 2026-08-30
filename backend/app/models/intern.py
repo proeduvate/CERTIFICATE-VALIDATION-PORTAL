@@ -15,29 +15,29 @@ class Intern(Base):
     college = Column(String(100), nullable=False)
 
     # Identity tab
-    intern_id = Column(String(20), unique=True)
+    intern_id = Column(String(100), unique=True)
     internship_role = Column(String(100))
     referral_person = Column(String(100))
     dob = Column(Date)
     linkedin = Column(String(255))
     github = Column(String(255))
-    year = Column(String(20))
-    whatsapp_group = Column(String(50))
+    year = Column(String(100))
+    whatsapp_group = Column(String(100))
     location = Column(String(100))
 
     # Internship tab
 
-    mode = Column(String(50))
+    mode = Column(String(100))
     domain = Column(String(100))
     mentor = Column(String(100))
     organization = Column(String(100))
     start_date = Column(Date)
     end_date = Column(Date)
-    duration = Column(String(50))
-    status = Column(String(50))
+    duration = Column(String(100))
+    status = Column(String(100))
 
     # work tab
-    work_year = Column(String(20))
+    work_year = Column(String(100))
     work_domain = Column(String(100))
     responsibilities = Column(String(500))
     work_information = Column(String(1000))
@@ -85,7 +85,7 @@ class Intern(Base):
 
 
     # verification tab
-    verification_status = Column(String(50))
+    verification_status = Column(String(100))
     verified_by = Column(String(100))
     verification_date = Column(Date)
     remarks = Column(String(500))
