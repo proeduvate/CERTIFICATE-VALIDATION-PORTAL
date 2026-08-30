@@ -1,6 +1,7 @@
+import urllib.parse
 from datetime import date
-
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -34,34 +35,60 @@ def _intern_doc_url(intern: Intern, kind: str) -> str | None:
     return None
 
 
-
 # ---------------------------------------------------------------------------
 # Public lookup, keyed on the intern ID printed on the certificate.
 # ---------------------------------------------------------------------------
 
 
 @router.get(
-    "/verify/{intern_id}",
+    "/verify/{intern_id:path}",
     response_model=VerificationResult,
-    summary="Verify an intern's credentials by intern ID (no auth)",
+    summary="Verify an intern's credentials by intern ID or certificate number (no auth)",
 )
 def verify_by_intern_id(intern_id: str, db: Session = Depends(get_db)):
     """
     Everything a third party legitimately needs to check a placement:
     who the intern is, what the internship was, the certificate issued for it,
     and the supporting documents.
-
-    Deliberately withheld: email, date of birth, attendance figures and
-    internal remarks. Those are not needed to confirm a credential and this
-    endpoint is unauthenticated.
     """
-    reference = intern_id.strip()
+    raw_ref = intern_id.strip()
+    unquoted = urllib.parse.unquote(raw_ref).strip()
+    normalized = unquoted.replace("%2F", "/").replace("%2f", "/")
 
+    # Multi-strategy lookup:
+    # 1. Search Intern table by intern_id (raw, unquoted, normalized)
     intern = (
         db.query(Intern)
-        .filter(Intern.intern_id.ilike(reference))
+        .filter(
+            or_(
+                Intern.intern_id.ilike(raw_ref),
+                Intern.intern_id.ilike(unquoted),
+                Intern.intern_id.ilike(normalized),
+            )
+        )
         .first()
     )
+
+    # 2. Search Certificate table by certificate_number (raw, unquoted, normalized)
+    if not intern:
+        cert = (
+            db.query(Certificate)
+            .filter(
+                or_(
+                    Certificate.certificate_number.ilike(raw_ref),
+                    Certificate.certificate_number.ilike(unquoted),
+                    Certificate.certificate_number.ilike(normalized),
+                )
+            )
+            .first()
+        )
+        if cert and cert.intern:
+            intern = cert.intern
+
+    # 3. Search Intern by numeric ID if reference is digits
+    if not intern and (raw_ref.isdigit() or unquoted.isdigit()):
+        num_id = int(raw_ref) if raw_ref.isdigit() else int(unquoted)
+        intern = db.query(Intern).filter(Intern.id == num_id).first()
 
     if not intern:
         raise HTTPException(
@@ -72,15 +99,10 @@ def verify_by_intern_id(intern_id: str, db: Session = Depends(get_db)):
     verification_status = intern.verification_status or "Pending"
 
     # Nothing is published until an administrator has signed the record off.
-    # Returning the details beforehand would have the portal vouching for a
-    # placement nobody has checked — the opposite of what it is for. The
-    # existence of the reference is still acknowledged, because "we hold this
-    # record but have not verified it" is a true and useful answer, and the ID
-    # is printed on the document the visitor is already holding.
     if verification_status.lower() != "verified":
         return {
             "verified": False,
-            "intern_id": intern.intern_id or reference,
+            "intern_id": intern.intern_id or unquoted,
             "status": verification_status,
         }
 
@@ -113,7 +135,7 @@ def verify_by_intern_id(intern_id: str, db: Session = Depends(get_db)):
 
     return {
         "verified": True,
-        "intern_id": intern.intern_id or reference,
+        "intern_id": intern.intern_id or unquoted,
         "status": verification_status,
         "intern": {
             "name": intern.name,
@@ -166,11 +188,6 @@ def verify_intern(
 ):
     """
     Mark a record verified.
-
-    Separate from the edit endpoint on purpose: verification is a sign-off, not
-    another field. It needs a shared code on top of the admin session, so only
-    the admins entrusted with that code can approve a record even though every
-    admin can edit one.
     """
     intern = db.query(Intern).filter(Intern.id == intern_id).first()
 
