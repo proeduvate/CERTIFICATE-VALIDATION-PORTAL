@@ -93,7 +93,7 @@ export default function OfficialCertificate({
     compact = false,
     showControls = false,
     downloadUrl = null,
-    asImage = true,
+    asImage = false,
 }) {
     const [qrDataUrl, setQrDataUrl] = useState('');
     const [downloading, setDownloading] = useState(false);
