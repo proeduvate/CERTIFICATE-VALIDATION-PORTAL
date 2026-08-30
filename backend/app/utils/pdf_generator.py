@@ -64,7 +64,10 @@ def generate_certificate_image(
     formatted_cert_id = format_certificate_id(certificate_number, issue_date, intern_id_code)
 
     # 1. Load Background Template (2000 x 1414)
+    curr_dir = os.path.dirname(os.path.abspath(__file__))
     bg_paths = [
+        os.path.join(curr_dir, "../assets/certificate-template-bg.png"),
+        os.path.join(curr_dir, "../../../frontend/public/certificate-template-bg.png"),
         "frontend/public/certificate-template-bg.png",
         "../frontend/public/certificate-template-bg.png",
         "public/certificate-template-bg.png",
@@ -87,7 +90,9 @@ def generate_certificate_image(
     draw = ImageDraw.Draw(overlay)
 
     # Load Montserrat-Bold TTF
-    montserrat_path = "app/assets/fonts/Montserrat-Bold.ttf"
+    montserrat_path = os.path.join(curr_dir, "../assets/fonts/Montserrat-Bold.ttf")
+    if not os.path.exists(montserrat_path):
+        montserrat_path = "app/assets/fonts/Montserrat-Bold.ttf"
     if not os.path.exists(montserrat_path):
         montserrat_path = "../backend/app/assets/fonts/Montserrat-Bold.ttf"
 
