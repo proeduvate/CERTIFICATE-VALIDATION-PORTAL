@@ -1,79 +1,45 @@
 {
-  "services": {
-    "frontend": {
-      "root": "frontend",
-      "framework": "vite"
+  "version": 2,
+  "builds": [
+    {
+      "src": "frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
     },
-    "backend": {
-      "root": "backend",
-      "framework": "fastapi",
-      "entrypoint": "app.main:app"
+    {
+      "src": "backend/app/main.py",
+      "use": "@vercel/python"
     }
-  },
-  "rewrites": [
+  ],
+  "routes": [
     {
-      "source": "/api/(.*)",
-      "destination": {
-        "type": "service",
-        "service": "backend"
-      }
+      "src": "/api/(.*)",
+      "dest": "backend/app/main.py"
     },
     {
-      "source": "/health",
-      "destination": {
-        "type": "service",
-        "service": "backend"
-      }
+      "src": "/health",
+      "dest": "backend/app/main.py"
     },
     {
-      "source": "/docs",
-      "destination": {
-        "type": "service",
-        "service": "backend"
-      }
+      "src": "/docs",
+      "dest": "backend/app/main.py"
     },
     {
-      "source": "/openapi.json",
-      "destination": {
-        "type": "service",
-        "service": "backend"
-      }
+      "src": "/openapi.json",
+      "dest": "backend/app/main.py"
     },
     {
-      "source": "/redoc",
-      "destination": {
-        "type": "service",
-        "service": "backend"
-      }
+      "src": "/redoc",
+      "dest": "backend/app/main.py"
     },
     {
-      "source": "/assets/(.*)",
-      "destination": {
-        "type": "service",
-        "service": "frontend"
-      }
+      "handle": "filesystem"
     },
     {
-      "source": "/certificate-template-bg.png",
-      "destination": {
-        "type": "service",
-        "service": "frontend"
-      }
-    },
-    {
-      "source": "/favicon.ico",
-      "destination": {
-        "type": "service",
-        "service": "frontend"
-      }
-    },
-    {
-      "source": "/(.*)",
-      "destination": {
-        "type": "service",
-        "service": "frontend",
-        "path": "/index.html"
-      }
+      "src": "/(.*)",
+      "dest": "frontend/index.html"
     }
   ]
 }
