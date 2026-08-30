@@ -74,13 +74,25 @@ function extractMessage(payload, status) {
     if (typeof detail === 'string') return detail;
 
     if (Array.isArray(detail)) {
-        const first = detail[0];
-        if (first?.msg) {
-            const field = Array.isArray(first.loc)
-                ? first.loc.filter((p) => p !== 'body' && p !== 'query').join('.')
-                : '';
-            return field ? `${field}: ${first.msg}` : first.msg;
-        }
+        const messages = detail
+            .map((err) => {
+                if (err?.msg) {
+                    const rawField = Array.isArray(err.loc)
+                        ? err.loc.filter((p) => p !== 'body' && p !== 'query' && p !== 'path').join('.')
+                        : '';
+                    const fieldName = rawField
+                        ? rawField
+                              .replace(/_/g, ' ')
+                              .replace(/\b\w/g, (c) => c.toUpperCase())
+                              .replace(/Id\b/g, 'ID')
+                        : '';
+                    return fieldName ? `${fieldName}: ${err.msg}` : err.msg;
+                }
+                return typeof err === 'string' ? err : null;
+            })
+            .filter(Boolean);
+
+        if (messages.length > 0) return messages.join('. ');
     }
 
     if (typeof payload?.message === 'string') return payload.message;

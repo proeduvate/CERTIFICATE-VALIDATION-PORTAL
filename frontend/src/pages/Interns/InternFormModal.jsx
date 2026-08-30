@@ -200,6 +200,7 @@ export default function InternFormModal({
                                 onChange={set('name')}
                                 error={errors.name}
                                 placeholder="e.g. Rohit Gupta"
+                                maxLength={100}
                                 required
                             />
                             <Input
@@ -209,6 +210,7 @@ export default function InternFormModal({
                                 onChange={set('email')}
                                 error={errors.email}
                                 placeholder="rohit@example.com"
+                                maxLength={100}
                                 required
                             />
                             <Input
@@ -217,6 +219,7 @@ export default function InternFormModal({
                                 onChange={set('intern_id')}
                                 placeholder="PEV-INT-000124"
                                 hint="Must be unique across all interns."
+                                maxLength={100}
                             />
                             <Input
                                 label="Date of birth"
@@ -229,6 +232,7 @@ export default function InternFormModal({
                                 value={form.college}
                                 onChange={set('college')}
                                 error={errors.college}
+                                maxLength={100}
                                 required
                             />
                             <Input
@@ -236,6 +240,7 @@ export default function InternFormModal({
                                 value={form.department}
                                 onChange={set('department')}
                                 error={errors.department}
+                                maxLength={100}
                                 required
                             />
                             <Input
@@ -243,29 +248,34 @@ export default function InternFormModal({
                                 value={form.year}
                                 onChange={set('year')}
                                 placeholder="Final year"
+                                maxLength={100}
                             />
                             <Input
                                 label="Location"
                                 value={form.location}
                                 onChange={set('location')}
                                 placeholder="Chennai, Tamil Nadu"
+                                maxLength={100}
                             />
                             <Input
                                 label="LinkedIn"
                                 value={form.linkedin}
                                 onChange={set('linkedin')}
                                 placeholder="linkedin.com/in/…"
+                                maxLength={255}
                             />
                             <Input
                                 label="GitHub"
                                 value={form.github}
                                 onChange={set('github')}
                                 placeholder="github.com/…"
+                                maxLength={255}
                             />
                             <Input
                                 label="Referred by"
                                 value={form.referral_person}
                                 onChange={set('referral_person')}
+                                maxLength={100}
                             />
                         </div>
                     )}
@@ -276,23 +286,27 @@ export default function InternFormModal({
                                 label="Organisation"
                                 value={form.organization}
                                 onChange={set('organization')}
+                                maxLength={100}
                             />
                             <Input
                                 label="Role"
                                 value={form.internship_role}
                                 onChange={set('internship_role')}
                                 placeholder="Full Stack Developer Intern"
+                                maxLength={100}
                             />
                             <Input
                                 label="Domain"
                                 value={form.domain}
                                 onChange={set('domain')}
                                 placeholder="Web development"
+                                maxLength={100}
                             />
                             <Input
                                 label="Mentor"
                                 value={form.mentor}
                                 onChange={set('mentor')}
+                                maxLength={100}
                             />
                             <Select
                                 label="Mode"
@@ -324,6 +338,7 @@ export default function InternFormModal({
                                 value={form.duration}
                                 onChange={set('duration')}
                                 placeholder="6 months"
+                                maxLength={100}
                             />
 
                             <Textarea
