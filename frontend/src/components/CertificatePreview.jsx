@@ -21,6 +21,8 @@ export default function CertificatePreview({
     filePath,
     compact = false,
     showControls = false,
+    isFrozen = false,
+    onFreezeChange = null,
 }) {
     // Only treat filePath as a custom uploaded image scan if it is an actual image file (png/jpg/jpeg/webp)
     const isCustomImage =
@@ -56,6 +58,8 @@ export default function CertificatePreview({
             issueDate={issueDate}
             compact={compact}
             showControls={showControls}
+            isFrozen={isFrozen}
+            onFreezeChange={onFreezeChange}
             downloadUrl={
                 certificateNumber
                     ? `${API_BASE_URL}/certificates/number/${encodeURIComponent(certificateNumber)}/download`

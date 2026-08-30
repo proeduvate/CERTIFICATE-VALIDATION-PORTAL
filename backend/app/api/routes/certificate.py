@@ -461,3 +461,81 @@ def get_certificate_image_by_number(
 
     return _serve_certificate_image(certificate, db)
 
+
+@router.post("/number/{certificate_number}/freeze")
+def freeze_certificate(
+    certificate_number: str,
+    payload: CanvasUploadRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    certificate = (
+        db.query(Certificate)
+        .filter(Certificate.certificate_number == certificate_number.strip())
+        .first()
+    )
+
+    if not certificate:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Certificate not found",
+        )
+
+    raw_url = payload.image_data_url
+    if "," in raw_url:
+        raw_url = raw_url.split(",", 1)[1]
+
+    try:
+        png_bytes = base64.b64decode(raw_url)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid base64 image data: {e}",
+        )
+
+    img_buf = io.BytesIO(png_bytes)
+    pdf_buf = io.BytesIO()
+    pdf_canvas = canvas.Canvas(pdf_buf, pagesize=landscape(A4))
+    pdf_w, pdf_h = landscape(A4)
+    pdf_canvas.drawImage(ImageReader(img_buf), 0, 0, width=pdf_w, height=pdf_h)
+    pdf_canvas.save()
+
+    pdf_bytes = pdf_buf.getvalue()
+    pdf_buf.close()
+    img_buf.close()
+
+    certificate.image_data = png_bytes
+    certificate.file_data = pdf_bytes
+    certificate.file_mime_type = "application/pdf"
+    certificate.file_name = f"{certificate.certificate_number}.pdf"
+    certificate.is_frozen = True
+    db.commit()
+
+    return {"message": "Certificate frozen successfully!", "is_frozen": True}
+
+
+@router.post("/number/{certificate_number}/unfreeze")
+def unfreeze_certificate(
+    certificate_number: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    certificate = (
+        db.query(Certificate)
+        .filter(Certificate.certificate_number == certificate_number.strip())
+        .first()
+    )
+
+    if not certificate:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Certificate not found",
+        )
+
+    certificate.is_frozen = False
+    certificate.image_data = None
+    certificate.file_data = None
+    db.commit()
+
+    return {"message": "Certificate unfrozen successfully!", "is_frozen": False}
+
