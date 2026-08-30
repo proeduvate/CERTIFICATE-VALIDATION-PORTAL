@@ -47,10 +47,32 @@
       }
     },
     {
-      "source": "/(.*)",
+      "source": "/assets/(.*)",
       "destination": {
         "type": "service",
         "service": "frontend"
+      }
+    },
+    {
+      "source": "/certificate-template-bg.png",
+      "destination": {
+        "type": "service",
+        "service": "frontend"
+      }
+    },
+    {
+      "source": "/favicon.ico",
+      "destination": {
+        "type": "service",
+        "service": "frontend"
+      }
+    },
+    {
+      "source": "/(.*)",
+      "destination": {
+        "type": "service",
+        "service": "frontend",
+        "path": "/index.html"
       }
     }
   ]
