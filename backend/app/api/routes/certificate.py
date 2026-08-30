@@ -17,7 +17,7 @@ from app.schemas.certificate import (
     PublicCertificateResponse,
 )
 from app.utils.certificate_generator import generate_certificate_number
-from app.utils.pdf_generator import generate_certificate_pdf
+from app.utils.pdf_generator import generate_certificate_image, generate_certificate_pdf
 from app.utils.uploads import delete_upload, save_upload
 
 router = APIRouter(prefix="/certificates", tags=["Certificates"])
@@ -305,6 +305,37 @@ def _serve_certificate_pdf(certificate: Certificate, db: Session) -> Response:
     )
 
 
+def _serve_certificate_image(certificate: Certificate, db: Session):
+    intern = certificate.intern
+    
+    s_date = intern.start_date.strftime("%B %d, %Y") if intern and intern.start_date else None
+    e_date = intern.end_date.strftime("%B %d, %Y") if intern and intern.end_date else None
+    i_date = (
+        intern.verification_date.strftime("%d %B %Y").upper()
+        if intern and intern.verification_date
+        else (certificate.issue_date.strftime("%d %B %Y").upper() if certificate.issue_date else None)
+    )
+
+    img_bytes = generate_certificate_image(
+        intern_name=intern.name if intern else "Certificate Holder",
+        certificate_number=certificate.certificate_number,
+        domain=intern.domain or intern.internship_role if intern else "FullStack Development",
+        start_date=s_date,
+        end_date=e_date,
+        duration=intern.duration if intern else "3 MONTHS",
+        mode=intern.mode if intern else "ONLINE",
+        intern_id_code=intern.intern_id if intern else certificate.certificate_number,
+        issue_date=i_date,
+        verification_url=f"https://www.proeduvate.in/verify/{intern.intern_id if intern and intern.intern_id else certificate.certificate_number}",
+    )
+
+    return Response(
+        content=img_bytes,
+        media_type="image/png",
+        headers={"Content-Disposition": f'inline; filename="{certificate.certificate_number}.png"'},
+    )
+
+
 @router.get("/{certificate_id}/download")
 def download_certificate(
     certificate_id: int,
@@ -332,4 +363,33 @@ def download_certificate_by_number(
         )
 
     return _serve_certificate_pdf(certificate, db)
+
+
+@router.get("/{certificate_id}/image")
+def get_certificate_image_by_id(
+    certificate_id: int,
+    db: Session = Depends(get_db),
+):
+    certificate = _get_or_404(db, certificate_id)
+    return _serve_certificate_image(certificate, db)
+
+
+@router.get("/number/{certificate_number}/image")
+def get_certificate_image_by_number(
+    certificate_number: str,
+    db: Session = Depends(get_db),
+):
+    certificate = (
+        db.query(Certificate)
+        .filter(Certificate.certificate_number == certificate_number.strip())
+        .first()
+    )
+
+    if not certificate:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Certificate not found",
+        )
+
+    return _serve_certificate_image(certificate, db)
 

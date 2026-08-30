@@ -39,16 +39,8 @@
       "dest": "frontend/assets/$1"
     },
     {
-      "src": "/certificate-template-bg.png",
-      "dest": "frontend/certificate-template-bg.png"
-    },
-    {
-      "src": "/favicon.ico",
-      "dest": "frontend/favicon.ico"
-    },
-    {
-      "src": "/favicon.svg",
-      "dest": "frontend/favicon.svg"
+      "src": "/(.*\\.(?:png|jpg|jpeg|svg|webp|ico|json|txt|css|js))$",
+      "dest": "frontend/$1"
     },
     {
       "src": "/(.*)",

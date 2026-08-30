@@ -46,7 +46,7 @@ def truncate_details_name(name: str) -> str:
     return f"{clean[:19]}."
 
 
-def generate_certificate_pdf(
+def generate_certificate_image(
     intern_name: str = "A S RAGAVI",
     certificate_number: str = "PRO-INT-26-114",
     domain: str = "FullStack Development",
@@ -59,8 +59,7 @@ def generate_certificate_pdf(
     verification_url: str = None,
 ) -> bytes:
     """
-    Renders high-resolution composite certificate image using PIL with Montserrat-Bold
-    and outputs a 100% pixel-perfect print-ready PDF matching the frontend preview.
+    Renders a high-resolution composite 2000x1414 PNG image of the official certificate.
     """
     formatted_cert_id = format_certificate_id(certificate_number, issue_date, intern_id_code)
 
@@ -251,12 +250,46 @@ def generate_certificate_pdf(
     bi = draw.textbbox((0, 0), issue_str, font=font_bold_19)
     draw.text((1810 - (bi[2] - bi[0]), 1309), issue_str, fill=(17, 24, 39, 255), font=font_bold_19)
 
-    # Combine overlay and output ReportLab PDF
+    # Combine overlay and return PNG bytes
     combined = Image.alpha_composite(bg, overlay).convert("RGB")
 
     img_buf = io.BytesIO()
     combined.save(img_buf, format="PNG")
-    img_buf.seek(0)
+    img_bytes = img_buf.getvalue()
+    img_buf.close()
+
+    return img_bytes
+
+
+def generate_certificate_pdf(
+    intern_name: str = "A S RAGAVI",
+    certificate_number: str = "PRO-INT-26-114",
+    domain: str = "FullStack Development",
+    start_date: str = "March 14, 2025",
+    end_date: str = "June 14, 2026",
+    duration: str = "3 MONTHS",
+    mode: str = "ONLINE",
+    intern_id_code: str = "PRO/INT/MAR26/FSD/016",
+    issue_date: str = "24 AUGUST 2026",
+    verification_url: str = None,
+) -> bytes:
+    """
+    Generates a 1-page A4 landscape PDF from the high-resolution composite certificate image.
+    """
+    img_bytes = generate_certificate_image(
+        intern_name=intern_name,
+        certificate_number=certificate_number,
+        domain=domain,
+        start_date=start_date,
+        end_date=end_date,
+        duration=duration,
+        mode=mode,
+        intern_id_code=intern_id_code,
+        issue_date=issue_date,
+        verification_url=verification_url,
+    )
+
+    img_buf = io.BytesIO(img_bytes)
 
     pdf_buf = io.BytesIO()
     pdf_canvas = canvas.Canvas(pdf_buf, pagesize=landscape(A4))
