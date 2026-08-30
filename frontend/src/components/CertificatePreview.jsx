@@ -21,6 +21,7 @@ export default function CertificatePreview({
     filePath,
     compact = false,
     showControls = false,
+    showFreezeControl = false,
     isFrozen = false,
     onFreezeChange = null,
 }) {
@@ -58,6 +59,7 @@ export default function CertificatePreview({
             issueDate={issueDate}
             compact={compact}
             showControls={showControls}
+            showFreezeControl={showFreezeControl}
             isFrozen={isFrozen}
             onFreezeChange={onFreezeChange}
             downloadUrl={

@@ -188,6 +188,9 @@ export default function CertificateDetail() {
                             certificateNumber={data?.certificate_number}
                             issueDate={data?.issue_date}
                             filePath={data?.file_path}
+                            isFrozen={Boolean(data?.is_frozen)}
+                            showFreezeControl={isAdmin}
+                            onFreezeChange={reload}
                             showControls
                         />
 

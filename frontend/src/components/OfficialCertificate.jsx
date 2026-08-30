@@ -93,6 +93,7 @@ export default function OfficialCertificate({
     verificationUrl,
     compact = false,
     showControls = false,
+    showFreezeControl = false,
     downloadUrl = null,
     isFrozen: initialIsFrozen = false,
     onFreezeChange = null,
@@ -252,24 +253,26 @@ export default function OfficialCertificate({
                     <Button variant="ghost" icon="printer" onClick={handlePrint}>
                         Print Certificate
                     </Button>
-                    {isFrozen ? (
-                        <Button
-                            variant="secondary"
-                            icon="unlock"
-                            loading={freezing}
-                            onClick={handleUnfreeze}
-                        >
-                            Unfreeze Certificate
-                        </Button>
-                    ) : (
-                        <Button
-                            variant="secondary"
-                            icon="lock"
-                            loading={freezing}
-                            onClick={handleFreeze}
-                        >
-                            Freeze Certificate
-                        </Button>
+                    {showFreezeControl && (
+                        isFrozen ? (
+                            <Button
+                                variant="secondary"
+                                icon="unlock"
+                                loading={freezing}
+                                onClick={handleUnfreeze}
+                            >
+                                Unfreeze Certificate
+                            </Button>
+                        ) : (
+                            <Button
+                                variant="secondary"
+                                icon="lock"
+                                loading={freezing}
+                                onClick={handleFreeze}
+                            >
+                                Freeze Certificate
+                            </Button>
+                        )
                     )}
                     <Button
                         variant="primary"
