@@ -329,6 +329,7 @@ function FoundState({ result }) {
                                     endDate={internship.end_date}
                                     filePath={certificate.url}
                                     isFrozen={Boolean(certificate.is_frozen)}
+                                    asImage={true}
                                     showControls
                                 />
 

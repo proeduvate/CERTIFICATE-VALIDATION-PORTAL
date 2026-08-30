@@ -23,6 +23,7 @@ export default function CertificatePreview({
     showControls = false,
     showFreezeControl = false,
     isFrozen = false,
+    asImage = false,
     onFreezeChange = null,
 }) {
     // Only treat filePath as a custom uploaded image scan if it is an actual image file (png/jpg/jpeg/webp)
@@ -61,6 +62,7 @@ export default function CertificatePreview({
             showControls={showControls}
             showFreezeControl={showFreezeControl}
             isFrozen={isFrozen}
+            asImage={asImage}
             onFreezeChange={onFreezeChange}
             downloadUrl={
                 certificateNumber

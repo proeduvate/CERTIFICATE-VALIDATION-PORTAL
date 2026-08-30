@@ -76,8 +76,8 @@ export function getValStyle(val) {
 
 /**
  * Official Internship Certificate Template.
- * Supports Freeze & Unfreeze operations.
- * When frozen, displays the exact stored DB image directly without client-side canvas recalculation.
+ * Supports rendering as a fixed responsive image (asImage=true) for public verification pages,
+ * or as a dynamic template with Freeze & Unfreeze controls for admin management.
  */
 export default function OfficialCertificate({
     internName = 'DHANUSH CHAKRAVARTHY R',
@@ -96,6 +96,7 @@ export default function OfficialCertificate({
     showFreezeControl = false,
     downloadUrl = null,
     isFrozen: initialIsFrozen = false,
+    asImage = false,
     onFreezeChange = null,
 }) {
     const [qrDataUrl, setQrDataUrl] = useState('');
@@ -193,17 +194,20 @@ export default function OfficialCertificate({
         }
     };
 
+    const isEffectiveFrozen = Boolean(isFrozen || initialIsFrozen);
+    const useFixedImage = asImage || isEffectiveFrozen;
+
     const handleDownloadPDF = async () => {
         if (downloading) return;
         setDownloading(true);
 
         try {
-            if (isEffectiveFrozen) {
+            if (useFixedImage || !certRef.current) {
                 const finalUrl =
                     downloadUrl ||
                     `${API_BASE_URL}/certificates/number/${encodeURIComponent(certificateNumber)}/download`;
                 window.open(finalUrl, '_blank');
-            } else if (certRef.current) {
+            } else {
                 const pngDataUrl = await toPng(certRef.current, {
                     pixelRatio: 3,
                     cacheBust: true,
@@ -217,17 +221,6 @@ export default function OfficialCertificate({
 
                 pdf.addImage(pngDataUrl, 'PNG', 0, 0, 297, 210);
                 pdf.save(`${formattedCertId}.pdf`);
-            } else {
-                const finalUrl =
-                    downloadUrl ||
-                    (certificateNumber
-                        ? `${API_BASE_URL}/certificates/number/${certificateNumber}/download`
-                        : null);
-                if (finalUrl) {
-                    window.open(finalUrl, '_blank');
-                } else {
-                    handlePrint();
-                }
             }
         } catch (err) {
             console.error('Download failed:', err);
@@ -245,8 +238,6 @@ export default function OfficialCertificate({
             setDownloading(false);
         }
     };
-
-    const isEffectiveFrozen = Boolean(isFrozen || initialIsFrozen);
 
     return (
         <div className={`official-cert-wrapper${compact ? ' official-cert-wrapper--compact' : ''}`}>
@@ -287,11 +278,11 @@ export default function OfficialCertificate({
                 </div>
             )}
 
-            {isEffectiveFrozen && serverImageUrl ? (
+            {useFixedImage && serverImageUrl ? (
                 <div className="official-cert-card">
                     <img
-                        src={serverImageUrl}
-                        alt={`Frozen Official Internship Certificate - ${internName}`}
+                        src={`${serverImageUrl}?v=${isFrozen ? 'frozen' : 'live'}`}
+                        alt={`Official Internship Certificate - ${internName}`}
                         className="official-cert__fixed-img"
                     />
                 </div>
