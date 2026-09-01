@@ -7,6 +7,7 @@ from fastapi import (
     APIRouter,
     Depends,
     File,
+    Form,
     HTTPException,
     Query,
     UploadFile,
@@ -36,6 +37,8 @@ DOCUMENT_KINDS = {
     "lor": "Letter of recommendation",
     "completion_letter": "Completion letter",
     "resume": "Resume",
+    "intern_photo": "Intern photo",
+    "internship_document": "Internship document",
 }
 
 router = APIRouter(prefix="/interns", tags=["Intern"])
@@ -202,6 +205,16 @@ def get_intern_options(
     total = query.count()
     rows = query.order_by(Intern.name.asc()).limit(limit).all()
 
+    intern_ids = [intern.id for intern in rows]
+    cert_intern_ids = set()
+    if intern_ids:
+        cert_intern_ids = set(
+            c[0]
+            for c in db.query(Certificate.intern_id)
+            .filter(Certificate.intern_id.in_(intern_ids))
+            .all()
+        )
+
     return {
         "total": total,
         "returned": len(rows),
@@ -212,6 +225,7 @@ def get_intern_options(
                 "intern_id": intern.intern_id,
                 "department": intern.department,
                 "status": intern.status,
+                "has_certificate": intern.id in cert_intern_ids,
             }
             for intern in rows
         ],
@@ -305,6 +319,153 @@ def export_interns(
 
 
 # ---------------------------------------------------------------------------
+# Public document collection & feedback submission (no auth)
+# ---------------------------------------------------------------------------
+
+
+@router.get("/public-submission/{ref}")
+def get_public_submission_info(ref: str, db: Session = Depends(get_db)):
+    """
+    Public lookup for document collection form (no auth required).
+    Lookup by intern ID or numeric database ID.
+    """
+    clean_ref = ref.strip()
+    intern = db.query(Intern).filter(Intern.intern_id == clean_ref).first()
+    if not intern and clean_ref.isdigit():
+        intern = db.query(Intern).filter(Intern.id == int(clean_ref)).first()
+
+    if not intern:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Intern record not found",
+        )
+
+    has_photo = bool(intern.intern_photo_data or intern.intern_photo)
+    has_doc = bool(intern.internship_document_data or intern.internship_document)
+    is_submitted = (intern.submission_status == "Submitted") or (has_photo and has_doc)
+
+    return {
+        "id": intern.id,
+        "intern_id": intern.intern_id,
+        "name": intern.name,
+        "email": intern.email,
+        "department": intern.department,
+        "college": intern.college,
+        "organization": intern.organization,
+        "internship_role": intern.internship_role,
+        "submission_status": intern.submission_status or ("Submitted" if is_submitted else "Pending to receive"),
+        "already_submitted": is_submitted,
+    }
+
+
+@router.post("/public-submission/{ref}")
+def submit_public_documents(
+    ref: str,
+    photo: UploadFile = File(...),
+    document: UploadFile = File(...),
+    mentor_feedback: str | None = Form(None),
+    training_feedback: str | None = Form(None),
+    experience_feedback: str | None = Form(None),
+    rating: int | None = Form(None),
+    db: Session = Depends(get_db),
+):
+    """
+    Public document collection endpoint (no auth required).
+    Collects intern photo, internship document, and feedback.
+    """
+    clean_ref = ref.strip()
+    intern = db.query(Intern).filter(Intern.intern_id == clean_ref).first()
+    if not intern and clean_ref.isdigit():
+        intern = db.query(Intern).filter(Intern.id == int(clean_ref)).first()
+
+    if not intern:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Intern record not found",
+        )
+
+    # Save photo
+    photo_bytes, photo_mime, photo_name = save_upload(
+        photo,
+        folder="intern_photos",
+        stem=f"photo_{intern.id}",
+    )
+    intern.intern_photo_data = photo_bytes
+    intern.intern_photo_mime = photo_mime
+    intern.intern_photo = f"/api/v1/interns/{intern.id}/documents/intern_photo/download"
+
+    # Save internship document
+    doc_bytes, doc_mime, doc_name = save_upload(
+        document,
+        folder="internship_docs",
+        stem=f"doc_{intern.id}",
+    )
+    intern.internship_document_data = doc_bytes
+    intern.internship_document_mime = doc_mime
+    intern.internship_document = f"/api/v1/interns/{intern.id}/documents/internship_document/download"
+
+    # Save feedback & rating
+    if mentor_feedback is not None:
+        intern.mentor_feedback = mentor_feedback.strip()
+    if training_feedback is not None:
+        intern.training_feedback = training_feedback.strip()
+    if experience_feedback is not None:
+        intern.experience_feedback = experience_feedback.strip()
+    if rating is not None:
+        intern.rating = rating
+
+    intern.submission_status = "Submitted"
+    if not intern.verification_status or intern.verification_status.lower() in ("pending to receive", "pending"):
+        intern.verification_status = "Pending Verification"
+
+    db.commit()
+    db.refresh(intern)
+
+    return {
+        "message": "Documents and feedback submitted successfully!",
+        "submission_status": intern.submission_status,
+    }
+
+
+@router.delete("/{intern_id}/submission")
+def delete_intern_submission(
+    intern_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """
+    Delete intern submission (Admin only).
+    Clears intern photo, internship document, and feedback, resetting status to 'Pending to receive'.
+    """
+    intern = _get_or_404(db, intern_id)
+
+    intern.intern_photo = None
+    intern.intern_photo_data = None
+    intern.intern_photo_mime = None
+
+    intern.internship_document = None
+    intern.internship_document_data = None
+    intern.internship_document_mime = None
+
+    intern.mentor_feedback = None
+    intern.training_feedback = None
+    intern.experience_feedback = None
+    intern.rating = None
+
+    intern.submission_status = "Pending to receive"
+    if (intern.verification_status or "").lower() != "verified":
+        intern.verification_status = "Pending to receive"
+
+    db.commit()
+    db.refresh(intern)
+
+    return {
+        "message": "Submission deleted successfully. You can now resend the submission link to the intern.",
+        "submission_status": intern.submission_status,
+    }
+
+
+# ---------------------------------------------------------------------------
 # Single record
 # ---------------------------------------------------------------------------
 
@@ -368,8 +529,44 @@ def get_intern_by_id(
             "completion_letter": intern.completion_letter,
             "resume": intern.resume,
         },
+        "document_submission": {
+            "submission_status": (
+                intern.submission_status
+                or (
+                    "Submitted"
+                    if (intern.intern_photo or intern.intern_photo_data)
+                    and (intern.internship_document or intern.internship_document_data)
+                    else "Pending to receive"
+                )
+            ),
+            "intern_photo": (
+                f"/api/v1/interns/{intern.id}/documents/intern_photo/download"
+                if intern.intern_photo or intern.intern_photo_data
+                else None
+            ),
+            "internship_document": (
+                f"/api/v1/interns/{intern.id}/documents/internship_document/download"
+                if intern.internship_document or intern.internship_document_data
+                else None
+            ),
+            "mentor_feedback": intern.mentor_feedback,
+            "training_feedback": intern.training_feedback,
+            "experience_feedback": intern.experience_feedback,
+            "rating": intern.rating,
+        },
         "verification": {
-            "verification_status": intern.verification_status,
+            "verification_status": (
+                intern.verification_status
+                or (
+                    "Pending Verification"
+                    if (intern.submission_status == "Submitted")
+                    or (
+                        (intern.intern_photo or intern.intern_photo_data)
+                        and (intern.internship_document or intern.internship_document_data)
+                    )
+                    else "Pending to receive"
+                )
+            ),
             "verified_by": intern.verified_by,
             "verification_date": intern.verification_date,
             "remarks": intern.remarks,
@@ -509,7 +706,18 @@ def download_intern_document(
             detail=f"No {DOCUMENT_KINDS[kind]} uploaded for this intern",
         )
 
-    filename = f"{intern.intern_id or intern.id}-{kind}.pdf"
+    ext = "pdf"
+    if mime_type:
+        if "image/jpeg" in mime_type or "image/jpg" in mime_type:
+            ext = "jpg"
+        elif "image/png" in mime_type:
+            ext = "png"
+        elif "image/webp" in mime_type:
+            ext = "webp"
+        elif "application/pdf" in mime_type:
+            ext = "pdf"
+
+    filename = f"{intern.intern_id or intern.id}-{kind}.{ext}"
     return Response(
         content=bytes(file_data),
         media_type=mime_type,

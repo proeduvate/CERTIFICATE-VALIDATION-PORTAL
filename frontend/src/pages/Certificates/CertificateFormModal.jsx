@@ -55,9 +55,16 @@ export default function CertificateFormModal({ onClose, onSaved }) {
         };
     }, [form.intern_id]);
 
+    const [selectedInternOption, setSelectedInternOption] = useState(null);
+
     const handleSubmit = async (event) => {
         event.preventDefault();
         setFormError('');
+
+        if (selectedInternOption?.has_certificate) {
+            setFormError('A certificate has already been issued for this intern. Delete the existing certificate record before issuing a new one.');
+            return;
+        }
 
         const next = {};
         if (!form.intern_id) next.intern_id = 'Choose the intern this belongs to';
@@ -98,6 +105,8 @@ export default function CertificateFormModal({ onClose, onSaved }) {
         identity.intern_id || form.intern_id,
     );
 
+    const isBlocked = Boolean(selectedInternOption?.has_certificate);
+
     return (
         <Modal
             open
@@ -116,7 +125,7 @@ export default function CertificateFormModal({ onClose, onSaved }) {
                         icon="award"
                         loading={saving}
                         onClick={handleSubmit}
-                        disabled={!form.intern_id || loadingIntern}
+                        disabled={!form.intern_id || loadingIntern || isBlocked}
                     >
                         Issue Official Certificate
                     </Button>
@@ -130,12 +139,20 @@ export default function CertificateFormModal({ onClose, onSaved }) {
                     </Alert>
                 )}
 
+                {isBlocked && (
+                    <Alert variant="warning" className="form-grid__full">
+                        A certificate has already been issued for {selectedInternOption?.name || 'this intern'}. To re-issue, you must first delete the existing certificate record from the Certificates tab.
+                    </Alert>
+                )}
+
                 <div className="form-grid__full">
                     <InternPicker
                         value={form.intern_id}
-                        onChange={(value) => {
+                        onChange={(value, option) => {
                             setForm((f) => ({ ...f, intern_id: value }));
+                            setSelectedInternOption(option);
                             setErrors((e) => ({ ...e, intern_id: undefined }));
+                            setFormError('');
                         }}
                         error={errors.intern_id}
                         required

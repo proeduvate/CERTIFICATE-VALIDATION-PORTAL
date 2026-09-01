@@ -68,6 +68,15 @@ class InternBase(BaseModel):
     verification_date: date | None = None
     remarks: str | None = Field(default=None, max_length=500)
 
+    # Submission & Feedback
+    submission_status: str | None = Field(default="Pending to receive", max_length=100)
+    intern_photo: str | None = Field(default=None, max_length=255)
+    internship_document: str | None = Field(default=None, max_length=255)
+    mentor_feedback: str | None = Field(default=None, max_length=1000)
+    training_feedback: str | None = Field(default=None, max_length=1000)
+    experience_feedback: str | None = Field(default=None, max_length=1000)
+    rating: int | None = Field(default=None, ge=1, le=5)
+
 
 class InternCreate(InternBase):
     pass
@@ -118,6 +127,7 @@ class InternUpdate(BaseModel):
     verified_by: str | None = Field(default=None, max_length=100)
     verification_date: date | None = None
     remarks: str | None = Field(default=None, max_length=500)
+    submission_status: str | None = Field(default=None, max_length=100)
 
 
 class InternResponse(InternBase):

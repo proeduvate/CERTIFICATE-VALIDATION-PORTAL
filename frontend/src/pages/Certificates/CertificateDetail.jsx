@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import Button from '../../components/ui/Button';
+import Modal from '../../components/ui/Modal';
 import Icon from '../../components/ui/Icon';
 import {
     Alert,
@@ -19,7 +20,7 @@ import { useToast } from '../../components/ui/Toast';
 import CertificatePreview from '../../components/CertificatePreview';
 import { useAsync } from '../../hooks/useAsync';
 import { useAuth } from '../../context/AuthContext';
-import { getCertificate, uploadCertificateFile } from '../../services/certificates';
+import { deleteCertificate, getCertificate, uploadCertificateFile } from '../../services/certificates';
 import { getIntern } from '../../services/interns';
 import { formatDate, orEmpty } from '../../lib/format';
 import { APP } from '../../config';
@@ -27,9 +28,13 @@ import './certificates.css';
 
 export default function CertificateDetail() {
     const { id } = useParams();
+    const navigate = useNavigate();
     const toast = useToast();
     const { isAdmin } = useAuth();
     const fileInput = useRef(null);
+
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deleting, setDeleting] = useState(false);
 
     const { data, error, loading, reload } = useAsync(
         (signal) => getCertificate(id, { signal }),
@@ -145,12 +150,19 @@ export default function CertificateDetail() {
                                 tabIndex={-1}
                             />
                             <Button
-                                variant="primary"
+                                variant="secondary"
                                 icon="upload"
                                 loading={uploading}
                                 onClick={() => fileInput.current?.click()}
                             >
                                 {data?.file_path ? 'Replace custom scan' : 'Upload custom scan'}
+                            </Button>
+                            <Button
+                                variant="danger"
+                                icon="trash"
+                                onClick={() => setShowDeleteModal(true)}
+                            >
+                                Delete certificate
                             </Button>
                         </>
                     )}
@@ -311,6 +323,40 @@ export default function CertificateDetail() {
                     </Card>
                 </div>
             </div>
+
+            {showDeleteModal && (
+                <Modal
+                    open
+                    onClose={() => setShowDeleteModal(false)}
+                    title="Delete Certificate Record"
+                    description={`Are you sure you want to delete certificate ${data?.certificate_number}? This will permanently remove the record and allow re-issuing a certificate for ${identity.name || data?.intern_name || 'this intern'}.`}
+                    footer={
+                        <>
+                            <Button variant="ghost" onClick={() => setShowDeleteModal(false)} disabled={deleting}>
+                                Cancel
+                            </Button>
+                            <Button
+                                variant="danger"
+                                icon="trash"
+                                loading={deleting}
+                                onClick={async () => {
+                                    setDeleting(true);
+                                    try {
+                                        await deleteCertificate(id);
+                                        toast.success('Certificate Deleted', `Certificate ${data?.certificate_number} was removed.`);
+                                        navigate('/dashboard/certificates');
+                                    } catch (err) {
+                                        toast.error('Deletion Failed', err?.message || 'Could not delete certificate.');
+                                        setDeleting(false);
+                                    }
+                                }}
+                            >
+                                Delete Certificate
+                            </Button>
+                        </>
+                    }
+                />
+            )}
         </div>
     );
 }

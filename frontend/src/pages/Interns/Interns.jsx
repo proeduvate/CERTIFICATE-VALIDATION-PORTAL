@@ -5,6 +5,7 @@ import { Input, Select } from '../../components/ui/Field';
 import Modal from '../../components/ui/Modal';
 import {
     Avatar,
+    Badge,
     Card,
     EmptyState,
     ErrorState,
@@ -483,13 +484,6 @@ export default function Interns() {
                                             Department
                                         </SortHeader>
                                         <SortHeader
-                                            column="internship_role"
-                                            sort={sort}
-                                            onSort={setSort}
-                                        >
-                                            Role
-                                        </SortHeader>
-                                        <SortHeader
                                             column="start_date"
                                             sort={sort}
                                             onSort={setSort}
@@ -536,10 +530,18 @@ export default function Interns() {
                                                 {orEmpty(intern.intern_id)}
                                             </td>
                                             <td>{orEmpty(intern.department)}</td>
-                                            <td>{orEmpty(intern.internship_role)}</td>
                                             <td>{formatDate(intern.start_date)}</td>
                                             <td>
-                                                <StatusBadge status={intern.status} />
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', alignItems: 'flex-start' }}>
+                                                    <StatusBadge status={intern.status} />
+                                                    {(intern.verification_status || '').toLowerCase() === 'verified' ? (
+                                                        <Badge variant="success" dot style={{ fontSize: '0.7rem' }}>Verified</Badge>
+                                                    ) : intern.submission_status === 'Submitted' || Boolean(intern.intern_photo && intern.internship_document) ? (
+                                                        <Badge variant="brand" dot style={{ fontSize: '0.7rem' }}>Submitted</Badge>
+                                                    ) : (
+                                                        <Badge variant="warning" dot style={{ fontSize: '0.7rem' }}>Pending to receive</Badge>
+                                                    )}
+                                                </div>
                                             </td>
 
                                             <td>
@@ -552,6 +554,19 @@ export default function Interns() {
                                                                 `/dashboard/interns/${intern.id}`,
                                                             )
                                                         }
+                                                    />
+                                                    <IconButton
+                                                        icon="link"
+                                                        label={`Copy collection form link for ${intern.name}`}
+                                                        onClick={async () => {
+                                                            const url = `${window.location.origin}/submit-documents/${encodeURIComponent(intern.intern_id || intern.id)}`;
+                                                            try {
+                                                                await navigator.clipboard.writeText(url);
+                                                                toast.success('Collection link copied', url);
+                                                            } catch {
+                                                                toast.error('Could not copy link');
+                                                            }
+                                                        }}
                                                     />
 
                                                     {isAdmin && (

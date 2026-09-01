@@ -1,0 +1,197 @@
+.submit-doc-page {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem 1rem 4rem;
+}
+
+.submit-doc-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.submit-doc-header__logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 0.75rem;
+}
+
+.submit-doc-header__title {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.submit-doc-header__subtitle {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+}
+
+.submit-doc-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-xl, 1rem);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+    margin-bottom: 2rem;
+}
+
+.submit-doc-identity {
+    background: var(--bg-sunken);
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.submit-doc-identity__info h3 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.submit-doc-identity__info p {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+.submit-doc-body {
+    padding: 2rem;
+}
+
+.submit-doc-section {
+    margin-bottom: 2rem;
+}
+
+.submit-doc-section__title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.submit-doc-upload-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.25rem;
+}
+
+.upload-box {
+    border: 2px dashed var(--border-default);
+    border-radius: var(--radius-md, 0.75rem);
+    padding: 1.5rem;
+    text-align: center;
+    background: var(--bg-sunken);
+    transition: all var(--duration-base, 0.2s) ease;
+    cursor: pointer;
+    position: relative;
+}
+
+.upload-box:hover, .upload-box.has-file {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+}
+
+.upload-box__icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--accent-soft);
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 0.75rem;
+}
+
+.upload-box__label {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.upload-box__hint {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.upload-box__preview {
+    margin-top: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    justify-content: center;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--success);
+}
+
+.upload-box__img-preview {
+    max-height: 120px;
+    border-radius: var(--radius-sm, 0.5rem);
+    object-fit: cover;
+    margin: 0.75rem auto 0;
+    box-shadow: var(--shadow-sm);
+}
+
+.star-rating {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    margin-top: 0.5rem;
+}
+
+.star-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.25rem;
+    color: var(--border-strong);
+    transition: transform var(--duration-fast, 0.15s) ease, color var(--duration-fast, 0.15s) ease;
+}
+
+.star-btn:hover, .star-btn.is-selected {
+    color: var(--warning, #f59e0b);
+    transform: scale(1.15);
+}
+
+.submit-doc-success {
+    text-align: center;
+    padding: 3rem 1.5rem;
+}
+
+.submit-doc-success__icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: var(--success-soft);
+    color: var(--success);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.25rem;
+}
+
+.submit-doc-success__title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.submit-doc-success__msg {
+    color: var(--text-muted);
+    max-width: 480px;
+    margin: 0 auto 1.5rem;
+}

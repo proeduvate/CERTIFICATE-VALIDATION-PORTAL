@@ -123,9 +123,16 @@ def get_certificates(
             issue_date=certificate.issue_date,
             file_path=certificate.file_path,
             qr_code=certificate.qr_code,
+            is_frozen=certificate.is_frozen,
             intern_name=certificate.intern.name if certificate.intern else None,
             intern_code=(
                 certificate.intern.intern_id if certificate.intern else None
+            ),
+            verification_status=(
+                certificate.intern.verification_status if certificate.intern else None
+            ),
+            internship_status=(
+                certificate.intern.status if certificate.intern else None
             ),
         )
         for certificate in certificates
@@ -142,6 +149,17 @@ def create_certificate(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
+    existing = (
+        db.query(Certificate)
+        .filter(Certificate.intern_id == certificate.intern_id)
+        .first()
+    )
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A certificate has already been issued for this intern. Delete the existing certificate record before issuing a new one.",
+        )
+
     data = certificate.model_dump()
     data.pop("certificate_number", None)
 

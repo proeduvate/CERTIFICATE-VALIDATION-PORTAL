@@ -33,6 +33,8 @@ class CertificateResponse(CertificateBase):
 class CertificateListItem(CertificateResponse):
     intern_name: str | None = None
     intern_code: str | None = None
+    verification_status: str | None = None
+    internship_status: str | None = None
 
 
 class PublicCertificateResponse(BaseModel):

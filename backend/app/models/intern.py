@@ -83,6 +83,22 @@ class Intern(Base):
     resume_data = Column(LargeBinary, nullable=True)
     resume_mime = Column(String(100), nullable=True)
 
+    # Document collection & feedback
+    intern_photo = Column(String(255), nullable=True)
+    intern_photo_data = Column(LargeBinary, nullable=True)
+    intern_photo_mime = Column(String(100), nullable=True)
+
+    internship_document = Column(String(255), nullable=True)
+    internship_document_data = Column(LargeBinary, nullable=True)
+    internship_document_mime = Column(String(100), nullable=True)
+
+    mentor_feedback = Column(String(1000), nullable=True)
+    training_feedback = Column(String(1000), nullable=True)
+    experience_feedback = Column(String(1000), nullable=True)
+    rating = Column(Integer, nullable=True)
+
+    submission_status = Column(String(100), default="Pending to receive")
+
 
     # verification tab
     verification_status = Column(String(100))

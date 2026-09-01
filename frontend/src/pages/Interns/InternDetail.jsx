@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Button from '../../components/ui/Button';
+import Modal from '../../components/ui/Modal';
 import Icon from '../../components/ui/Icon';
 import {
+    Alert,
     Avatar,
     Badge,
     Card,
@@ -24,6 +26,7 @@ import { useAsync } from '../../hooks/useAsync';
 import {
     DOCUMENT_KINDS,
     completeIntern,
+    deleteInternSubmission,
     getIntern,
     reopenIntern,
 } from '../../services/interns';
@@ -34,11 +37,13 @@ import {
     formatPercent,
     orEmpty,
 } from '../../lib/format';
+import { resolveDocumentUrl } from '../../lib/documents';
 import './interns.css';
 
 const TABS = [
     { id: 'identity', label: 'Identity', icon: 'user' },
     { id: 'internship', label: 'Internship', icon: 'briefcase' },
+    { id: 'collection', label: 'Document Collection & Feedback', icon: 'fileCheck' },
     { id: 'work', label: 'Work & tasks', icon: 'clipboard' },
     { id: 'attendance', label: 'Attendance', icon: 'calendar' },
     { id: 'documents', label: 'Documents', icon: 'folder' },
@@ -47,13 +52,6 @@ const TABS = [
 
 /**
  * Intern record.
- *
- * `GET /interns/{id}` returns the record pre-grouped into identity /
- * internship / work / attendance sections, so the tabs map onto that shape
- * directly. The previous page ignored the route parameter and rendered a
- * 1,200-line constant describing a fictional intern — including invented
- * skills, hobbies, mentor feedback and AWS certifications that no endpoint
- * supplies.
  */
 export default function InternDetail() {
     const { id } = useParams();
@@ -62,6 +60,8 @@ export default function InternDetail() {
     const [tab, setTab] = useState('identity');
     const [verifying, setVerifying] = useState(false);
     const [changingStatus, setChangingStatus] = useState(false);
+    const [showDeleteSubModal, setShowDeleteSubModal] = useState(false);
+    const [deletingSub, setDeletingSub] = useState(false);
     const toast = useToast();
 
     const { data, error, loading, reload } = useAsync(
@@ -93,11 +93,27 @@ export default function InternDetail() {
     const work = data?.work_task_summary ?? {};
     const attendance = data?.attendance_summary ?? {};
     const docs = data?.documents ?? {};
+    const submission = data?.document_submission ?? {};
     const verification = data?.verification ?? {};
 
     const isVerified =
         (verification.verification_status ?? '').toLowerCase() === 'verified';
     const isCompleted = internship.status === 'Completed';
+
+    const hasPhoto = Boolean(submission.intern_photo);
+    const hasDoc = Boolean(submission.internship_document);
+    const isSubmitted = submission.submission_status === 'Submitted' || (hasPhoto && hasDoc);
+    const canVerify = isSubmitted;
+
+    const copyCollectionLink = async () => {
+        const url = `${window.location.origin}/submit-documents/${encodeURIComponent(identity.intern_id || id)}`;
+        try {
+            await navigator.clipboard.writeText(url);
+            toast.success('Submission link copied to clipboard', url);
+        } catch {
+            toast.error('Could not copy link');
+        }
+    };
 
     const band = attendanceBand(attendance.attendance_percentage);
 
@@ -111,7 +127,6 @@ export default function InternDetail() {
                 ]}
             />
 
-            {/* ---------------- Header ---------------- */}
             <header className="intern-hero">
                 <div className="intern-hero__identity">
                     <Avatar name={identity.name} size="xl" />
@@ -120,6 +135,13 @@ export default function InternDetail() {
                         <div className="intern-hero__name-row">
                             <h1 className="page__title">{orEmpty(identity.name)}</h1>
                             <StatusBadge status={internship.status} />
+                            {isVerified ? (
+                                <Badge variant="success" dot>Verified</Badge>
+                            ) : isSubmitted ? (
+                                <Badge variant="brand" dot>Submitted</Badge>
+                            ) : (
+                                <Badge variant="warning" dot>Pending to receive</Badge>
+                            )}
                         </div>
 
                         <p className="intern-hero__meta">
@@ -155,6 +177,9 @@ export default function InternDetail() {
                     >
                         Back
                     </Button>
+                    <Button variant="secondary" icon="link" onClick={copyCollectionLink}>
+                        Collect documents
+                    </Button>
                     <Button variant="secondary" icon="refresh" onClick={reload}>
                         Refresh
                     </Button>
@@ -189,14 +214,18 @@ export default function InternDetail() {
                         </Button>
                     )}
 
-                    {/* Verification is its own action, not a field in the edit
-                        form — it needs the shared code as well as an admin
-                        session. */}
                     {isAdmin && (
                         <Button
                             variant={isVerified ? 'secondary' : 'primary'}
                             icon="shieldCheck"
-                            onClick={() => setVerifying(true)}
+                            onClick={() => {
+                                if (!canVerify && !isVerified) {
+                                    toast.error('Cannot Verify Record', 'Intern photo and internship document must be submitted before verification.');
+                                    return;
+                                }
+                                setVerifying(true);
+                            }}
+                            disabled={!canVerify && !isVerified}
                         >
                             {isVerified ? 'Re-verify' : 'Verify record'}
                         </Button>
@@ -231,7 +260,7 @@ export default function InternDetail() {
                     label="Mentor"
                     value={orEmpty(internship.mentor)}
                     icon="user"
-                    tint="grey"
+                    tint="brand"
                     meta={orEmpty(internship.organization, 'No organisation set')}
                 />
             </div>
@@ -338,6 +367,117 @@ export default function InternDetail() {
                                         },
                                     ]}
                                 />
+                            </div>
+                        </TabPanel>
+                    )}
+
+                    {tab === 'collection' && (
+                        <TabPanel id="collection">
+                            <div className="collection-panel" style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                                    <div>
+                                        <h3 style={{ margin: 0, fontWeight: 700, fontSize: '1.1rem', color: 'var(--text-primary)' }}>
+                                            Intern Document Submission & Feedback
+                                        </h3>
+                                        <p style={{ margin: '0.25rem 0 0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                                            Public form status: {isSubmitted ? 'Submitted by intern' : 'Pending to receive from intern'}
+                                        </p>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                        {isVerified ? (
+                                            <Badge variant="success" dot size="lg">Verified</Badge>
+                                        ) : isSubmitted ? (
+                                            <Badge variant="brand" dot size="lg">Submitted</Badge>
+                                        ) : (
+                                            <Badge variant="warning" dot size="lg">Pending to receive</Badge>
+                                        )}
+                                        <Button variant="secondary" icon="link" onClick={copyCollectionLink}>
+                                            Copy Submission Link
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                {!isSubmitted ? (
+                                    <Alert variant="warning" icon="alertTriangle">
+                                        <strong>Document Collection Pending</strong>: Send the submission form link to <strong>{identity.name}</strong> to collect their Intern Photo, Internship Document, and Feedback. Verification is locked until these documents are submitted.
+                                    </Alert>
+                                ) : (
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+                                        <Card style={{ padding: '1.25rem', background: 'var(--bg-sunken)', border: '1px solid var(--border-subtle)' }}>
+                                            <h4 style={{ fontWeight: 600, marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)' }}>
+                                                <Icon name="user" size={16} /> Intern Photo
+                                            </h4>
+                                            {submission.intern_photo ? (
+                                                <div style={{ textAlign: 'center' }}>
+                                                    <img
+                                                        src={resolveDocumentUrl(submission.intern_photo)}
+                                                        alt="Intern photo"
+                                                        style={{ maxHeight: '180px', borderRadius: 'var(--radius-md, 0.5rem)', objectFit: 'cover', boxShadow: 'var(--shadow-sm)' }}
+                                                    />
+                                                    <div style={{ marginTop: '0.75rem' }}>
+                                                        <Button href={resolveDocumentUrl(submission.intern_photo)} target="_blank" rel="noreferrer" variant="secondary" icon="externalLink" size="sm">
+                                                            View Full Image
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <p style={{ color: 'var(--text-muted)' }}>No photo uploaded.</p>
+                                            )}
+                                        </Card>
+
+                                        <Card style={{ padding: '1.25rem', background: 'var(--bg-sunken)', border: '1px solid var(--border-subtle)' }}>
+                                            <h4 style={{ fontWeight: 600, marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)' }}>
+                                                <Icon name="fileCheck" size={16} /> Internship Document
+                                            </h4>
+                                            {submission.internship_document ? (
+                                                <div>
+                                                    <p style={{ fontSize: '0.9rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+                                                        Internship document file attached.
+                                                    </p>
+                                                    <Button href={resolveDocumentUrl(submission.internship_document)} target="_blank" rel="noreferrer" variant="primary" icon="download" block>
+                                                        Download Internship Document
+                                                    </Button>
+                                                </div>
+                                            ) : (
+                                                <p style={{ color: 'var(--text-muted)' }}>No document uploaded.</p>
+                                            )}
+                                        </Card>
+
+                                        <Card style={{ gridColumn: '1 / -1', padding: '1.25rem', background: 'var(--bg-sunken)', border: '1px solid var(--border-subtle)' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                                                <h4 style={{ fontWeight: 600, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)' }}>
+                                                    <Icon name="star" size={16} /> Intern Feedback & Rating
+                                                </h4>
+                                                {submission.rating && (
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#f59e0b', fontWeight: 700 }}>
+                                                        <Icon name="star" size={18} />
+                                                        <span>{submission.rating} / 5 Rating</span>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <KeyValueList
+                                                items={[
+                                                    { key: 'Mentor Feedback', value: submission.mentor_feedback || 'No mentor feedback submitted' },
+                                                    { key: 'Training Feedback', value: submission.training_feedback || 'No training feedback submitted' },
+                                                    { key: 'Overall Experience', value: submission.experience_feedback || 'No experience feedback submitted' },
+                                                ]}
+                                            />
+
+                                            {isAdmin && (
+                                                <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'flex-end' }}>
+                                                    <Button
+                                                        variant="danger"
+                                                        icon="trash"
+                                                        onClick={() => setShowDeleteSubModal(true)}
+                                                    >
+                                                        Delete Submission
+                                                    </Button>
+                                                </div>
+                                            )}
+                                        </Card>
+                                    </div>
+                                )}
                             </div>
                         </TabPanel>
                     )}
@@ -534,6 +674,42 @@ export default function InternDetail() {
                         setVerifying(false);
                         reload();
                     }}
+                />
+            )}
+
+            {showDeleteSubModal && (
+                <Modal
+                    open
+                    onClose={() => setShowDeleteSubModal(false)}
+                    title="Delete Submission"
+                    description={`Are you sure you want to delete the submitted photo, internship document, and feedback for ${identity.name}? This will reset the status to "Pending to receive" and allow sending the submission link again.`}
+                    footer={
+                        <>
+                            <Button variant="ghost" onClick={() => setShowDeleteSubModal(false)} disabled={deletingSub}>
+                                Cancel
+                            </Button>
+                            <Button
+                                variant="danger"
+                                icon="trash"
+                                loading={deletingSub}
+                                onClick={async () => {
+                                    setDeletingSub(true);
+                                    try {
+                                        await deleteInternSubmission(id);
+                                        toast.success('Submission Deleted', 'Status reset to Pending to receive. You can send the collection link again.');
+                                        setShowDeleteSubModal(false);
+                                        reload();
+                                    } catch (err) {
+                                        toast.error('Could not delete submission', err?.message);
+                                    } finally {
+                                        setDeletingSub(false);
+                                    }
+                                }}
+                            >
+                                Delete Submission
+                            </Button>
+                        </>
+                    }
                 />
             )}
         </div>

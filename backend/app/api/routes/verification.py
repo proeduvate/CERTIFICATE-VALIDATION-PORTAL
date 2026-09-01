@@ -204,6 +204,16 @@ def verify_intern(
             detail="That verification code is not valid",
         )
 
+    has_photo = bool(intern.intern_photo_data or intern.intern_photo)
+    has_doc = bool(intern.internship_document_data or intern.internship_document)
+    is_submitted = (intern.submission_status == "Submitted") or (has_photo and has_doc)
+
+    if not is_submitted:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot verify record until required documents (Intern Photo and Internship Document) are submitted by the intern.",
+        )
+
     intern.verification_status = payload.verification_status
     intern.verified_by = payload.verified_by.strip()
     intern.verification_date = payload.verification_date or date.today()

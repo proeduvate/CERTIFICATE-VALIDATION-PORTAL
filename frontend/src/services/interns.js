@@ -162,3 +162,25 @@ export function completeIntern(id) {
 export function reopenIntern(id) {
     return api.post(`/interns/${id}/reopen`);
 }
+
+/** Public document collection lookup (no auth). */
+export function getPublicSubmissionInfo(ref, options) {
+    return api.get(`/interns/public-submission/${encodeURIComponent(ref)}`, {
+        ...options,
+        auth: false,
+    });
+}
+
+/** Submit public documents & feedback (no auth). */
+export function submitPublicDocuments(ref, formData) {
+    return request(`/interns/public-submission/${encodeURIComponent(ref)}`, {
+        method: 'POST',
+        formData,
+        auth: false,
+    });
+}
+
+/** Delete intern document submission (Admin only). */
+export function deleteInternSubmission(internId) {
+    return api.delete(`/interns/${internId}/submission`);
+}

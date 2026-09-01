@@ -11,6 +11,7 @@ import ProtectedRoute from './routes/ProtectedRoute';
 
 import Home from './pages/Home/Home';
 import Verify from './pages/Verify/Verify';
+import SubmitDocuments from './pages/SubmitDocuments/SubmitDocuments';
 import Login from './pages/Login/Login';
 import ForgotPassword from './pages/Login/ForgotPassword';
 import DashboardHome from './pages/Dashboard/DashboardHome';
@@ -45,6 +46,8 @@ export default function App() {
                                     <Route index element={<Home />} />
                                     <Route path="verify" element={<Verify />} />
                                     <Route path="verify/*" element={<Verify />} />
+                                    <Route path="submit-documents" element={<SubmitDocuments />} />
+                                    <Route path="submit-documents/*" element={<SubmitDocuments />} />
                                 </Route>
 
                                 <Route path="/login" element={<Login />} />

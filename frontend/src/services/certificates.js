@@ -45,3 +45,7 @@ export function uploadCertificateFile(certificateId, file) {
         formData,
     });
 }
+
+export function deleteCertificate(certificateId) {
+    return api.delete(`/certificates/${certificateId}`);
+}

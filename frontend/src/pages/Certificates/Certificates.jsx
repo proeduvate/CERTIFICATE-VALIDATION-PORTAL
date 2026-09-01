@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button, { IconButton } from '../../components/ui/Button';
+import Modal from '../../components/ui/Modal';
 import { Input } from '../../components/ui/Field';
 import {
     Avatar,
@@ -17,16 +18,12 @@ import CertificateFormModal from './CertificateFormModal';
 import { useAsync } from '../../hooks/useAsync';
 import useDebounce from '../../hooks/useDebounce';
 import { useAuth } from '../../context/AuthContext';
-import { listCertificates } from '../../services/certificates';
+import { deleteCertificate, listCertificates } from '../../services/certificates';
 import { formatDate, formatNumber, orEmpty } from '../../lib/format';
 import { PAGE_SIZES } from '../../config';
 
 /**
- * Issued certificates.
- *
- * This page is new. Previously "Certificates" in the sidebar opened a detail
- * view pinned to a single hardcoded record, so there was no way to see what
- * had actually been issued, and `GET /certificates/` went unused.
+ * Issued certificates dashboard.
  */
 export default function Certificates() {
     const navigate = useNavigate();
@@ -44,6 +41,8 @@ export default function Certificates() {
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
     const [creating, setCreating] = useState(false);
+    const [deletingCert, setDeletingCert] = useState(null);
+    const [deleting, setDeleting] = useState(false);
 
     const records = useMemo(() => (Array.isArray(data) ? data : []), [data]);
 
@@ -52,7 +51,7 @@ export default function Certificates() {
         if (!term) return records;
 
         return records.filter((cert) =>
-            [cert.certificate_number, cert.intern_name, cert.intern_code]
+            [cert.certificate_number, cert.intern_name, cert.intern_code, cert.verification_status, cert.internship_status]
                 .filter(Boolean)
                 .some((field) => String(field).toLowerCase().includes(term)),
         );
@@ -83,17 +82,21 @@ export default function Certificates() {
         [sorted, page, pageSize],
     );
 
-    const withFile = records.filter((cert) => Boolean(cert.file_path)).length;
+    const verifiedCount = records.filter(
+        (cert) => String(cert.verification_status).toLowerCase() === 'verified',
+    ).length;
 
-    const thisYear = records.filter(
+    const completedCount = records.filter(
+        (cert) => String(cert.internship_status).toLowerCase() === 'completed',
+    ).length;
+
+    const bothCount = records.filter(
         (cert) =>
-            cert.issue_date &&
-            new Date(cert.issue_date).getFullYear() === new Date().getFullYear(),
+            String(cert.verification_status).toLowerCase() === 'verified' &&
+            String(cert.internship_status).toLowerCase() === 'completed',
     ).length;
 
     const copyVerifyLink = async (cert) => {
-        // Public verification is keyed on the intern ID, not the certificate
-        // reference.
         const url = `${window.location.origin}/verify/${encodeURIComponent(cert.intern_code ?? '')}`;
 
         try {
@@ -142,29 +145,34 @@ export default function Certificates() {
                     loading={loading}
                 />
                 <StatCard
-                    label="Issued this year"
-                    value={formatNumber(thisYear)}
-                    icon="trendingUp"
+                    label="Verified Interns"
+                    value={formatNumber(verifiedCount)}
+                    icon="shieldCheck"
                     tint="green"
-                    loading={loading}
-                />
-                <StatCard
-                    label="With uploaded file"
-                    value={formatNumber(withFile)}
-                    icon="fileCheck"
-                    tint="brand"
                     loading={loading}
                     meta={
                         records.length > 0
-                            ? `${Math.round((withFile / records.length) * 100)}% complete`
+                            ? `${Math.round((verifiedCount / records.length) * 100)}% verified`
                             : undefined
                     }
                 />
                 <StatCard
-                    label="Awaiting upload"
-                    value={formatNumber(records.length - withFile)}
-                    icon="upload"
-                    tint="amber"
+                    label="Completed Internships"
+                    value={formatNumber(completedCount)}
+                    icon="userCheck"
+                    tint="brand"
+                    loading={loading}
+                    meta={
+                        records.length > 0
+                            ? `${Math.round((completedCount / records.length) * 100)}% completed`
+                            : undefined
+                    }
+                />
+                <StatCard
+                    label="Verified & Completed"
+                    value={formatNumber(bothCount)}
+                    icon="checkCircle"
+                    tint="green"
                     loading={loading}
                 />
             </div>
@@ -248,7 +256,7 @@ export default function Certificates() {
                                         >
                                             Issued
                                         </SortHeader>
-                                        <th scope="col">Document</th>
+                                        <th scope="col">Verification & Completion</th>
                                         <th scope="col" style={{ textAlign: 'right' }}>
                                             Actions
                                         </th>
@@ -264,9 +272,6 @@ export default function Certificates() {
                                                 navigate(`/dashboard/certificates/${cert.id}`)
                                             }
                                         >
-                                            {/* Each intern has exactly one
-                                                certificate, so the row is
-                                                identified by who it belongs to. */}
                                             <td>
                                                 <div className="cell-person">
                                                     <Avatar
@@ -293,15 +298,27 @@ export default function Certificates() {
                                             <td>{formatDate(cert.issue_date)}</td>
 
                                             <td>
-                                                {cert.file_path ? (
-                                                    <Badge variant="success" dot>
-                                                        Uploaded
-                                                    </Badge>
-                                                ) : (
-                                                    <Badge variant="warning" dot>
-                                                        Not uploaded
-                                                    </Badge>
-                                                )}
+                                                <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                                                    {String(cert.verification_status).toLowerCase() === 'verified' ? (
+                                                        <Badge variant="success" dot>
+                                                            Verified
+                                                        </Badge>
+                                                    ) : (
+                                                        <Badge variant="warning" dot>
+                                                            {orEmpty(cert.verification_status, 'Pending')}
+                                                        </Badge>
+                                                    )}
+
+                                                    {String(cert.internship_status).toLowerCase() === 'completed' ? (
+                                                        <Badge variant="primary" dot>
+                                                            Completed
+                                                        </Badge>
+                                                    ) : (
+                                                        <Badge variant="info" dot>
+                                                            {orEmpty(cert.internship_status, 'Active')}
+                                                        </Badge>
+                                                    )}
+                                                </div>
                                             </td>
 
                                             <td onClick={(event) => event.stopPropagation()}>
@@ -321,6 +338,13 @@ export default function Certificates() {
                                                         onClick={() => copyVerifyLink(cert)}
                                                         disabled={!cert.intern_code}
                                                     />
+                                                    {isAdmin && (
+                                                        <IconButton
+                                                            icon="trash"
+                                                            label={`Delete ${cert.certificate_number}`}
+                                                            onClick={() => setDeletingCert(cert)}
+                                                        />
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>
@@ -351,6 +375,42 @@ export default function Certificates() {
                         setCreating(false);
                         reload();
                     }}
+                />
+            )}
+
+            {deletingCert && (
+                <Modal
+                    open
+                    onClose={() => setDeletingCert(null)}
+                    title="Delete Certificate Record"
+                    description={`Are you sure you want to delete certificate ${deletingCert.certificate_number}? This will permanently remove the record and allow re-issuing a certificate for ${deletingCert.intern_name || 'this intern'}.`}
+                    footer={
+                        <>
+                            <Button variant="ghost" onClick={() => setDeletingCert(null)} disabled={deleting}>
+                                Cancel
+                            </Button>
+                            <Button
+                                variant="danger"
+                                icon="trash"
+                                loading={deleting}
+                                onClick={async () => {
+                                    setDeleting(true);
+                                    try {
+                                        await deleteCertificate(deletingCert.id);
+                                        toast.success('Certificate Deleted', `Certificate ${deletingCert.certificate_number} was removed.`);
+                                        setDeletingCert(null);
+                                        reload();
+                                    } catch (err) {
+                                        toast.error('Deletion Failed', err?.message || 'Could not delete certificate.');
+                                    } finally {
+                                        setDeleting(false);
+                                    }
+                                }}
+                            >
+                                Delete Certificate
+                            </Button>
+                        </>
+                    }
                 />
             )}
         </div>

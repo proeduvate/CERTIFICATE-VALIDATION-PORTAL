@@ -1,6 +1,6 @@
 import { useId, useRef, useState } from 'react';
 import Icon from './ui/Icon';
-import { Avatar, StatusBadge } from './ui/Display';
+import { Avatar, Badge, StatusBadge } from './ui/Display';
 import useDebounce from '../hooks/useDebounce';
 import { useAsync } from '../hooks/useAsync';
 import useOnClickOutside from '../hooks/useOnClickOutside';
@@ -67,14 +67,14 @@ export default function InternPicker({
 
     const choose = (intern) => {
         setSelected(intern);
-        onChange(intern.id);
+        onChange(intern.id, intern);
         setQuery('');
         setOpen(false);
     };
 
     const clear = () => {
         setSelected(null);
-        onChange('');
+        onChange('', null);
         setOpen(false);
     };
 
@@ -118,7 +118,12 @@ export default function InternPicker({
                             </small>
                         </span>
 
-                        <StatusBadge status={selected.status} />
+                        <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
+                            {selected.has_certificate && (
+                                <Badge variant="warning">Cert Issued</Badge>
+                            )}
+                            <StatusBadge status={selected.status} />
+                        </div>
 
                         <button
                             type="button"
@@ -205,7 +210,12 @@ export default function InternPicker({
                                         </small>
                                     </span>
 
-                                    <StatusBadge status={intern.status} />
+                                    <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
+                                        {intern.has_certificate && (
+                                            <Badge variant="warning">Cert Issued</Badge>
+                                        )}
+                                        <StatusBadge status={intern.status} />
+                                    </div>
                                 </button>
                             </li>
                         ))}
