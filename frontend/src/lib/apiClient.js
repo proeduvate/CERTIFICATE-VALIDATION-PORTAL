@@ -67,6 +67,7 @@ function buildUrl(path, query) {
 /**
  * FastAPI reports validation problems as `detail: [{loc, msg, type}, ...]` and
  * everything else as `detail: "message"`. Flatten both into one string.
+ */
 function extractMessage(payload, status) {
     if (status === 413) {
         return (
