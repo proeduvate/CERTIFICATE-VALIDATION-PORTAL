@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useLocation, useParams } from 'react-router-dom';
 import Button from '../../components/ui/Button';
 import Icon from '../../components/ui/Icon';
 import { Alert, Avatar, Badge, LoadingBlock } from '../../components/ui/Display';
@@ -11,13 +11,19 @@ import './submit-documents.css';
 
 export default function SubmitDocuments() {
     const params = useParams();
-    let ref = params['*'] || params.ref || params.id || '';
+    const location = useLocation();
 
-    // Extract reference if full path was matched
-    if (!ref) {
-        const match = window.location.pathname.match(/\/submit-documents\/(.+)$/i);
-        if (match && match[1]) ref = decodeURIComponent(match[1]);
+    let rawRef = params['*'] || params.ref || params.id || '';
+    if (!rawRef) {
+        const searchParams = new URLSearchParams(location.search);
+        rawRef = searchParams.get('ref') || searchParams.get('id') || searchParams.get('email') || '';
     }
+    if (!rawRef) {
+        const match = window.location.pathname.match(/\/submit-documents\/(.+)$/i);
+        if (match && match[1]) rawRef = decodeURIComponent(match[1]);
+    }
+
+    const ref = rawRef.trim().replace(/\/+$/, '');
 
     const { data: internInfo, loading, error, reload } = useAsync(
         (signal) => (ref ? getPublicSubmissionInfo(ref, { signal }) : Promise.resolve(null)),
@@ -142,8 +148,8 @@ export default function SubmitDocuments() {
     if (error || !internInfo) {
         return (
             <div className="submit-doc-page">
-                <Alert variant="danger" title="Intern Record Not Found">
-                    {error?.message || 'Could not locate an intern record for document collection.'}
+                <Alert variant="danger" title={ref ? 'Intern Record Not Found' : 'Invalid Submission Link'}>
+                    {error?.message || (ref ? `Could not locate an intern record matching '${ref}'. Please verify the submission link.` : 'No intern reference was provided in the URL. Please click the document collection link provided to you.')}
                 </Alert>
             </div>
         );

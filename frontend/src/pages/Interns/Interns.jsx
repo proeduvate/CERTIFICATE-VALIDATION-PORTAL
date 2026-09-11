@@ -559,7 +559,7 @@ export default function Interns() {
                                                         icon="link"
                                                         label={`Copy collection form link for ${intern.name}`}
                                                         onClick={async () => {
-                                                            const url = `${window.location.origin}/submit-documents/${encodeURIComponent(intern.intern_id || intern.id)}`;
+                                                            const url = `${window.location.origin}/submit-documents/${encodeURIComponent(intern.intern_id || intern.email || intern.id)}`;
                                                             try {
                                                                 await navigator.clipboard.writeText(url);
                                                                 toast.success('Collection link copied', url);

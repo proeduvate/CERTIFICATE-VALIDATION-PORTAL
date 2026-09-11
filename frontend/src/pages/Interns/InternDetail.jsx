@@ -106,7 +106,7 @@ export default function InternDetail() {
     const canVerify = isSubmitted;
 
     const copyCollectionLink = async () => {
-        const url = `${window.location.origin}/submit-documents/${encodeURIComponent(identity.intern_id || id)}`;
+        const url = `${window.location.origin}/submit-documents/${encodeURIComponent(identity.intern_id || identity.email || id)}`;
         try {
             await navigator.clipboard.writeText(url);
             toast.success('Submission link copied to clipboard', url);

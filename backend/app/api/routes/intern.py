@@ -320,7 +320,10 @@ def export_interns(
 
 
 def _find_intern_by_ref(db: Session, ref: str) -> Intern:
-    clean_ref = (ref or "").strip()
+    from urllib.parse import unquote
+
+    raw_ref = (ref or "").strip().strip("/")
+    clean_ref = unquote(raw_ref).strip().strip("/")
     if not clean_ref:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -328,24 +331,50 @@ def _find_intern_by_ref(db: Session, ref: str) -> Intern:
         )
 
     clean_ref_lower = clean_ref.lower()
+    clean_ref_nodash = clean_ref_lower.replace("-", "").replace("_", "").replace(" ", "").replace("/", "")
 
     # 1. Match intern_id (case-insensitive)
     intern = db.query(Intern).filter(func.lower(Intern.intern_id) == clean_ref_lower).first()
     if intern:
         return intern
 
-    # 2. Match email (case-insensitive)
+    # 2. Match intern_id ignoring hyphens/slashes/spaces (e.g. PRO/INT/MAR26/PD/004 vs PROINTMAR26PD004)
+    if clean_ref_nodash:
+        intern = (
+            db.query(Intern)
+            .filter(
+                func.replace(
+                    func.replace(
+                        func.replace(
+                            func.replace(func.lower(Intern.intern_id), "-", ""),
+                            "_",
+                            "",
+                        ),
+                        "/",
+                        "",
+                    ),
+                    " ",
+                    "",
+                )
+                == clean_ref_nodash
+            )
+            .first()
+        )
+        if intern:
+            return intern
+
+    # 3. Match email (case-insensitive)
     intern = db.query(Intern).filter(func.lower(Intern.email) == clean_ref_lower).first()
     if intern:
         return intern
 
-    # 3. Match numeric primary key ID
+    # 4. Match numeric primary key ID
     if clean_ref.isdigit():
         intern = db.query(Intern).filter(Intern.id == int(clean_ref)).first()
         if intern:
             return intern
 
-    # 4. Match User table email or ID -> find Intern by email
+    # 5. Match User table email or ID -> find Intern by email
     user = db.query(User).filter(func.lower(User.email) == clean_ref_lower).first()
     if not user and clean_ref.isdigit():
         user = db.query(User).filter(User.id == int(clean_ref)).first()
@@ -361,11 +390,11 @@ def _find_intern_by_ref(db: Session, ref: str) -> Intern:
     )
 
 
-@router.get("/public-submission/{ref}")
+@router.get("/public-submission/{ref:path}")
 def get_public_submission_info(ref: str, db: Session = Depends(get_db)):
     """
     Public lookup for document collection form (no auth required).
-    Lookup by intern ID, email, database ID, or user account email.
+    Lookup by intern ID (including IDs with slashes), email, database ID, or user account email.
     """
     intern = _find_intern_by_ref(db, ref)
 
@@ -387,7 +416,7 @@ def get_public_submission_info(ref: str, db: Session = Depends(get_db)):
     }
 
 
-@router.post("/public-submission/{ref}")
+@router.post("/public-submission/{ref:path}")
 def submit_public_documents(
     ref: str,
     photo: UploadFile = File(...),
