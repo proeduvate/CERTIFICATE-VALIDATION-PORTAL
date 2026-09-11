@@ -41,7 +41,11 @@ export default function DocumentUploadField({
         if (!file) return;
 
         if (file.size > MAX_BYTES) {
-            toast.error('File too large', 'Documents must be 10 MB or smaller.');
+            const mb = (file.size / (1024 * 1024)).toFixed(1);
+            toast.error(
+                'Payload Too Large',
+                `${label} is ${mb} MB. Maximum allowed file size is 10 MB.`,
+            );
             return;
         }
 
@@ -119,13 +123,25 @@ export default function DocumentUploadField({
                     className={cn('doc-slot__drop', dragging && 'is-dragging')}
                     onDragOver={(event) => {
                         event.preventDefault();
+                        event.stopPropagation();
                         setDragging(true);
                     }}
-                    onDragLeave={() => setDragging(false)}
+                    onDragEnter={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        setDragging(true);
+                    }}
+                    onDragLeave={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        setDragging(false);
+                    }}
                     onDrop={(event) => {
                         event.preventDefault();
+                        event.stopPropagation();
                         setDragging(false);
-                        handleFile(event.dataTransfer.files?.[0]);
+                        const file = event.dataTransfer.files?.[0];
+                        if (file) handleFile(file);
                     }}
                 >
                     <input
@@ -141,6 +157,16 @@ export default function DocumentUploadField({
                         aria-label={`Upload ${label}`}
                     />
 
+                    <div className="doc-slot__drop-icon">
+                        <Icon name="upload" size={18} />
+                    </div>
+
+                    <div className="doc-slot__drop-text">
+                        <span className="doc-slot__hint">
+                            Drag &amp; drop PDF or image here, or
+                        </span>
+                    </div>
+
                     <Button
                         variant="secondary"
                         size="sm"
@@ -148,12 +174,8 @@ export default function DocumentUploadField({
                         loading={busy}
                         onClick={() => inputRef.current?.click()}
                     >
-                        {url ? 'Replace' : 'Upload'}
+                        {url ? 'Replace' : 'Browse'}
                     </Button>
-
-                    <span className="doc-slot__hint">
-                        or drop a PDF or image here
-                    </span>
 
                     {url && (
                         <IconButton

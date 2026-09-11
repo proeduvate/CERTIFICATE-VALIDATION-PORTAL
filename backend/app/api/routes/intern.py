@@ -16,6 +16,7 @@ from fastapi import (
 )
 from fastapi.responses import FileResponse
 from openpyxl import Workbook
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.security import get_current_user, require_admin
@@ -318,27 +319,55 @@ def export_interns(
     )
 
 
-# ---------------------------------------------------------------------------
-# Public document collection & feedback submission (no auth)
-# ---------------------------------------------------------------------------
+def _find_intern_by_ref(db: Session, ref: str) -> Intern:
+    clean_ref = (ref or "").strip()
+    if not clean_ref:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Intern record reference is missing",
+        )
+
+    clean_ref_lower = clean_ref.lower()
+
+    # 1. Match intern_id (case-insensitive)
+    intern = db.query(Intern).filter(func.lower(Intern.intern_id) == clean_ref_lower).first()
+    if intern:
+        return intern
+
+    # 2. Match email (case-insensitive)
+    intern = db.query(Intern).filter(func.lower(Intern.email) == clean_ref_lower).first()
+    if intern:
+        return intern
+
+    # 3. Match numeric primary key ID
+    if clean_ref.isdigit():
+        intern = db.query(Intern).filter(Intern.id == int(clean_ref)).first()
+        if intern:
+            return intern
+
+    # 4. Match User table email or ID -> find Intern by email
+    user = db.query(User).filter(func.lower(User.email) == clean_ref_lower).first()
+    if not user and clean_ref.isdigit():
+        user = db.query(User).filter(User.id == int(clean_ref)).first()
+
+    if user and user.email:
+        intern = db.query(Intern).filter(func.lower(Intern.email) == user.email.lower()).first()
+        if intern:
+            return intern
+
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"Intern record not found for reference '{clean_ref}'. Please verify the Intern ID or Email address.",
+    )
 
 
 @router.get("/public-submission/{ref}")
 def get_public_submission_info(ref: str, db: Session = Depends(get_db)):
     """
     Public lookup for document collection form (no auth required).
-    Lookup by intern ID or numeric database ID.
+    Lookup by intern ID, email, database ID, or user account email.
     """
-    clean_ref = ref.strip()
-    intern = db.query(Intern).filter(Intern.intern_id == clean_ref).first()
-    if not intern and clean_ref.isdigit():
-        intern = db.query(Intern).filter(Intern.id == int(clean_ref)).first()
-
-    if not intern:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Intern record not found",
-        )
+    intern = _find_intern_by_ref(db, ref)
 
     has_photo = bool(intern.intern_photo_data or intern.intern_photo)
     has_doc = bool(intern.internship_document_data or intern.internship_document)
@@ -373,16 +402,7 @@ def submit_public_documents(
     Public document collection endpoint (no auth required).
     Collects intern photo, internship document, and feedback.
     """
-    clean_ref = ref.strip()
-    intern = db.query(Intern).filter(Intern.intern_id == clean_ref).first()
-    if not intern and clean_ref.isdigit():
-        intern = db.query(Intern).filter(Intern.id == int(clean_ref)).first()
-
-    if not intern:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Intern record not found",
-        )
+    intern = _find_intern_by_ref(db, ref)
 
     # Save photo
     photo_bytes, photo_mime, photo_name = save_upload(

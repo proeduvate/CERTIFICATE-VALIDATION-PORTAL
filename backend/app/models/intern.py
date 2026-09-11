@@ -24,6 +24,7 @@ class Intern(Base):
     year = Column(String(100))
     whatsapp_group = Column(String(100))
     location = Column(String(100))
+    mobile = Column(String(50), nullable=True)
 
     # Internship tab
 

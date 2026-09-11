@@ -40,15 +40,18 @@ export default function SubmitDocuments() {
     const photoInputRef = useRef(null);
     const docInputRef = useRef(null);
 
-    const handlePhotoChange = (e) => {
-        const file = e.target.files?.[0];
+    const [photoDragging, setPhotoDragging] = useState(false);
+    const [docDragging, setDocDragging] = useState(false);
+
+    const processPhotoFile = (file) => {
         if (!file) return;
         if (!file.type.startsWith('image/')) {
-            setFormError('Please select a valid image file for your photo.');
+            setFormError('Please select a valid image file (JPG, PNG or WEBP) for your photo.');
             return;
         }
         if (file.size > 10 * 1024 * 1024) {
-            setFormError('Photo file size must be under 10MB.');
+            const mb = (file.size / (1024 * 1024)).toFixed(1);
+            setFormError(`Photo size (${mb} MB) is too large. Maximum allowed file size is 10 MB.`);
             return;
         }
         setPhotoFile(file);
@@ -58,15 +61,30 @@ export default function SubmitDocuments() {
         reader.readAsDataURL(file);
     };
 
-    const handleDocChange = (e) => {
-        const file = e.target.files?.[0];
+    const processDocFile = (file) => {
         if (!file) return;
-        if (file.size > 15 * 1024 * 1024) {
-            setFormError('Document file size must be under 15MB.');
+        const validTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+        if (!validTypes.includes(file.type) && !file.type.startsWith('image/')) {
+            setFormError('Please select a valid document (PDF or Image scan).');
+            return;
+        }
+        if (file.size > 10 * 1024 * 1024) {
+            const mb = (file.size / (1024 * 1024)).toFixed(1);
+            setFormError(`Document size (${mb} MB) is too large. Maximum allowed file size is 10 MB.`);
             return;
         }
         setDocFile(file);
         setFormError('');
+    };
+
+    const handlePhotoChange = (e) => {
+        const file = e.target.files?.[0];
+        processPhotoFile(file);
+    };
+
+    const handleDocChange = (e) => {
+        const file = e.target.files?.[0];
+        processDocFile(file);
     };
 
     const handleSubmit = async (e) => {
@@ -79,6 +97,17 @@ export default function SubmitDocuments() {
         }
         if (!docFile) {
             setFormError('Please upload your Internship Document.');
+            return;
+        }
+
+        if (photoFile.size > 10 * 1024 * 1024) {
+            const mb = (photoFile.size / (1024 * 1024)).toFixed(1);
+            setFormError(`Intern photo size (${mb} MB) exceeds the 10 MB limit. Please select a smaller image.`);
+            return;
+        }
+        if (docFile.size > 10 * 1024 * 1024) {
+            const mb = (docFile.size / (1024 * 1024)).toFixed(1);
+            setFormError(`Internship document size (${mb} MB) exceeds the 10 MB limit. Please select a smaller document.`);
             return;
         }
 
@@ -190,8 +219,25 @@ export default function SubmitDocuments() {
                                 className="visually-hidden"
                             />
                             <div
-                                className={`upload-box ${photoFile ? 'has-file' : ''}`}
+                                className={`upload-box ${photoFile ? 'has-file' : ''} ${photoDragging ? 'is-dragging' : ''}`}
                                 onClick={() => photoInputRef.current?.click()}
+                                onDragOver={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setPhotoDragging(true);
+                                }}
+                                onDragLeave={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setPhotoDragging(false);
+                                }}
+                                onDrop={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setPhotoDragging(false);
+                                    const file = e.dataTransfer.files?.[0];
+                                    if (file) processPhotoFile(file);
+                                }}
                             >
                                 <div className="upload-box__icon">
                                     <Icon name="user" size={24} />
@@ -199,7 +245,7 @@ export default function SubmitDocuments() {
                                 <div className="upload-box__label">
                                     {photoFile ? photoFile.name : 'Upload Intern Photo *'}
                                 </div>
-                                <div className="upload-box__hint">JPG, PNG or WEBP (Max 10MB)</div>
+                                <div className="upload-box__hint">JPG, PNG or WEBP (Max 10MB) — Drag &amp; Drop supported</div>
 
                                 {photoFile && (
                                     <div className="upload-box__preview">
@@ -225,8 +271,25 @@ export default function SubmitDocuments() {
                                 className="visually-hidden"
                             />
                             <div
-                                className={`upload-box ${docFile ? 'has-file' : ''}`}
+                                className={`upload-box ${docFile ? 'has-file' : ''} ${docDragging ? 'is-dragging' : ''}`}
                                 onClick={() => docInputRef.current?.click()}
+                                onDragOver={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setDocDragging(true);
+                                }}
+                                onDragLeave={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setDocDragging(false);
+                                }}
+                                onDrop={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setDocDragging(false);
+                                    const file = e.dataTransfer.files?.[0];
+                                    if (file) processDocFile(file);
+                                }}
                             >
                                 <div className="upload-box__icon">
                                     <Icon name="fileCheck" size={24} />
@@ -234,7 +297,7 @@ export default function SubmitDocuments() {
                                 <div className="upload-box__label">
                                     {docFile ? docFile.name : 'Upload Internship Document *'}
                                 </div>
-                                <div className="upload-box__hint">PDF or Image scan (Max 15MB)</div>
+                                <div className="upload-box__hint">PDF or Image scan (Max 10MB) — Drag &amp; Drop supported</div>
 
                                 {docFile && (
                                     <div className="upload-box__preview">

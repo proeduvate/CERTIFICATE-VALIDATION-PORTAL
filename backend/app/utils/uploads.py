@@ -34,9 +34,10 @@ def read_and_validate_upload(file: UploadFile, stem: str) -> tuple[bytes, str, s
         )
 
     if len(contents) > MAX_UPLOAD_BYTES:
+        size_mb = round(len(contents) / (1024 * 1024), 1)
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
-            detail="File must be 10 MB or smaller",
+            detail=f"Payload too large: Selected file is {size_mb} MB. Maximum allowed size per file is 10 MB.",
         )
 
     safe_stem = "".join(

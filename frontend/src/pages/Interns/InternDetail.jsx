@@ -294,6 +294,16 @@ export default function InternDetail() {
                                                 EMPTY
                                             ),
                                         },
+                                         {
+                                            key: 'Mobile number',
+                                            value: identity.mobile ? (
+                                                <a href={`tel:${identity.mobile}`}>
+                                                    {identity.mobile}
+                                                </a>
+                                            ) : (
+                                                EMPTY
+                                            ),
+                                        },
                                         {
                                             key: 'Date of birth',
                                             value: formatDate(identity.dob),

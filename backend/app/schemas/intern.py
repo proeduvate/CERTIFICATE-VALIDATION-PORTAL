@@ -28,6 +28,7 @@ class InternBase(BaseModel):
     year: str | None = Field(default=None, max_length=100)
     whatsapp_group: str | None = Field(default=None, max_length=100)
     location: str | None = Field(default=None, max_length=100)
+    mobile: str | None = Field(default=None, max_length=50)
 
     # Internship
     mode: str | None = Field(default=None, max_length=100)
@@ -98,6 +99,7 @@ class InternUpdate(BaseModel):
     year: str | None = Field(default=None, max_length=100)
     whatsapp_group: str | None = Field(default=None, max_length=100)
     location: str | None = Field(default=None, max_length=100)
+    mobile: str | None = Field(default=None, max_length=50)
     mode: str | None = Field(default=None, max_length=100)
     domain: str | None = Field(default=None, max_length=100)
     mentor: str | None = Field(default=None, max_length=100)

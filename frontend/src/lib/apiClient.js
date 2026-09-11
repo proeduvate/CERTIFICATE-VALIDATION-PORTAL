@@ -67,8 +67,14 @@ function buildUrl(path, query) {
 /**
  * FastAPI reports validation problems as `detail: [{loc, msg, type}, ...]` and
  * everything else as `detail: "message"`. Flatten both into one string.
- */
 function extractMessage(payload, status) {
+    if (status === 413) {
+        return (
+            payload?.detail ||
+            'Payload too large: The uploaded file exceeds the 10 MB limit. Please upload a smaller file.'
+        );
+    }
+
     const detail = payload?.detail;
 
     if (typeof detail === 'string') return detail;

@@ -80,6 +80,21 @@ async def integrity_error_handler(request: Request, exc: IntegrityError):
     )
 
 
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    if exc.status_code == status.HTTP_413_REQUEST_ENTITY_TOO_LARGE:
+        return JSONResponse(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            content={"detail": exc.detail or "Payload too large: Uploaded file exceeds the 10 MB limit. Please select a smaller file."},
+        )
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+    )
+
+
 @app.exception_handler(SQLAlchemyError)
 async def sqlalchemy_error_handler(request: Request, exc: SQLAlchemyError):
     logger.error("Database SQLAlchemyError: %s", exc)

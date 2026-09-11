@@ -2,6 +2,8 @@ import { useState } from 'react';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
 import { Input, Select, Textarea } from '../../components/ui/Field';
+import SearchableSelect from '../../components/ui/SearchableSelect';
+import MultiSelect from '../../components/ui/MultiSelect';
 import { Alert } from '../../components/ui/Display';
 import { Tabs } from '../../components/ui/Navigation';
 import { useToast } from '../../components/ui/Toast';
@@ -17,24 +19,43 @@ import {
 import { INTERN_STATUS, INTERNSHIP_MODES } from '../../config';
 import { toDateInput } from '../../lib/format';
 
-/**
- * Create / edit an intern.
- *
- * `InternCreate` and `InternUpdate` require all 38 columns, so a partial
- * submission returns 422. The form collects the fields worth typing and
- * `toInternPayload` fills the remainder with type-correct defaults, keeping
- * the dialog usable without dropping data on edit.
- */
-/**
- * Attendance is not captured here — it will come from the existing attendance
- * system rather than being typed in by hand. Verification is not here either:
- * signing a record off is a separate, code-gated action on the intern page,
- * not a field anyone editing the record can set.
- */
 const SECTIONS = [
     { id: 'identity', label: 'Identity', icon: 'user' },
     { id: 'internship', label: 'Internship', icon: 'briefcase' },
     { id: 'documents', label: 'Documents', icon: 'folder' },
+];
+
+const ROLE_OPTIONS = [
+    { value: 'Intern', label: 'Intern' },
+    { value: 'Freelancer', label: 'Freelancer' },
+    { value: 'Parttime', label: 'Parttime' },
+];
+
+const DOMAIN_OPTIONS = [
+    'HR',
+    'FULL STACK',
+    'AIML',
+    'PRODUCT DEVELOPMENT',
+    'BACKEND DEVELOPMENT',
+    'UI&UX',
+    'SOFTWARE DEVELOPER',
+    'DATA ANALYTICS',
+    'SOCIAL MEDIA',
+    'SOFTWARE TESTING',
+    'FRONTEND DEVELOPMENT',
+];
+
+const MENTOR_OPTIONS = [
+    'Karunakaran w',
+    'Dhanush Chakravarthy R',
+    'Gowtham Raj S',
+    'Balamanikandan M',
+    'Dowlathnisa S B',
+    'Martin David',
+    'Sachin R',
+    'Dharshini C',
+    'Karunamoorthy M',
+    'Sujith',
 ];
 
 function initialForm(intern) {
@@ -47,6 +68,7 @@ function initialForm(intern) {
         year: intern?.year ?? '',
         dob: toDateInput(intern?.dob),
         location: intern?.location ?? '',
+        mobile: intern?.mobile ?? '',
         linkedin: intern?.linkedin ?? '',
         github: intern?.github ?? '',
         referral_person: intern?.referral_person ?? '',
@@ -61,7 +83,6 @@ function initialForm(intern) {
         end_date: toDateInput(intern?.end_date),
         status: intern?.status ?? 'Active',
         responsibilities: intern?.responsibilities ?? '',
-
     };
 }
 
@@ -106,9 +127,17 @@ export default function InternFormModal({
         if (!form.department.trim()) next.department = 'Department is required';
         if (!form.college.trim()) next.college = 'College is required';
 
-        if (form.start_date && form.end_date && form.end_date < form.start_date) {
+        if (!form.organization?.trim()) next.organization = 'Organization is required';
+        if (!form.internship_role?.trim()) next.internship_role = 'Role is required';
+        if (!form.domain?.trim()) next.domain = 'Domain is required';
+        if (!form.mode?.trim()) next.mode = 'Mode is required';
+        if (!form.status?.trim()) next.status = 'Status is required';
+        if (!form.start_date) next.start_date = 'Start date is required';
+        if (!form.end_date) next.end_date = 'End date is required';
+        else if (form.start_date && form.end_date < form.start_date) {
             next.end_date = 'End date cannot be before the start date';
         }
+        if (!form.duration?.toString().trim()) next.duration = 'Duration is required';
 
         setErrors(next);
 
@@ -116,7 +145,17 @@ export default function InternFormModal({
             // Jump to the section holding the first problem so the user can see it.
             if (next.name || next.email || next.department || next.college)
                 setSection('identity');
-            else if (next.end_date) setSection('internship');
+            else if (
+                next.organization ||
+                next.internship_role ||
+                next.domain ||
+                next.mode ||
+                next.status ||
+                next.start_date ||
+                next.end_date ||
+                next.duration
+            )
+                setSection('internship');
         }
 
         return Object.keys(next).length === 0;
@@ -157,7 +196,7 @@ export default function InternFormModal({
             description={
                 isEdit
                     ? 'Update this record. Fields left blank keep their stored value.'
-                    : 'Only the identity fields are required — the rest can be filled in later.'
+                    : 'Required fields must be completed before saving.'
             }
             closeOnBackdrop={false}
             footer={
@@ -212,6 +251,14 @@ export default function InternFormModal({
                                 placeholder="rohit@example.com"
                                 maxLength={100}
                                 required
+                            />
+                            <Input
+                                label="Mobile number"
+                                type="tel"
+                                value={form.mobile}
+                                onChange={set('mobile')}
+                                placeholder="e.g. +91 9876543210"
+                                maxLength={20}
                             />
                             <Input
                                 label="Intern ID"
@@ -286,45 +333,71 @@ export default function InternFormModal({
                                 label="Organisation"
                                 value={form.organization}
                                 onChange={set('organization')}
+                                error={errors.organization}
                                 maxLength={100}
+                                required
                             />
-                            <Input
+                            <Select
                                 label="Role"
                                 value={form.internship_role}
                                 onChange={set('internship_role')}
-                                placeholder="Full Stack Developer Intern"
-                                maxLength={100}
-                            />
-                            <Input
+                                error={errors.internship_role}
+                                required
+                            >
+                                <option value="">Select Role</option>
+                                {ROLE_OPTIONS.map((opt) => (
+                                    <option key={opt.value} value={opt.value}>
+                                        {opt.label}
+                                    </option>
+                                ))}
+                            </Select>
+                            <SearchableSelect
                                 label="Domain"
                                 value={form.domain}
-                                onChange={set('domain')}
-                                placeholder="Web development"
-                                maxLength={100}
+                                onChange={(e) => {
+                                    setForm((f) => ({ ...f, domain: e.target.value }));
+                                    setErrors((current) => ({ ...current, domain: undefined }));
+                                }}
+                                options={DOMAIN_OPTIONS}
+                                placeholder="Select domain…"
+                                searchPlaceholder="Search domain…"
+                                error={errors.domain}
+                                required
                             />
-                            <Input
+                            <MultiSelect
                                 label="Mentor"
                                 value={form.mentor}
-                                onChange={set('mentor')}
-                                maxLength={100}
+                                onChange={(e) => {
+                                    setForm((f) => ({ ...f, mentor: e.target.value }));
+                                    setErrors((current) => ({ ...current, mentor: undefined }));
+                                }}
+                                options={MENTOR_OPTIONS}
+                                placeholder="Select mentors…"
+                                error={errors.mentor}
                             />
                             <Select
                                 label="Mode"
                                 value={form.mode}
                                 onChange={set('mode')}
                                 options={INTERNSHIP_MODES}
+                                error={errors.mode}
+                                required
                             />
                             <Select
                                 label="Status"
                                 value={form.status}
                                 onChange={set('status')}
                                 options={INTERN_STATUS}
+                                error={errors.status}
+                                required
                             />
                             <Input
                                 label="Start date"
                                 type="date"
                                 value={form.start_date}
                                 onChange={set('start_date')}
+                                error={errors.start_date}
+                                required
                             />
                             <Input
                                 label="End date"
@@ -332,13 +405,21 @@ export default function InternFormModal({
                                 value={form.end_date}
                                 onChange={set('end_date')}
                                 error={errors.end_date}
+                                required
                             />
                             <Input
                                 label="Duration"
+                                type="number"
+                                min="1"
                                 value={form.duration}
-                                onChange={set('duration')}
-                                placeholder="6 months"
-                                maxLength={100}
+                                onChange={(e) => {
+                                    const val = e.target.value.replace(/\D/g, '');
+                                    setForm((f) => ({ ...f, duration: val }));
+                                    setErrors((current) => ({ ...current, duration: undefined }));
+                                }}
+                                placeholder="e.g. 6"
+                                error={errors.duration}
+                                required
                             />
 
                             <Textarea
@@ -356,10 +437,7 @@ export default function InternFormModal({
                         <>
                             {isEdit ? (
                                 <Alert variant="info" className="form-modal__alert">
-                                    Uploads save immediately — they do not wait for
-                                    &ldquo;Save changes&rdquo;. OL, AL and TC appear on the
-                                    public verification page; the LOR appears only if one
-                                    was issued.
+                                    Uploads save immediately — drag and drop document files onto slots or click Upload/Replace.
                                 </Alert>
                             ) : (
                                 <Alert variant="warning" className="form-modal__alert">
