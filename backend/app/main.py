@@ -98,9 +98,22 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
 @app.exception_handler(SQLAlchemyError)
 async def sqlalchemy_error_handler(request: Request, exc: SQLAlchemyError):
     logger.error("Database SQLAlchemyError: %s", exc)
+    orig_msg = str(getattr(exc, "orig", exc))
+    orig_msg_lower = orig_msg.lower()
+
+    if "value too long" in orig_msg_lower or "stringdata_right_truncation" in orig_msg_lower or "stringdatarighttruncation" in orig_msg_lower:
+        detail = "Data entry too long: One of the submitted fields (e.g. Mentor or Responsibilities) exceeds the maximum length allowed by the database."
+    elif "does not exist" in orig_msg_lower or "undefinedcolumn" in orig_msg_lower:
+        detail = f"Database column mismatch: {orig_msg.split('[SQL:')[0].strip()}"
+    elif "unique constraint" in orig_msg_lower or "already exists" in orig_msg_lower:
+        detail = "A record with this unique information (such as email or Intern ID) already exists."
+    else:
+        clean_msg = orig_msg.split("[SQL:")[0].strip() if "[SQL:" in orig_msg else orig_msg
+        detail = f"Database operation failed: {clean_msg}"
+
     return JSONResponse(
         status_code=status.HTTP_400_BAD_REQUEST,
-        content={"detail": "Database operation failed. Please check your inputs and try again."},
+        content={"detail": detail},
     )
 
 # The browser blocks every cross-origin request without this. The API and the

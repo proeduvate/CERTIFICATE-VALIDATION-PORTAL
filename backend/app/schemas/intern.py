@@ -33,7 +33,7 @@ class InternBase(BaseModel):
     # Internship
     mode: str | None = Field(default=None, max_length=100)
     domain: str | None = Field(default=None, max_length=100)
-    mentor: str | None = Field(default=None, max_length=100)
+    mentor: str | None = Field(default=None, max_length=500)
     organization: str | None = Field(default="ProEduvate", max_length=100)
     start_date: date | None = None
     end_date: date | None = None
@@ -102,7 +102,7 @@ class InternUpdate(BaseModel):
     mobile: str | None = Field(default=None, max_length=50)
     mode: str | None = Field(default=None, max_length=100)
     domain: str | None = Field(default=None, max_length=100)
-    mentor: str | None = Field(default=None, max_length=100)
+    mentor: str | None = Field(default=None, max_length=500)
     organization: str | None = Field(default=None, max_length=100)
     start_date: date | None = None
     end_date: date | None = None

@@ -30,7 +30,7 @@ class Intern(Base):
 
     mode = Column(String(100))
     domain = Column(String(100))
-    mentor = Column(String(100))
+    mentor = Column(String(500))
     organization = Column(String(100))
     start_date = Column(Date)
     end_date = Column(Date)
