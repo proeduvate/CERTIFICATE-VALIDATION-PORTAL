@@ -176,6 +176,7 @@ def get_intern_options(
     q: str = Query("", max_length=100),
     limit: int = Query(20, ge=1, le=100),
     include_completed: bool = Query(True),
+    eligible_for_certificate: bool = Query(False),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -188,7 +189,21 @@ def get_intern_options(
     """
     query = db.query(Intern)
 
-    if not include_completed:
+    if eligible_for_certificate:
+        # 1. Must not be terminated
+        query = query.filter((Intern.status.is_(None)) | (func.lower(Intern.status) != "terminated"))
+
+        # 2. Must have submitted document collection form
+        query = query.filter(
+            (Intern.submission_status == "Submitted")
+            | (Intern.intern_photo_data.isnot(None) & Intern.internship_document_data.isnot(None))
+            | (Intern.intern_photo.isnot(None) & Intern.internship_document.isnot(None))
+        )
+
+        # 3. Must not already have a certificate issued
+        cert_subq = db.query(Certificate.intern_id).subquery()
+        query = query.filter(Intern.id.not_in(cert_subq))
+    elif not include_completed:
         query = query.filter(
             (Intern.status.is_(None)) | (Intern.status != "Completed")
         )
@@ -398,6 +413,12 @@ def get_public_submission_info(ref: str, db: Session = Depends(get_db)):
     """
     intern = _find_intern_by_ref(db, ref)
 
+    if (intern.status or "").lower() == "terminated":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Document collection is disabled for terminated interns.",
+        )
+
     has_photo = bool(intern.intern_photo_data or intern.intern_photo)
     has_doc = bool(intern.internship_document_data or intern.internship_document)
     is_submitted = (intern.submission_status == "Submitted") or (has_photo and has_doc)
@@ -432,6 +453,12 @@ def submit_public_documents(
     Collects intern photo, internship document, and feedback.
     """
     intern = _find_intern_by_ref(db, ref)
+
+    if (intern.status or "").lower() == "terminated":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Document collection is disabled for terminated interns.",
+        )
 
     # Save photo
     photo_bytes, photo_mime, photo_name = save_upload(
@@ -845,7 +872,7 @@ def reopen_internship(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin),
 ):
-    """Undo a completion — marking someone complete by mistake is recoverable."""
+    """Undo a completion or termination — returning intern status to active."""
     intern = _get_or_404(db, intern_id)
 
     intern.status = "Active"
@@ -853,3 +880,33 @@ def reopen_internship(
     db.refresh(intern)
 
     return {"message": f"{intern.name} moved back to active", "status": intern.status}
+
+
+@router.post("/{intern_id}/terminate")
+def terminate_internship(
+    intern_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Mark an internship as terminated."""
+    intern = _get_or_404(db, intern_id)
+
+    if intern.status == "Terminated":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This internship is already marked terminated",
+        )
+
+    intern.status = "Terminated"
+
+    if not intern.end_date:
+        intern.end_date = date.today()
+
+    db.commit()
+    db.refresh(intern)
+
+    return {
+        "message": f"{intern.name}'s internship marked terminated",
+        "status": intern.status,
+        "end_date": intern.end_date,
+    }

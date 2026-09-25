@@ -21,6 +21,12 @@ class Certificate(Base):
         nullable=False
     )
 
+    certificate_type = Column(
+        String(50),
+        default="completion",
+        nullable=False
+    )
+
     issue_date = Column(Date)
 
     file_path = Column(String(255))

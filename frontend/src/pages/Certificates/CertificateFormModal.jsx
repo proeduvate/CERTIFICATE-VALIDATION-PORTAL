@@ -18,6 +18,7 @@ export default function CertificateFormModal({ onClose, onSaved }) {
         intern_id: '',
         issue_date: new Date().toISOString().slice(0, 10),
     });
+    const [certificateType, setCertificateType] = useState('completion');
     const [selectedIntern, setSelectedIntern] = useState(null);
     const [loadingIntern, setLoadingIntern] = useState(false);
     const [errors, setErrors] = useState({});
@@ -79,13 +80,15 @@ export default function CertificateFormModal({ onClose, onSaved }) {
             const created = await createCertificate({
                 intern_id: Number(form.intern_id),
                 certificate_number: '',
+                certificate_type: certificateType,
                 issue_date: form.issue_date,
                 file_path: null,
                 qr_code: null,
             });
 
+            const certLabel = certificateType === 'participation' ? 'Participation Certificate' : 'Completion Certificate';
             toast.success(
-                'Official Certificate Issued',
+                `${certLabel} Issued`,
                 `Reference ${created?.certificate_number ?? ''} has been generated and issued.`,
             );
             onSaved();
@@ -103,6 +106,7 @@ export default function CertificateFormModal({ onClose, onSaved }) {
         null,
         form.issue_date,
         identity.intern_id || form.intern_id,
+        certificateType,
     );
 
     const isBlocked = Boolean(selectedInternOption?.has_certificate);
@@ -113,7 +117,7 @@ export default function CertificateFormModal({ onClose, onSaved }) {
             onClose={onClose}
             size="lg"
             title="Issue Official Internship Certificate"
-            description="Generates ProEduvate's predefined official certificate template populated with dynamic intern details."
+            description="Generates ProEduvate's official certificate template (Completion or Participation) populated with dynamic intern details."
             closeOnBackdrop={false}
             footer={
                 <>
@@ -127,7 +131,7 @@ export default function CertificateFormModal({ onClose, onSaved }) {
                         onClick={handleSubmit}
                         disabled={!form.intern_id || loadingIntern || isBlocked}
                     >
-                        Issue Official Certificate
+                        Issue {certificateType === 'participation' ? 'Participation Certificate' : 'Completion Certificate'}
                     </Button>
                 </>
             }
@@ -146,6 +150,32 @@ export default function CertificateFormModal({ onClose, onSaved }) {
                 )}
 
                 <div className="form-grid__full">
+                    <label className="field__label" style={{ marginBottom: '0.5rem', display: 'block', fontWeight: 600 }}>
+                        Certificate Type
+                    </label>
+                    <div className="segmented" role="group" aria-label="Certificate type selector" style={{ width: '100%' }}>
+                        <button
+                            type="button"
+                            className="segmented__item"
+                            style={{ flex: 1, justifyContent: 'center' }}
+                            aria-pressed={certificateType === 'completion'}
+                            onClick={() => setCertificateType('completion')}
+                        >
+                            Completion Certificate
+                        </button>
+                        <button
+                            type="button"
+                            className="segmented__item"
+                            style={{ flex: 1, justifyContent: 'center' }}
+                            aria-pressed={certificateType === 'participation'}
+                            onClick={() => setCertificateType('participation')}
+                        >
+                            Participation Certificate
+                        </button>
+                    </div>
+                </div>
+
+                <div className="form-grid__full">
                     <InternPicker
                         value={form.intern_id}
                         onChange={(value, option) => {
@@ -154,9 +184,10 @@ export default function CertificateFormModal({ onClose, onSaved }) {
                             setErrors((e) => ({ ...e, intern_id: undefined }));
                             setFormError('');
                         }}
+                        eligibleForCertificate={true}
                         error={errors.intern_id}
                         required
-                        hint="Search by name, intern ID, email or department."
+                        hint="Search eligible active/completed candidates who submitted document collection form."
                     />
                 </div>
 
@@ -177,13 +208,13 @@ export default function CertificateFormModal({ onClose, onSaved }) {
                     value={computedCertId}
                     readOnly
                     disabled
-                    hint="Auto-generated format: PRO-INT-26-XXX"
+                    hint={`Auto-generated format: ${certificateType === 'participation' ? 'PRO-PAR-26-XXX' : 'PRO-INT-26-XXX'}`}
                 />
 
                 {form.intern_id && (
                     <div className="form-grid__full" style={{ marginTop: '1rem' }}>
                         <h4 style={{ marginBottom: '0.75rem', fontWeight: 600, color: 'var(--text-main, #0f172a)' }}>
-                            Official Certificate Template Preview
+                            {certificateType === 'participation' ? 'Participation Certificate Template Preview' : 'Completion Certificate Template Preview'}
                         </h4>
                         {loadingIntern ? (
                             <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted, #64748b)' }}>
@@ -200,6 +231,7 @@ export default function CertificateFormModal({ onClose, onSaved }) {
                                 mode={info.mode}
                                 internIdCode={identity.intern_id}
                                 certificateNumber={computedCertId}
+                                certificateType={certificateType}
                                 issueDate={form.issue_date}
                                 compact
                             />

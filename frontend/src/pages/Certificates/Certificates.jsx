@@ -37,6 +37,7 @@ export default function Certificates() {
 
     const [search, setSearch] = useState('');
     const debounced = useDebounce(search, 250);
+    const [typeFilter, setTypeFilter] = useState('All');
     const [sort, setSort] = useState({ column: 'issue_date', direction: 'desc' });
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
@@ -46,16 +47,31 @@ export default function Certificates() {
 
     const records = useMemo(() => (Array.isArray(data) ? data : []), [data]);
 
+    const completionCount = useMemo(
+        () => records.filter((c) => String(c.certificate_type || '').toLowerCase() !== 'participation' && !c.certificate_number?.startsWith('PRO-PAR-')).length,
+        [records],
+    );
+
+    const participationCount = useMemo(
+        () => records.filter((c) => String(c.certificate_type || '').toLowerCase() === 'participation' || c.certificate_number?.startsWith('PRO-PAR-')).length,
+        [records],
+    );
+
     const filtered = useMemo(() => {
         const term = debounced.trim().toLowerCase();
-        if (!term) return records;
 
-        return records.filter((cert) =>
-            [cert.certificate_number, cert.intern_name, cert.intern_code, cert.verification_status, cert.internship_status]
+        return records.filter((cert) => {
+            const isPart = String(cert.certificate_type || '').toLowerCase() === 'participation' || cert.certificate_number?.startsWith('PRO-PAR-');
+            if (typeFilter === 'Completion' && isPart) return false;
+            if (typeFilter === 'Participation' && !isPart) return false;
+
+            if (!term) return true;
+
+            return [cert.certificate_number, cert.intern_name, cert.intern_code, cert.verification_status, cert.internship_status]
                 .filter(Boolean)
-                .some((field) => String(field).toLowerCase().includes(term)),
-        );
-    }, [records, debounced]);
+                .some((field) => String(field).toLowerCase().includes(term));
+        });
+    }, [records, debounced, typeFilter]);
 
     const sorted = useMemo(() => {
         const factor = sort.direction === 'asc' ? 1 : -1;
@@ -177,6 +193,30 @@ export default function Certificates() {
                 />
             </div>
 
+            <div className="interns-views" style={{ marginBottom: '1rem' }}>
+                <div className="segmented" role="group" aria-label="Which certificates to show">
+                    {[
+                        { value: 'All', label: 'All Certificates', count: records.length },
+                        { value: 'Completion', label: 'Completion Certificates', count: completionCount },
+                        { value: 'Participation', label: 'Participation Certificates', count: participationCount },
+                    ].map((view) => (
+                        <button
+                            key={view.value}
+                            type="button"
+                            className="segmented__item"
+                            aria-pressed={typeFilter === view.value}
+                            onClick={() => {
+                                setTypeFilter(view.value);
+                                setPage(1);
+                            }}
+                        >
+                            {view.label}
+                            <span className="segmented__count">{view.count}</span>
+                        </button>
+                    ))}
+                </div>
+            </div>
+
             <div className="toolbar">
                 <Input
                     icon="search"
@@ -290,9 +330,16 @@ export default function Certificates() {
                                             </td>
 
                                             <td>
-                                                <span className="mono">
-                                                    {orEmpty(cert.certificate_number)}
-                                                </span>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', alignItems: 'flex-start' }}>
+                                                    <span className="mono">
+                                                        {orEmpty(cert.certificate_number)}
+                                                    </span>
+                                                    {String(cert.certificate_type || '').toLowerCase() === 'participation' || cert.certificate_number?.startsWith('PRO-PAR-') ? (
+                                                        <Badge variant="warning" style={{ fontSize: '0.7rem' }}>Participation</Badge>
+                                                    ) : (
+                                                        <Badge variant="neutral" style={{ fontSize: '0.7rem' }}>Completion</Badge>
+                                                    )}
+                                                </div>
                                             </td>
 
                                             <td>{formatDate(cert.issue_date)}</td>
@@ -312,6 +359,10 @@ export default function Certificates() {
                                                     {String(cert.internship_status).toLowerCase() === 'completed' ? (
                                                         <Badge variant="primary" dot>
                                                             Completed
+                                                        </Badge>
+                                                    ) : String(cert.internship_status).toLowerCase() === 'terminated' ? (
+                                                        <Badge variant="danger" dot>
+                                                            Terminated
                                                         </Badge>
                                                     ) : (
                                                         <Badge variant="info" dot>

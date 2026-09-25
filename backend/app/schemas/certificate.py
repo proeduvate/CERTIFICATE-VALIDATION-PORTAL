@@ -6,6 +6,7 @@ from pydantic import BaseModel
 class CertificateBase(BaseModel):
     intern_id: int
     issue_date: date
+    certificate_type: str = "completion"
     file_path: str | None = None
     qr_code: str | None = None
     is_frozen: bool = False
@@ -18,6 +19,7 @@ class CertificateCreate(CertificateBase):
 class CertificateUpdate(BaseModel):
     intern_id: int | None = None
     issue_date: date | None = None
+    certificate_type: str | None = None
     file_path: str | None = None
     qr_code: str | None = None
     is_frozen: bool | None = None
@@ -39,6 +41,7 @@ class CertificateListItem(CertificateResponse):
 
 class PublicCertificateResponse(BaseModel):
     certificate_number: str
+    certificate_type: str = "completion"
     issue_date: date | None = None
     intern_name: str | None = None
     internship_role: str | None = None

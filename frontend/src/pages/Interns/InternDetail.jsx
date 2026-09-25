@@ -29,6 +29,7 @@ import {
     deleteInternSubmission,
     getIntern,
     reopenIntern,
+    terminateIntern,
 } from '../../services/interns';
 import {
     EMPTY,
@@ -135,12 +136,14 @@ export default function InternDetail() {
                         <div className="intern-hero__name-row">
                             <h1 className="page__title">{orEmpty(identity.name)}</h1>
                             <StatusBadge status={internship.status} />
-                            {isVerified ? (
-                                <Badge variant="success" dot>Verified</Badge>
-                            ) : isSubmitted ? (
-                                <Badge variant="brand" dot>Submitted</Badge>
-                            ) : (
-                                <Badge variant="warning" dot>Pending to receive</Badge>
+                            {internship.status !== 'Terminated' && (
+                                isVerified ? (
+                                    <Badge variant="success" dot>Verified</Badge>
+                                ) : isSubmitted ? (
+                                    <Badge variant="brand" dot>Submitted</Badge>
+                                ) : (
+                                    <Badge variant="warning" dot>Pending to receive</Badge>
+                                )
                             )}
                         </div>
 
@@ -177,7 +180,12 @@ export default function InternDetail() {
                     >
                         Back
                     </Button>
-                    <Button variant="secondary" icon="link" onClick={copyCollectionLink}>
+                    <Button
+                        variant="secondary"
+                        icon="link"
+                        disabled={internship.status === 'Terminated'}
+                        onClick={copyCollectionLink}
+                    >
                         Collect documents
                     </Button>
                     <Button variant="secondary" icon="refresh" onClick={reload}>
@@ -185,33 +193,83 @@ export default function InternDetail() {
                     </Button>
 
                     {isAdmin && (
-                        <Button
-                            variant="secondary"
-                            icon={isCompleted ? 'refresh' : 'checkCircle'}
-                            loading={changingStatus}
-                            onClick={async () => {
-                                setChangingStatus(true);
-                                try {
-                                    if (isCompleted) {
-                                        await reopenIntern(id);
-                                        toast.success('Moved back to active');
-                                    } else {
-                                        await completeIntern(id);
-                                        toast.success(
-                                            'Internship marked completed',
-                                            'They no longer appear in the active list.',
-                                        );
-                                    }
-                                    reload();
-                                } catch (err) {
-                                    toast.error('Could not update status', err?.message);
-                                } finally {
-                                    setChangingStatus(false);
-                                }
-                            }}
-                        >
-                            {isCompleted ? 'Reopen' : 'Mark completed'}
-                        </Button>
+                        <>
+                            {internship.status === 'Terminated' ? (
+                                <Button
+                                    variant="secondary"
+                                    icon="refresh"
+                                    loading={changingStatus}
+                                    onClick={async () => {
+                                        setChangingStatus(true);
+                                        try {
+                                            await reopenIntern(id);
+                                            toast.success('Moved back to active');
+                                            reload();
+                                        } catch (err) {
+                                            toast.error('Could not update status', err?.message);
+                                        } finally {
+                                            setChangingStatus(false);
+                                        }
+                                    }}
+                                >
+                                    Revert termination
+                                </Button>
+                            ) : (
+                                <>
+                                    <Button
+                                        variant="secondary"
+                                        icon={isCompleted ? 'refresh' : 'checkCircle'}
+                                        loading={changingStatus}
+                                        onClick={async () => {
+                                            setChangingStatus(true);
+                                            try {
+                                                if (isCompleted) {
+                                                    await reopenIntern(id);
+                                                    toast.success('Moved back to active');
+                                                } else {
+                                                    await completeIntern(id);
+                                                    toast.success(
+                                                        'Internship marked completed',
+                                                        'They no longer appear in the active list.',
+                                                    );
+                                                }
+                                                reload();
+                                            } catch (err) {
+                                                toast.error('Could not update status', err?.message);
+                                            } finally {
+                                                setChangingStatus(false);
+                                            }
+                                        }}
+                                    >
+                                        {isCompleted ? 'Reopen' : 'Mark completed'}
+                                    </Button>
+                                    {!isCompleted && (
+                                        <Button
+                                            variant="danger"
+                                            icon="xCircle"
+                                            loading={changingStatus}
+                                            onClick={async () => {
+                                                setChangingStatus(true);
+                                                try {
+                                                    await terminateIntern(id);
+                                                    toast.success(
+                                                        'Internship terminated',
+                                                        'Status updated to Terminated.',
+                                                    );
+                                                    reload();
+                                                } catch (err) {
+                                                    toast.error('Could not terminate intern', err?.message);
+                                                } finally {
+                                                    setChangingStatus(false);
+                                                }
+                                            }}
+                                        >
+                                            Terminate
+                                        </Button>
+                                    )}
+                                </>
+                            )}
+                        </>
                     )}
 
                     {isAdmin && (
@@ -219,13 +277,17 @@ export default function InternDetail() {
                             variant={isVerified ? 'secondary' : 'primary'}
                             icon="shieldCheck"
                             onClick={() => {
+                                if (internship.status === 'Terminated') {
+                                    toast.error('Cannot Verify Record', 'Verification is disabled for terminated interns.');
+                                    return;
+                                }
                                 if (!canVerify && !isVerified) {
                                     toast.error('Cannot Verify Record', 'Intern photo and internship document must be submitted before verification.');
                                     return;
                                 }
                                 setVerifying(true);
                             }}
-                            disabled={!canVerify && !isVerified}
+                            disabled={internship.status === 'Terminated' || (!canVerify && !isVerified)}
                         >
                             {isVerified ? 'Re-verify' : 'Verify record'}
                         </Button>

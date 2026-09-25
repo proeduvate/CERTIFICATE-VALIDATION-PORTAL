@@ -88,6 +88,7 @@ def verify_certificate(certificate_number: str, db: Session = Depends(get_db)):
 
     return PublicCertificateResponse(
         certificate_number=certificate.certificate_number,
+        certificate_type=getattr(certificate, "certificate_type", "completion") or "completion",
         issue_date=certificate.issue_date,
         intern_name=intern.name,
         internship_role=intern.internship_role,
@@ -98,6 +99,7 @@ def verify_certificate(certificate_number: str, db: Session = Depends(get_db)):
         end_date=intern.end_date,
         duration=intern.duration,
         file_path=certificate.file_path,
+        is_frozen=certificate.is_frozen,
     )
 
 
@@ -120,6 +122,7 @@ def get_certificates(
             id=certificate.id,
             intern_id=certificate.intern_id,
             certificate_number=certificate.certificate_number,
+            certificate_type=getattr(certificate, "certificate_type", "completion") or "completion",
             issue_date=certificate.issue_date,
             file_path=certificate.file_path,
             qr_code=certificate.qr_code,
@@ -163,11 +166,12 @@ def create_certificate(
     data = certificate.model_dump()
     data.pop("certificate_number", None)
 
+    cert_type = data.get("certificate_type", "completion") or "completion"
     new_certificate = Certificate(**data)
 
     # Retry on the (unlikely) chance the random reference already exists.
     for _ in range(5):
-        candidate = generate_certificate_number()
+        candidate = generate_certificate_number(cert_type=cert_type)
         clash = (
             db.query(Certificate)
             .filter(Certificate.certificate_number == candidate)

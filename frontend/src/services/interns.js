@@ -145,12 +145,17 @@ export function deleteInternDocument(internId, kind) {
 
 /** Type-ahead source for the intern pickers. */
 export function searchInternOptions(
-    { q = '', limit = 20, includeCompleted = true } = {},
+    { q = '', limit = 20, includeCompleted = true, eligibleForCertificate = false } = {},
     options,
 ) {
     return api.get('/interns/options', {
         ...options,
-        query: { q, limit, include_completed: includeCompleted },
+        query: {
+            q,
+            limit,
+            include_completed: includeCompleted,
+            eligible_for_certificate: eligibleForCertificate,
+        },
     });
 }
 
@@ -159,7 +164,12 @@ export function completeIntern(id) {
     return api.post(`/interns/${id}/complete`);
 }
 
-/** Undo a completion. */
+/** Mark an internship terminated. */
+export function terminateIntern(id) {
+    return api.post(`/interns/${id}/terminate`);
+}
+
+/** Undo a completion or termination. */
 export function reopenIntern(id) {
     return api.post(`/interns/${id}/reopen`);
 }

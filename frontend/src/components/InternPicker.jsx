@@ -25,6 +25,7 @@ export default function InternPicker({
     error,
     required = false,
     includeCompleted = true,
+    eligibleForCertificate = false,
     hint,
 }) {
     const inputId = useId();
@@ -45,8 +46,11 @@ export default function InternPicker({
     // when the term changes so a slow response cannot overwrite a newer one.
     const { data, loading } = useAsync(
         (signal) =>
-            searchInternOptions({ q: debounced, includeCompleted }, { signal }),
-        [debounced, includeCompleted],
+            searchInternOptions(
+                { q: debounced, includeCompleted, eligibleForCertificate },
+                { signal },
+            ),
+        [debounced, includeCompleted, eligibleForCertificate],
         { enabled: open },
     );
 

@@ -1,11 +1,12 @@
 import { API_BASE_URL } from '../config';
 import OfficialCertificate from './OfficialCertificate';
+import ParticipationCertificate from './ParticipationCertificate';
 import './certificate-preview.css';
 
 /**
  * Certificate preview.
  * When the record carries a custom uploaded image scan (png/jpg/webp), displays that image.
- * Otherwise, renders ProEduvate's official predefined certificate template.
+ * Otherwise, renders ProEduvate's official predefined certificate template (Completion vs Participation).
  */
 export default function CertificatePreview({
     recipientName,
@@ -15,6 +16,7 @@ export default function CertificatePreview({
     mode,
     internIdCode,
     certificateNumber,
+    certificateType = 'completion',
     issueDate,
     startDate,
     endDate,
@@ -46,6 +48,38 @@ export default function CertificatePreview({
         );
     }
 
+    const isParticipation =
+        String(certificateType).toLowerCase() === 'participation' ||
+        (certificateNumber && certificateNumber.startsWith('PRO-PAR-'));
+
+    if (isParticipation) {
+        return (
+            <ParticipationCertificate
+                internName={recipientName}
+                domain={domain || role}
+                role={role}
+                startDate={startDate}
+                endDate={endDate}
+                duration={duration}
+                mode={mode}
+                internIdCode={internIdCode}
+                certificateNumber={certificateNumber}
+                issueDate={issueDate}
+                compact={compact}
+                showControls={showControls}
+                showFreezeControl={showFreezeControl}
+                isFrozen={isFrozen}
+                asImage={asImage}
+                onFreezeChange={onFreezeChange}
+                downloadUrl={
+                    certificateNumber
+                        ? `${API_BASE_URL}/certificates/number/${encodeURIComponent(certificateNumber)}/download`
+                        : null
+                }
+            />
+        );
+    }
+
     return (
         <OfficialCertificate
             internName={recipientName}
@@ -57,6 +91,7 @@ export default function CertificatePreview({
             mode={mode}
             internIdCode={internIdCode}
             certificateNumber={certificateNumber}
+            certificateType={certificateType}
             issueDate={issueDate}
             compact={compact}
             showControls={showControls}

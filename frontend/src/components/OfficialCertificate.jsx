@@ -8,8 +8,11 @@ import { API_BASE_URL } from '../config';
 import { api } from '../lib/apiClient';
 import './certificate-official.css';
 
-export function formatCertificateId(certNumber, issueDate, internId) {
-    if (certNumber && certNumber.startsWith('PRO-INT-')) return certNumber;
+export function formatCertificateId(certNumber, issueDate, internId, certificateType = 'completion') {
+    const isParticipation = String(certificateType).toLowerCase() === 'participation' || (certNumber && certNumber.startsWith('PRO-PAR-'));
+    const prefix = isParticipation ? 'PRO-PAR' : 'PRO-INT';
+
+    if (certNumber && (certNumber.startsWith('PRO-INT-') || certNumber.startsWith('PRO-PAR-'))) return certNumber;
 
     let shortYear = '26';
     if (issueDate) {
@@ -27,7 +30,7 @@ export function formatCertificateId(certNumber, issueDate, internId) {
         num = String(internId);
     }
 
-    return `PRO-INT-${shortYear}-${num}`;
+    return `${prefix}-${shortYear}-${num}`;
 }
 
 export function formatIssueDate(issueDate) {
@@ -89,6 +92,7 @@ export default function OfficialCertificate({
     mode = 'ONLINE',
     internIdCode = 'PRO/INT/DEC25/AI/001',
     certificateNumber = 'PRO-INT-26-326',
+    certificateType = 'completion',
     issueDate = '2026-08-30',
     verificationUrl,
     compact = false,
@@ -109,7 +113,8 @@ export default function OfficialCertificate({
         setIsFrozen(initialIsFrozen);
     }, [initialIsFrozen]);
 
-    const formattedCertId = formatCertificateId(certificateNumber, issueDate, internIdCode);
+    const isParticipation = String(certificateType).toLowerCase() === 'participation' || (certificateNumber && certificateNumber.startsWith('PRO-PAR-'));
+    const formattedCertId = formatCertificateId(certificateNumber, issueDate, internIdCode, isParticipation ? 'participation' : 'completion');
     const formattedIssueDate = formatIssueDate(issueDate);
     const formattedStartDate = formatDateString(startDate) || 'January 1, 2026';
     const formattedEndDate = formatDateString(endDate) || 'April 1, 2026';
@@ -338,22 +343,39 @@ export default function OfficialCertificate({
 
                     {/* Body Paragraph */}
                     <div className="official-cert__body">
-                        <p>
-                            was associated with <strong>ProEduvate</strong> as a{' '}
-                            <strong>{domainDisplay} Intern</strong> from{' '}
-                            <strong>{formattedStartDate}</strong>, to{' '}
-                            <strong>{formattedEndDate}</strong>.
-                        </p>
-                        <p>
-                            During this period, practical exposure to{' '}
-                            <strong>{domainDisplay} concepts</strong> was gained, exhibiting a
-                            genuine interest in learning and a professional attitude in all
-                            activities assigned during the internship.
-                        </p>
-                        <p>
-                            Demonstrated enthusiastic participation in the tasks and projects
-                            assigned during the internship tenure.
-                        </p>
+                        {isParticipation ? (
+                            <>
+                                <p>
+                                    has actively participated in the <strong>{domainDisplay} Internship Program</strong> organized by <strong>ProEduvate</strong> from{' '}
+                                    <strong>{formattedStartDate}</strong> to <strong>{formattedEndDate}</strong>.
+                                </p>
+                                <p>
+                                    Demonstrated commendable commitment, active involvement, and valuable contributions to all hands-on workshops, tasks, and learning sessions during the program.
+                                </p>
+                                <p>
+                                    We appreciate the dedication and wish continued growth and success in future professional endeavors.
+                                </p>
+                            </>
+                        ) : (
+                            <>
+                                <p>
+                                    was associated with <strong>ProEduvate</strong> as a{' '}
+                                    <strong>{domainDisplay} Intern</strong> from{' '}
+                                    <strong>{formattedStartDate}</strong>, to{' '}
+                                    <strong>{formattedEndDate}</strong>.
+                                </p>
+                                <p>
+                                    During this period, practical exposure to{' '}
+                                    <strong>{domainDisplay} concepts</strong> was gained, exhibiting a
+                                    genuine interest in learning and a professional attitude in all
+                                    activities assigned during the internship.
+                                </p>
+                                <p>
+                                    Demonstrated enthusiastic participation in the tasks and projects
+                                    assigned during the internship tenure.
+                                </p>
+                            </>
+                        )}
                     </div>
 
                     {/* Details Box */}

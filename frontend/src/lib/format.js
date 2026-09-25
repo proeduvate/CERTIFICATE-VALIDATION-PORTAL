@@ -108,6 +108,7 @@ export function statusVariant(status) {
         case 'rejected':
         case 'expired':
         case 'revoked':
+        case 'terminated':
             return 'danger';
         default:
             return 'neutral';

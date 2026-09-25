@@ -1,0 +1,140 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,600;0,700;0,800;0,900;1,400;1,600;1,700;1,800;1,900&display=swap');
+
+.part-cert-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    margin: 0 auto;
+}
+
+.part-cert-controls {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+    justify-content: flex-end;
+    width: 100%;
+    max-width: 1000px;
+}
+
+.part-cert-card {
+    position: relative;
+    width: 100%;
+    max-width: 1000px;
+    aspect-ratio: 2000 / 1347;
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.15);
+    user-select: none;
+    container-type: inline-size;
+    box-sizing: border-box;
+    background-color: #ffffff;
+}
+
+.part-cert-wrapper--compact .part-cert-card {
+    max-width: 600px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.part-cert__bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+}
+
+/* Candidate Name Overlay */
+.part-cert__name-overlay {
+    position: absolute;
+    top: 34.5%;
+    left: 5%;
+    right: 5%;
+    height: 8.5%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    z-index: 2;
+}
+
+.part-cert__name-text {
+    margin: 0;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 800;
+    font-size: clamp(1.4rem, 4.2cqw, 3.6rem);
+    color: #000000;
+    letter-spacing: 0.01em;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+/* Subtitle / Domain & Dates Overlay */
+.part-cert__subtitle-overlay {
+    position: absolute;
+    top: 45.8%;
+    left: 15%;
+    right: 15%;
+    text-align: center;
+    z-index: 2;
+}
+
+.part-cert__subtitle-text {
+    margin: 0;
+    font-family: 'Montserrat', sans-serif;
+    font-size: clamp(0.7rem, 1.7cqw, 1.45rem);
+    color: #1e293b;
+    line-height: 1.35;
+}
+
+.part-cert__subtitle-text em {
+    font-style: italic;
+}
+
+.part-cert__subtitle-text strong {
+    font-weight: 700;
+    color: #000000;
+}
+
+.part-cert__subtitle-text sup {
+    font-size: 0.6em;
+    top: -0.4em;
+    position: relative;
+    vertical-align: baseline;
+    font-style: italic;
+    font-weight: 700;
+}
+
+/* QR Code Overlay */
+.part-cert__qr-overlay {
+    position: absolute;
+    left: 3.8%;
+    top: 75.8%;
+    width: 10.2%;
+    aspect-ratio: 1;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.part-cert__qr-box {
+    width: 100%;
+    height: 100%;
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 6%;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.part-cert__qr-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}

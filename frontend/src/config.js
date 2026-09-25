@@ -40,7 +40,7 @@ export const ROLES = {
 };
 
 /** Intern lifecycle states, matching the values the backend filters on. */
-export const INTERN_STATUS = ['Active', 'Inactive', 'Completed'];
+export const INTERN_STATUS = ['Active', 'Completed', 'Terminated', 'Inactive'];
 
 export const VERIFICATION_STATUS = ['Verified', 'Pending', 'Rejected'];
 

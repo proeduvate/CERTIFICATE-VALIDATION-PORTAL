@@ -25,6 +25,7 @@ import {
     exportInterns,
     listInterns,
     reopenIntern,
+    terminateIntern,
 } from '../../services/interns';
 import { PAGE_SIZES, VERIFICATION_STATUS } from '../../config';
 import { formatDate, formatNumber, orEmpty } from '../../lib/format';
@@ -201,6 +202,7 @@ export default function Interns() {
             total: records.length,
             active: records.filter((r) => r.status === 'Active').length,
             completed: records.filter((r) => r.status === 'Completed').length,
+            terminated: records.filter((r) => r.status === 'Terminated').length,
             pending: records.filter((r) => r.verification_status === 'Pending').length,
         }),
         [records],
@@ -235,11 +237,11 @@ export default function Interns() {
     };
 
     const toggleCompleted = async (intern) => {
-        const completed = intern.status === 'Completed';
+        const isFinished = intern.status === 'Completed' || intern.status === 'Terminated';
         setChangingStatus(intern.id);
 
         try {
-            if (completed) {
+            if (isFinished) {
                 await reopenIntern(intern.id);
                 toast.success(`${intern.name} moved back to active`);
             } else {
@@ -252,6 +254,22 @@ export default function Interns() {
             reload();
         } catch (err) {
             toast.error('Could not update status', err?.message);
+        } finally {
+            setChangingStatus(null);
+        }
+    };
+
+    const handleTerminate = async (intern) => {
+        setChangingStatus(intern.id);
+        try {
+            await terminateIntern(intern.id);
+            toast.success(
+                `${intern.name} marked terminated`,
+                'Their status is now Terminated.',
+            );
+            reload();
+        } catch (err) {
+            toast.error('Could not terminate intern', err?.message);
         } finally {
             setChangingStatus(null);
         }
@@ -343,6 +361,7 @@ export default function Interns() {
                     {[
                         { value: 'Active', label: 'Active', count: stats.active },
                         { value: 'Completed', label: 'Completed', count: stats.completed },
+                        { value: 'Terminated', label: 'Terminated', count: stats.terminated },
                         { value: 'All', label: 'Everyone', count: stats.total },
                     ].map((view) => (
                         <button
@@ -534,12 +553,14 @@ export default function Interns() {
                                             <td>
                                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', alignItems: 'flex-start' }}>
                                                     <StatusBadge status={intern.status} />
-                                                    {(intern.verification_status || '').toLowerCase() === 'verified' ? (
-                                                        <Badge variant="success" dot style={{ fontSize: '0.7rem' }}>Verified</Badge>
-                                                    ) : intern.submission_status === 'Submitted' || Boolean(intern.intern_photo && intern.internship_document) ? (
-                                                        <Badge variant="brand" dot style={{ fontSize: '0.7rem' }}>Submitted</Badge>
-                                                    ) : (
-                                                        <Badge variant="warning" dot style={{ fontSize: '0.7rem' }}>Pending to receive</Badge>
+                                                    {intern.status !== 'Terminated' && (
+                                                        (intern.verification_status || '').toLowerCase() === 'verified' ? (
+                                                            <Badge variant="success" dot style={{ fontSize: '0.7rem' }}>Verified</Badge>
+                                                        ) : intern.submission_status === 'Submitted' || Boolean(intern.intern_photo && intern.internship_document) ? (
+                                                            <Badge variant="brand" dot style={{ fontSize: '0.7rem' }}>Submitted</Badge>
+                                                        ) : (
+                                                            <Badge variant="warning" dot style={{ fontSize: '0.7rem' }}>Pending to receive</Badge>
+                                                        )
                                                     )}
                                                 </div>
                                             </td>
@@ -558,7 +579,9 @@ export default function Interns() {
                                                     <IconButton
                                                         icon="link"
                                                         label={`Copy collection form link for ${intern.name}`}
+                                                        disabled={intern.status === 'Terminated'}
                                                         onClick={async () => {
+                                                            if (intern.status === 'Terminated') return;
                                                             const url = `${window.location.origin}/submit-documents/${encodeURIComponent(intern.intern_id || intern.email || intern.id)}`;
                                                             try {
                                                                 await navigator.clipboard.writeText(url);
@@ -571,27 +594,52 @@ export default function Interns() {
 
                                                     {isAdmin && (
                                                         <>
-                                                            <IconButton
-                                                                icon={
-                                                                    intern.status ===
-                                                                    'Completed'
-                                                                        ? 'refresh'
-                                                                        : 'checkCircle'
-                                                                }
-                                                                label={
-                                                                    intern.status ===
-                                                                    'Completed'
-                                                                        ? `Move ${intern.name} back to active`
-                                                                        : `Mark ${intern.name} completed`
-                                                                }
-                                                                disabled={
-                                                                    changingStatus ===
-                                                                    intern.id
-                                                                }
-                                                                onClick={() =>
-                                                                    toggleCompleted(intern)
-                                                                }
-                                                            />
+                                                            {intern.status === 'Terminated' ? (
+                                                                <IconButton
+                                                                    icon="refresh"
+                                                                    label={`Revert termination for ${intern.name}`}
+                                                                    disabled={
+                                                                        changingStatus === intern.id
+                                                                    }
+                                                                    onClick={() =>
+                                                                        toggleCompleted(intern)
+                                                                    }
+                                                                />
+                                                            ) : (
+                                                                <>
+                                                                    <IconButton
+                                                                        icon={
+                                                                            intern.status === 'Completed'
+                                                                                ? 'refresh'
+                                                                                : 'checkCircle'
+                                                                        }
+                                                                        label={
+                                                                            intern.status === 'Completed'
+                                                                                ? `Move ${intern.name} back to active`
+                                                                                : `Mark ${intern.name} completed`
+                                                                        }
+                                                                        disabled={
+                                                                            changingStatus === intern.id
+                                                                        }
+                                                                        onClick={() =>
+                                                                            toggleCompleted(intern)
+                                                                        }
+                                                                    />
+                                                                    {intern.status !== 'Completed' && (
+                                                                        <IconButton
+                                                                            icon="xCircle"
+                                                                            tone="danger"
+                                                                            label={`Terminate ${intern.name}`}
+                                                                            disabled={
+                                                                                changingStatus === intern.id
+                                                                            }
+                                                                            onClick={() =>
+                                                                                handleTerminate(intern)
+                                                                            }
+                                                                        />
+                                                                    )}
+                                                                </>
+                                                            )}
                                                             <IconButton
                                                                 icon="edit"
                                                                 label={`Edit ${intern.name}`}
