@@ -43,6 +43,7 @@ const DOMAIN_OPTIONS = [
     'SOCIAL MEDIA',
     'SOFTWARE TESTING',
     'FRONTEND DEVELOPMENT',
+    'CLOUD',
 ];
 
 const MENTOR_OPTIONS = [
