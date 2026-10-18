@@ -25,6 +25,7 @@ from app.models.certificate import Certificate
 from app.models.document import Document
 from app.models.intern import Intern
 from app.models.lor import LOR
+from app.models.user import User
 from app.schemas.intern import (
     InternCreate,
     InternResponse,
