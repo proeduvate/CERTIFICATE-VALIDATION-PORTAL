@@ -25,8 +25,12 @@ from app.models.certificate import Certificate
 from app.models.document import Document
 from app.models.intern import Intern
 from app.models.lor import LOR
-from app.models.user import User
-from app.schemas.intern import InternCreate, InternResponse, InternUpdate
+from app.schemas.intern import (
+    InternCreate,
+    InternResponse,
+    InternUpdate,
+    InternExtendRequest,
+)
 from app.utils.uploads import delete_upload, save_upload
 
 # The document slots an admin can upload against an intern. The first four are
@@ -241,6 +245,7 @@ def get_intern_options(
                 "intern_id": intern.intern_id,
                 "department": intern.department,
                 "status": intern.status,
+                "is_extended": intern.is_extended,
                 "has_certificate": intern.id in cert_intern_ids,
             }
             for intern in rows
@@ -289,6 +294,7 @@ def export_interns(
         "ID", "Intern ID", "Name", "Email", "College", "Department",
         "Role", "Mentor", "Mode", "Status", "Start date", "End date",
         "Working days", "Present days", "Attendance %", "Verification",
+        "Extended?", "Original End Date", "Extension Duration", "Extension Reason",
     ]
     sheet.append(headers)
 
@@ -310,6 +316,10 @@ def export_interns(
             intern.present_days,
             intern.attendance_percentage,
             intern.verification_status,
+            "Yes" if intern.is_extended else "No",
+            intern.original_end_date,
+            intern.extension_duration,
+            intern.extension_reason,
         ])
 
     for column in range(1, len(headers) + 1):
@@ -582,6 +592,11 @@ def get_intern_by_id(
             "duration": intern.duration,
             "start_date": intern.start_date,
             "end_date": intern.end_date,
+            "is_extended": intern.is_extended,
+            "original_end_date": intern.original_end_date,
+            "extension_reason": intern.extension_reason,
+            "extension_date": intern.extension_date,
+            "extension_duration": intern.extension_duration,
         },
         "work_task_summary": {
             "work_year": intern.work_year,
@@ -910,3 +925,112 @@ def terminate_internship(
         "status": intern.status,
         "end_date": intern.end_date,
     }
+
+
+@router.post("/{intern_id}/extend")
+def extend_internship(
+    intern_id: int,
+    payload: InternExtendRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """
+    Extend the internship duration with a verified reason and new end date.
+    Updates the end date so it reflects across all details and certificates.
+    """
+    intern = _get_or_404(db, intern_id)
+
+    if intern.start_date and payload.new_end_date < intern.start_date:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New end date cannot be earlier than start date",
+        )
+
+    if intern.end_date and payload.new_end_date <= intern.end_date:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New end date must be after current end date",
+        )
+
+    # Save initial end date as original_end_date before the first extension
+    if not intern.is_extended or not intern.original_end_date:
+        intern.original_end_date = intern.end_date
+
+    intern.is_extended = True
+    intern.end_date = payload.new_end_date
+    intern.extension_reason = payload.reason.strip()
+    intern.extension_date = date.today()
+
+    if payload.extension_duration:
+        intern.extension_duration = payload.extension_duration.strip()
+
+    if payload.updated_duration:
+        intern.duration = payload.updated_duration.strip()
+
+    # If intern was previously marked Completed or Terminated, reactivate because placement continues
+    if intern.status in ("Completed", "Terminated"):
+        intern.status = "Active"
+
+    # Reset any frozen certificate caches for this intern so certificates dynamically reflect the new end date
+    for cert in intern.certificates:
+        cert.is_frozen = False
+        cert.image_data = None
+        cert.file_data = None
+
+    db.commit()
+    db.refresh(intern)
+
+    return {
+        "message": f"Internship duration extended for {intern.name}",
+        "id": intern.id,
+        "is_extended": intern.is_extended,
+        "start_date": intern.start_date,
+        "end_date": intern.end_date,
+        "original_end_date": intern.original_end_date,
+        "duration": intern.duration,
+        "extension_duration": intern.extension_duration,
+        "extension_reason": intern.extension_reason,
+        "extension_date": intern.extension_date,
+        "status": intern.status,
+    }
+
+
+@router.post("/{intern_id}/revert-extension")
+def revert_extension(
+    intern_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Revert an extension back to the intern's original end date."""
+    intern = _get_or_404(db, intern_id)
+
+    if not intern.is_extended:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This intern is not marked as extended",
+        )
+
+    if intern.original_end_date:
+        intern.end_date = intern.original_end_date
+
+    intern.is_extended = False
+    intern.extension_reason = None
+    intern.extension_duration = None
+    intern.extension_date = None
+    intern.original_end_date = None
+
+    for cert in intern.certificates:
+        cert.is_frozen = False
+        cert.image_data = None
+        cert.file_data = None
+
+    db.commit()
+    db.refresh(intern)
+
+    return {
+        "message": f"Extension reverted for {intern.name}",
+        "id": intern.id,
+        "is_extended": intern.is_extended,
+        "end_date": intern.end_date,
+    }
+

@@ -397,9 +397,18 @@ function FoundState({ result }) {
                                     {
                                         key: 'Period',
                                         value:
-                                            internship.start_date && internship.end_date
-                                                ? `${formatDate(internship.start_date)} – ${formatDate(internship.end_date)}`
-                                                : orEmpty(internship.duration),
+                                            internship.start_date && internship.end_date ? (
+                                                <div>
+                                                    <div>{formatDate(internship.start_date)} – {formatDate(internship.end_date)}</div>
+                                                    {internship.is_extended && (
+                                                        <Badge variant="warning" dot style={{ fontSize: '0.7rem', marginTop: '2px' }}>
+                                                            Extension Period
+                                                        </Badge>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                orEmpty(internship.duration)
+                                            ),
                                     },
                                     {
                                         key: 'Status',

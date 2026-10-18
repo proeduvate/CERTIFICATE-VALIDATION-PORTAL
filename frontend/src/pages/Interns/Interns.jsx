@@ -16,6 +16,8 @@ import {
 import { Pagination, SortHeader } from '../../components/ui/Navigation';
 import { useToast } from '../../components/ui/Toast';
 import InternFormModal from './InternFormModal';
+import ExtendInternModal from './ExtendInternModal';
+import Icon from '../../components/ui/Icon';
 import { useAsync } from '../../hooks/useAsync';
 import useDebounce from '../../hooks/useDebounce';
 import { useAuth } from '../../context/AuthContext';
@@ -73,6 +75,7 @@ export default function Interns() {
     const [deleting, setDeleting] = useState(false);
     const [exporting, setExporting] = useState(false);
     const [changingStatus, setChangingStatus] = useState(null);
+    const [extending, setExtending] = useState(null);
 
     const showForm = searchParams.get('new') === '1' || editing !== null;
 
@@ -145,7 +148,11 @@ export default function Interns() {
         const term = search.trim().toLowerCase();
 
         return records.filter((intern) => {
-            if (status !== 'All' && intern.status !== status) return false;
+            if (status === 'Extended') {
+                if (!intern.is_extended) return false;
+            } else if (status !== 'All' && intern.status !== status) {
+                return false;
+            }
             if (department !== 'All' && intern.department !== department) return false;
             if (mode !== 'All' && intern.mode !== mode) return false;
             if (
@@ -201,6 +208,7 @@ export default function Interns() {
         () => ({
             total: records.length,
             active: records.filter((r) => r.status === 'Active').length,
+            extended: records.filter((r) => r.is_extended).length,
             completed: records.filter((r) => r.status === 'Completed').length,
             terminated: records.filter((r) => r.status === 'Terminated').length,
             pending: records.filter((r) => r.verification_status === 'Pending').length,
@@ -360,6 +368,7 @@ export default function Interns() {
                 <div className="segmented" role="group" aria-label="Which interns to show">
                     {[
                         { value: 'Active', label: 'Active', count: stats.active },
+                        { value: 'Extended', label: 'In Extension', count: stats.extended },
                         { value: 'Completed', label: 'Completed', count: stats.completed },
                         { value: 'Terminated', label: 'Terminated', count: stats.terminated },
                         { value: 'All', label: 'Everyone', count: stats.total },
@@ -549,10 +558,45 @@ export default function Interns() {
                                                 {orEmpty(intern.intern_id)}
                                             </td>
                                             <td>{orEmpty(intern.department)}</td>
-                                            <td>{formatDate(intern.start_date)}</td>
                                             <td>
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', alignItems: 'flex-start' }}>
-                                                    <StatusBadge status={intern.status} />
+                                                <div>{formatDate(intern.start_date)}</div>
+                                                {intern.is_extended && (
+                                                    <small
+                                                        style={{
+                                                            display: 'inline-flex',
+                                                            alignItems: 'center',
+                                                            gap: '0.25rem',
+                                                            color: '#b45309',
+                                                            fontWeight: 600,
+                                                            fontSize: '0.72rem',
+                                                            marginTop: '2px',
+                                                            background: 'rgba(245, 158, 11, 0.1)',
+                                                            padding: '1px 6px',
+                                                            borderRadius: '4px',
+                                                        }}
+                                                        title={intern.original_end_date ? `Original: ${formatDate(intern.original_end_date)}` : 'Internship Extended'}
+                                                    >
+                                                        <Icon name="clock" size={10} />
+                                                        Extended to {formatDate(intern.end_date)}
+                                                    </small>
+                                                )}
+                                            </td>
+                                            <td>
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', alignItems: 'flex-start' }}>
+                                                    <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                                                        <StatusBadge status={intern.status} />
+                                                        {intern.is_extended && (
+                                                            <Badge
+                                                                variant="warning"
+                                                                dot
+                                                                icon="clock"
+                                                                style={{ fontSize: '0.7rem', fontWeight: 700 }}
+                                                                title={intern.extension_reason ? `Reason: ${intern.extension_reason}` : 'Extension Period'}
+                                                            >
+                                                                Extension Period
+                                                            </Badge>
+                                                        )}
+                                                    </div>
                                                     {intern.status !== 'Terminated' && (
                                                         (intern.verification_status || '').toLowerCase() === 'verified' ? (
                                                             <Badge variant="success" dot style={{ fontSize: '0.7rem' }}>Verified</Badge>
@@ -641,6 +685,14 @@ export default function Interns() {
                                                                 </>
                                                             )}
                                                             <IconButton
+                                                                icon="calendar"
+                                                                label={`Extend duration for ${intern.name}`}
+                                                                disabled={intern.status === 'Terminated'}
+                                                                onClick={() =>
+                                                                    setExtending(intern)
+                                                                }
+                                                            />
+                                                            <IconButton
                                                                 icon="edit"
                                                                 label={`Edit ${intern.name}`}
                                                                 onClick={() =>
@@ -691,6 +743,18 @@ export default function Interns() {
                     onClose={closeForm}
                     onSaved={() => {
                         closeForm();
+                        reload();
+                    }}
+                />
+            )}
+
+            {/* ---------------- Extend duration ---------------- */}
+            {extending && (
+                <ExtendInternModal
+                    intern={extending}
+                    onClose={() => setExtending(null)}
+                    onExtended={() => {
+                        setExtending(null);
                         reload();
                     }}
                 />

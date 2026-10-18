@@ -167,7 +167,13 @@ def ensure_db_schema():
         from app.db.session import engine
         with engine.connect() as conn:
             conn.execute(text("ALTER TABLE certificates ADD COLUMN IF NOT EXISTS image_data BYTEA;"))
+            conn.execute(text("ALTER TABLE interns ADD COLUMN IF NOT EXISTS is_extended BOOLEAN NOT NULL DEFAULT FALSE;"))
+            conn.execute(text("ALTER TABLE interns ADD COLUMN IF NOT EXISTS original_end_date DATE;"))
+            conn.execute(text("ALTER TABLE interns ADD COLUMN IF NOT EXISTS extension_reason VARCHAR(500);"))
+            conn.execute(text("ALTER TABLE interns ADD COLUMN IF NOT EXISTS extension_date DATE;"))
+            conn.execute(text("ALTER TABLE interns ADD COLUMN IF NOT EXISTS extension_duration VARCHAR(100);"))
             conn.commit()
     except Exception as e:
         logger.warning("Startup schema check notice: %s", e)
+
 

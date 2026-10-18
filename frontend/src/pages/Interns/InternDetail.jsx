@@ -19,6 +19,7 @@ import {
 } from '../../components/ui/Display';
 import { Breadcrumbs, Tabs, TabPanel } from '../../components/ui/Navigation';
 import VerifyInternModal from './VerifyInternModal';
+import ExtendInternModal from './ExtendInternModal';
 import DocumentList from '../../components/DocumentList';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../components/ui/Toast';
@@ -30,6 +31,7 @@ import {
     getIntern,
     reopenIntern,
     terminateIntern,
+    revertInternExtension,
 } from '../../services/interns';
 import {
     EMPTY,
@@ -61,6 +63,8 @@ export default function InternDetail() {
     const [tab, setTab] = useState('identity');
     const [verifying, setVerifying] = useState(false);
     const [changingStatus, setChangingStatus] = useState(false);
+    const [extending, setExtending] = useState(false);
+    const [revertingExtension, setRevertingExtension] = useState(false);
     const [showDeleteSubModal, setShowDeleteSubModal] = useState(false);
     const [deletingSub, setDeletingSub] = useState(false);
     const toast = useToast();
@@ -116,6 +120,22 @@ export default function InternDetail() {
         }
     };
 
+    const handleRevertExtension = async () => {
+        if (!window.confirm('Are you sure you want to revert this internship extension back to the original end date?')) {
+            return;
+        }
+        setRevertingExtension(true);
+        try {
+            await revertInternExtension(id);
+            toast.success('Extension Reverted', `End date restored to ${formatDate(internship.original_end_date)}.`);
+            reload();
+        } catch (err) {
+            toast.error('Could not revert extension', err?.message);
+        } finally {
+            setRevertingExtension(false);
+        }
+    };
+
     const band = attendanceBand(attendance.attendance_percentage);
 
     return (
@@ -136,6 +156,17 @@ export default function InternDetail() {
                         <div className="intern-hero__name-row">
                             <h1 className="page__title">{orEmpty(identity.name)}</h1>
                             <StatusBadge status={internship.status} />
+                            {internship.is_extended && (
+                                <Badge
+                                    variant="warning"
+                                    dot
+                                    icon="clock"
+                                    style={{ fontWeight: 700 }}
+                                    title={`Extended to ${formatDate(internship.end_date)}: ${internship.extension_reason || ''}`}
+                                >
+                                    Extension Period
+                                </Badge>
+                            )}
                             {internship.status !== 'Terminated' && (
                                 isVerified ? (
                                     <Badge variant="success" dot>Verified</Badge>
@@ -269,6 +300,15 @@ export default function InternDetail() {
                                     )}
                                 </>
                             )}
+
+                            <Button
+                                variant={internship.is_extended ? 'secondary' : 'secondary'}
+                                icon="calendar"
+                                disabled={internship.status === 'Terminated'}
+                                onClick={() => setExtending(true)}
+                            >
+                                {internship.is_extended ? 'Manage Extension' : 'Extend Duration'}
+                            </Button>
                         </>
                     )}
 
@@ -399,6 +439,99 @@ export default function InternDetail() {
 
                     {tab === 'internship' && (
                         <TabPanel id="internship">
+                            {internship.is_extended && (
+                                <div
+                                    className="extension-banner"
+                                    style={{
+                                        marginBottom: '1.5rem',
+                                        padding: '1.25rem 1.5rem',
+                                        background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.08), rgba(217, 119, 6, 0.04))',
+                                        border: '1px solid rgba(245, 158, 11, 0.3)',
+                                        borderRadius: 'var(--radius-lg, 0.75rem)',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: '0.75rem',
+                                    }}
+                                >
+                                    <div
+                                        style={{
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center',
+                                            flexWrap: 'wrap',
+                                            gap: '0.5rem',
+                                        }}
+                                    >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                            <Badge variant="warning" dot icon="clock" size="lg" style={{ fontWeight: 700 }}>
+                                                Internship in Extension Period
+                                            </Badge>
+                                            {internship.extension_duration && (
+                                                <Badge variant="neutral">
+                                                    +{internship.extension_duration} Extended
+                                                </Badge>
+                                            )}
+                                        </div>
+                                        {isAdmin && (
+                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                <Button
+                                                    size="sm"
+                                                    variant="secondary"
+                                                    icon="calendar"
+                                                    onClick={() => setExtending(true)}
+                                                >
+                                                    Adjust Extension
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    variant="danger"
+                                                    icon="refresh"
+                                                    loading={revertingExtension}
+                                                    onClick={handleRevertExtension}
+                                                >
+                                                    Revert Extension
+                                                </Button>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div style={{ fontSize: '0.9rem', color: 'var(--text-primary, #0f172a)' }}>
+                                        <strong>Extension Reason:</strong> {orEmpty(internship.extension_reason, 'No reason provided')}
+                                    </div>
+
+                                    <div
+                                        style={{
+                                            display: 'grid',
+                                            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                                            gap: '0.75rem',
+                                            paddingTop: '0.5rem',
+                                            borderTop: '1px dashed rgba(245, 158, 11, 0.25)',
+                                            fontSize: '0.82rem',
+                                            color: 'var(--text-secondary, #475569)',
+                                        }}
+                                    >
+                                        <div>
+                                            <span style={{ color: 'var(--text-muted, #64748b)' }}>Original End Date:</span>{' '}
+                                            <strong>{formatDate(internship.original_end_date)}</strong>
+                                        </div>
+                                        <div>
+                                            <span style={{ color: 'var(--text-muted, #64748b)' }}>New Extended End Date:</span>{' '}
+                                            <strong style={{ color: '#047857' }}>{formatDate(internship.end_date)}</strong>
+                                        </div>
+                                        {internship.extension_date && (
+                                            <div>
+                                                <span style={{ color: 'var(--text-muted, #64748b)' }}>Extension Recorded:</span>{' '}
+                                                <strong>{formatDate(internship.extension_date)}</strong>
+                                            </div>
+                                        )}
+                                        <div>
+                                            <span style={{ color: 'var(--text-muted, #64748b)' }}>Total Duration:</span>{' '}
+                                            <strong>{orEmpty(internship.duration)}</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="detail-columns">
                                 <KeyValueList
                                     items={[
@@ -426,8 +559,19 @@ export default function InternDetail() {
                                         {
                                             key: 'Status',
                                             value: (
-                                                <StatusBadge status={internship.status} />
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                    <StatusBadge status={internship.status} />
+                                                    {internship.is_extended && (
+                                                        <Badge variant="warning" dot style={{ fontSize: '0.75rem' }}>
+                                                            Extension Period
+                                                        </Badge>
+                                                    )}
+                                                </div>
                                             ),
+                                        },
+                                        {
+                                            key: 'Duration',
+                                            value: orEmpty(internship.duration),
                                         },
                                         {
                                             key: 'Start date',
@@ -435,8 +579,33 @@ export default function InternDetail() {
                                         },
                                         {
                                             key: 'End date',
-                                            value: formatDate(internship.end_date),
+                                            value: (
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                                    <span>{formatDate(internship.end_date)}</span>
+                                                    {internship.is_extended && (
+                                                        <Badge variant="warning" style={{ fontSize: '0.7rem' }}>
+                                                            Extended
+                                                        </Badge>
+                                                    )}
+                                                </div>
+                                            ),
                                         },
+                                        ...(internship.is_extended
+                                            ? [
+                                                  {
+                                                      key: 'Original end date',
+                                                      value: formatDate(internship.original_end_date),
+                                                  },
+                                                  {
+                                                      key: 'Extension duration',
+                                                      value: orEmpty(internship.extension_duration),
+                                                  },
+                                                  {
+                                                      key: 'Extension reason',
+                                                      value: orEmpty(internship.extension_reason),
+                                                  },
+                                              ]
+                                            : []),
                                     ]}
                                 />
                             </div>
@@ -744,6 +913,31 @@ export default function InternDetail() {
                     onClose={() => setVerifying(false)}
                     onVerified={() => {
                         setVerifying(false);
+                        reload();
+                    }}
+                />
+            )}
+
+            {extending && (
+                <ExtendInternModal
+                    intern={{
+                        id: Number(id),
+                        name: identity.name,
+                        intern_id: identity.intern_id,
+                        department: identity.department,
+                        internship_role: internship.internship_role,
+                        domain: internship.domain,
+                        start_date: internship.start_date,
+                        end_date: internship.end_date,
+                        duration: internship.duration,
+                        is_extended: internship.is_extended,
+                        original_end_date: internship.original_end_date,
+                        extension_reason: internship.extension_reason,
+                        extension_duration: internship.extension_duration,
+                    }}
+                    onClose={() => setExtending(false)}
+                    onExtended={() => {
+                        setExtending(false);
                         reload();
                     }}
                 />

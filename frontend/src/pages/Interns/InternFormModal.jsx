@@ -17,7 +17,7 @@ import {
     uploadInternDocument,
 } from '../../services/interns';
 import { INTERN_STATUS, INTERNSHIP_MODES } from '../../config';
-import { toDateInput } from '../../lib/format';
+import { formatDate, toDateInput } from '../../lib/format';
 
 const SECTIONS = [
     { id: 'identity', label: 'Identity', icon: 'user' },
@@ -84,6 +84,10 @@ function initialForm(intern) {
         end_date: toDateInput(intern?.end_date),
         status: intern?.status ?? 'Active',
         responsibilities: intern?.responsibilities ?? '',
+        is_extended: intern?.is_extended ?? false,
+        original_end_date: toDateInput(intern?.original_end_date),
+        extension_reason: intern?.extension_reason ?? '',
+        extension_duration: intern?.extension_duration ?? '',
     };
 }
 
@@ -330,6 +334,13 @@ export default function InternFormModal({
 
                     {section === 'internship' && (
                         <div className="form-grid">
+                            {form.is_extended && (
+                                <div className="form-grid__full">
+                                    <Alert variant="warning" icon="clock">
+                                        <strong>Extension Period Active:</strong> This intern was extended from original end date {formatDate(form.original_end_date)}. Reason: {form.extension_reason || 'Extension granted'}.
+                                    </Alert>
+                                </div>
+                            )}
                             <Input
                                 label="Organisation"
                                 value={form.organization}

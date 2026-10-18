@@ -39,6 +39,11 @@ class InternBase(BaseModel):
     end_date: date | None = None
     duration: str | None = Field(default=None, max_length=100)
     status: str | None = Field(default="Active", max_length=100)
+    is_extended: bool = False
+    original_end_date: date | None = None
+    extension_reason: str | None = Field(default=None, max_length=500)
+    extension_date: date | None = None
+    extension_duration: str | None = Field(default=None, max_length=100)
 
     # Work
     work_year: str | None = Field(default=None, max_length=100)
@@ -108,6 +113,11 @@ class InternUpdate(BaseModel):
     end_date: date | None = None
     duration: str | None = Field(default=None, max_length=100)
     status: str | None = Field(default=None, max_length=100)
+    is_extended: bool | None = None
+    original_end_date: date | None = None
+    extension_reason: str | None = Field(default=None, max_length=500)
+    extension_date: date | None = None
+    extension_duration: str | None = Field(default=None, max_length=100)
     work_year: str | None = Field(default=None, max_length=100)
     work_domain: str | None = Field(default=None, max_length=100)
     responsibilities: str | None = Field(default=None, max_length=500)
@@ -136,3 +146,10 @@ class InternResponse(InternBase):
     id: int
 
     model_config = {"from_attributes": True}
+
+
+class InternExtendRequest(BaseModel):
+    new_end_date: date
+    reason: str = Field(min_length=3, max_length=500)
+    extension_duration: str | None = Field(default=None, max_length=100)
+    updated_duration: str | None = Field(default=None, max_length=100)

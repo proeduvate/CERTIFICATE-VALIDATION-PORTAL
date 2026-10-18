@@ -24,6 +24,10 @@ class PublicInternship(BaseModel):
     end_date: date | None = None
     duration: str | None = None
     status: str | None = None
+    is_extended: bool | None = False
+    original_end_date: date | None = None
+    extension_reason: str | None = None
+    extension_duration: str | None = None
 
 
 class PublicCertificate(BaseModel):

@@ -59,6 +59,7 @@ def list_lors(
             status=intern.status,
             verification_status=intern.verification_status or "Pending",
             file_path=intern.lor,
+            is_extended=intern.is_extended,
         )
         for intern in interns
     ]

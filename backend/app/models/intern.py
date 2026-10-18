@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Date, Float, LargeBinary
+from sqlalchemy import Column, Integer, String, Date, Float, LargeBinary, Boolean
 from sqlalchemy.orm import relationship
 from app.db.base_class import Base
 
@@ -36,6 +36,13 @@ class Intern(Base):
     end_date = Column(Date)
     duration = Column(String(100))
     status = Column(String(100))
+
+    # Extension tracking
+    is_extended = Column(Boolean, default=False, nullable=False)
+    original_end_date = Column(Date, nullable=True)
+    extension_reason = Column(String(500), nullable=True)
+    extension_date = Column(Date, nullable=True)
+    extension_duration = Column(String(100), nullable=True)
 
     # work tab
     work_year = Column(String(100))

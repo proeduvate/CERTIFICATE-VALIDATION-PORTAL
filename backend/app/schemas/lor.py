@@ -23,3 +23,4 @@ class LorListItem(BaseModel):
     status: str | None = None
     verification_status: str | None = None
     file_path: str | None = None
+    is_extended: bool | None = False

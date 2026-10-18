@@ -356,6 +356,12 @@ export default function Certificates() {
                                                         </Badge>
                                                     )}
 
+                                                    {cert.is_extended && (
+                                                        <Badge variant="warning" dot style={{ fontSize: '0.7rem' }}>
+                                                            Extended
+                                                        </Badge>
+                                                    )}
+
                                                     {String(cert.internship_status).toLowerCase() === 'completed' ? (
                                                         <Badge variant="primary" dot>
                                                             Completed

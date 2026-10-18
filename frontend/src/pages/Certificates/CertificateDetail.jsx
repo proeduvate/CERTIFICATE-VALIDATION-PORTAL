@@ -253,6 +253,19 @@ export default function CertificateDetail() {
                                         ),
                                     },
                                     {
+                                        key: 'Internship period',
+                                        value: info.start_date && info.end_date ? (
+                                            <div>
+                                                <div>{formatDate(info.start_date)} – {formatDate(info.end_date)}</div>
+                                                {info.is_extended && (
+                                                    <Badge variant="warning" dot style={{ fontSize: '0.7rem', marginTop: '2px' }}>
+                                                        Extended
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                        ) : '—',
+                                    },
+                                    {
                                         key: 'Issued by',
                                         value: `${APP.name} Academic Board`,
                                     },

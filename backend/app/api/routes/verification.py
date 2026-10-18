@@ -155,6 +155,10 @@ def verify_by_intern_id(intern_id: str, db: Session = Depends(get_db)):
             "end_date": intern.end_date,
             "duration": intern.duration,
             "status": intern.status,
+            "is_extended": intern.is_extended,
+            "original_end_date": intern.original_end_date,
+            "extension_reason": intern.extension_reason,
+            "extension_duration": intern.extension_duration,
         },
         "certificate": (
             {

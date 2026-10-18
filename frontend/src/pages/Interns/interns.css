@@ -311,3 +311,22 @@
     background: var(--accent-soft);
     color: var(--accent);
 }
+
+/* Extension period callout banner */
+.extension-banner {
+    position: relative;
+    overflow: hidden;
+    transition: box-shadow var(--transition-base);
+}
+
+.extension-banner::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: #f59e0b;
+    border-radius: 4px 0 0 4px;
+}
+

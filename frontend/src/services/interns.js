@@ -100,6 +100,10 @@ export function toInternPayload(form = {}) {
         end_date: text(form.end_date),
         status: text(form.status),
         responsibilities: text(form.responsibilities),
+        is_extended: Boolean(form.is_extended),
+        original_end_date: text(form.original_end_date),
+        extension_reason: text(form.extension_reason),
+        extension_duration: text(form.extension_duration),
     };
 }
 
@@ -172,6 +176,16 @@ export function terminateIntern(id) {
 /** Undo a completion or termination. */
 export function reopenIntern(id) {
     return api.post(`/interns/${id}/reopen`);
+}
+
+/** Extend internship duration with reason and new end date. */
+export function extendIntern(id, payload) {
+    return api.post(`/interns/${id}/extend`, payload);
+}
+
+/** Revert an extension back to the original end date. */
+export function revertInternExtension(id) {
+    return api.post(`/interns/${id}/revert-extension`);
 }
 
 /** Public document collection lookup (no auth). */

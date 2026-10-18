@@ -37,6 +37,7 @@ class CertificateListItem(CertificateResponse):
     intern_code: str | None = None
     verification_status: str | None = None
     internship_status: str | None = None
+    is_extended: bool | None = False
 
 
 class PublicCertificateResponse(BaseModel):
@@ -53,3 +54,5 @@ class PublicCertificateResponse(BaseModel):
     duration: str | None = None
     file_path: str | None = None
     is_frozen: bool = False
+    is_extended: bool | None = False
+    original_end_date: date | None = None

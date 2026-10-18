@@ -100,6 +100,8 @@ def verify_certificate(certificate_number: str, db: Session = Depends(get_db)):
         duration=intern.duration,
         file_path=certificate.file_path,
         is_frozen=certificate.is_frozen,
+        is_extended=intern.is_extended if intern else False,
+        original_end_date=intern.original_end_date if intern else None,
     )
 
 
@@ -136,6 +138,9 @@ def get_certificates(
             ),
             internship_status=(
                 certificate.intern.status if certificate.intern else None
+            ),
+            is_extended=(
+                certificate.intern.is_extended if certificate.intern else False
             ),
         )
         for certificate in certificates
